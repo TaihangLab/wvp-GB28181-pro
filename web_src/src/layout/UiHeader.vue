@@ -4,24 +4,6 @@
     <el-menu router :default-active="activeIndex" menu-trigger="click" background-color="#001529" text-color="#fff"
              active-text-color="#1890ff" mode="horizontal">
 
-      <!-- 新增视频监控菜单，将多个菜单项移入其中 -->
-      <el-submenu index="/videoMonitor">
-        <template slot="title">视频监控</template>
-        <el-menu-item index="/console">控制台</el-menu-item>
-        <el-menu-item index="/live">分屏监控</el-menu-item>
-        <el-menu-item index="/deviceList">国标设备</el-menu-item>
-        <el-menu-item index="/streamPushList">推流列表</el-menu-item>
-        <el-menu-item index="/streamProxyList">拉流代理</el-menu-item>
-        <el-menu-item index="/recordPlan">录制计划</el-menu-item>
-        <el-menu-item index="/cloudRecord">云端录像</el-menu-item>
-        <el-menu-item index="/mediaServerManger">节点管理</el-menu-item>
-        <el-menu-item index="/platformList/15/1">国标级联</el-menu-item>
-        <el-submenu index="/channel">
-          <template slot="title">通道管理</template>
-          <el-menu-item index="/channel/region">行政区划</el-menu-item>
-          <el-menu-item index="/channel/group">业务分组</el-menu-item>
-        </el-submenu>
-      </el-submenu>
       
       <!-- 新增监控预警菜单 -->
       <el-submenu index="/monitoring">
@@ -65,6 +47,25 @@
       <el-submenu index="/visualAI">
         <template slot="title">可视中心</template>
         <el-menu-item index="/visualCenter">可视中心首页</el-menu-item>
+      </el-submenu>
+      
+      <!-- 新增视频监控菜单，将多个菜单项移入其中 -->
+      <el-submenu index="/videoMonitor">
+        <template slot="title">WVP</template>
+        <el-menu-item index="/console">控制台</el-menu-item>
+        <el-menu-item index="/live">分屏监控</el-menu-item>
+        <el-menu-item index="/deviceList">国标设备</el-menu-item>
+        <el-menu-item index="/streamPushList">推流列表</el-menu-item>
+        <el-menu-item index="/streamProxyList">拉流代理</el-menu-item>
+        <el-menu-item index="/recordPlan">录制计划</el-menu-item>
+        <el-menu-item index="/cloudRecord">云端录像</el-menu-item>
+        <el-menu-item index="/mediaServerManger">节点管理</el-menu-item>
+        <el-menu-item index="/platformList/15/1">国标级联</el-menu-item>
+        <el-submenu index="/channel">
+          <template slot="title">通道管理</template>
+          <el-menu-item index="/channel/region">行政区划</el-menu-item>
+          <el-menu-item index="/channel/group">业务分组</el-menu-item>
+        </el-submenu>
       </el-submenu>
       
       <el-menu-item v-if="editUser" index="/userManager">用户管理</el-menu-item>
