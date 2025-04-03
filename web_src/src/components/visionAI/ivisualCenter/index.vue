@@ -117,7 +117,7 @@
               </div>
               <div class="info-tip">
                 <i class="el-icon-info"></i>
-                提示：鼠标拖动可旋转视角，滚轮可缩放
+                提示：鼠标拖动可旋转视角
               </div>
             </div>
           </div>

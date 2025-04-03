@@ -1,23 +1,80 @@
 <template>
-  <div id="ConsoleDisk" style="width: 100%; height: 100%; background: #FFFFFF; text-align: center">
-    <!-- 使用普通div替代v-charts组件 -->
-    <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-      <p>磁盘使用情况</p>
-    </div>
+  <div id="ConsoleNet" style="width: 100%; height: 100%; background: #FFFFFF; text-align: center">
+    <ve-bar ref="ConsoleNet" :data="chartData" :extend="extend" :settings="chartSettings" width="100%" height="100%" ></ve-bar>
   </div>
 </template>
 
 <script>
+
+
+import moment from "moment/moment";
+
 export default {
-  name: 'ConsoleDisk',
+  name: 'ConsoleNet',
   data() {
     return {
-      // 空数据
+      chartData: {
+        columns: ['path','free','use'],
+        rows: []
+      },
+      chartSettings: {
+        stack: {
+          'xxx': ['free', 'use']
+        },
+        labelMap: {
+          'free': '剩余',
+          'use': '已使用'
+        },
+      },
+      extend: {
+        title: {
+          show: true,
+          text: "磁盘",
+          left: "center",
+          top: 20,
+        },
+        grid: {
+          show: true,
+          right: "30px",
+          containLabel: true,
+        },
+        series: {
+          barWidth: 30
+        },
+        legend: {
+          left: "center",
+          bottom: "15px",
+        },
+        tooltip: {
+          trigger: 'axis',
+          formatter: (data)=>{
+            console.log(data)
+            let relVal = "";
+            for (let i = 0; i < data.length; i++) {
+              relVal +=  data[i].marker + data[i].seriesName + ":" + data[i].value.toFixed(2) + "GB"
+              if (i < data.length - 1) {
+                relVal += "</br>";
+              }
+            }
+            return relVal;
+          }
+        },
+
+      }
     };
+  },
+  mounted() {
+    this.$nextTick(_ => {
+      setTimeout(()=>{
+        this.$refs.ConsoleNet.echarts.resize()
+      }, 100)
+    })
+  },
+  destroyed() {
   },
   methods: {
     setData: function(data) {
-      // 空方法
+      this.chartData.rows = data;
     }
   }
 };
