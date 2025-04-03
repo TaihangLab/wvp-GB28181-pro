@@ -10,6 +10,10 @@
       <el-menu-item index="/deviceList">国标设备</el-menu-item>
       <el-menu-item index="/streamPushList">推流列表</el-menu-item>
       <el-menu-item index="/streamProxyList">拉流代理</el-menu-item>
+      <el-submenu index="/visualAI">
+        <template slot="title">可视中心</template>
+        <el-menu-item index="/visualCenter">可视中心首页</el-menu-item>
+      </el-submenu>
       <el-submenu index="/channel">
         <template slot="title">通道管理</template>
         <el-menu-item index="/channel/region">行政区划</el-menu-item>
