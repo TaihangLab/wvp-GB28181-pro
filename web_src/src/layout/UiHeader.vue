@@ -2,7 +2,7 @@
   <div id="UiHeader">
 
     <el-menu router :default-active="activeIndex" menu-trigger="click" background-color="#001529" text-color="#fff"
-             active-text-color="#1890ff" mode="horizontal">
+             active-text-color="#1890ff" mode="horizontal" :unique-opened="true">
 
       
       <!-- 新增监控预警菜单 -->
@@ -126,8 +126,30 @@ export default {
     setTimeout(() => {
       this.sseControl()
     }, 3000);
+    
+    // 添加自定义菜单交互逻辑
+    this.setupMenuInteraction();
   },
   methods: {
+    // 添加自定义菜单交互逻辑
+    setupMenuInteraction() {
+      // 为了确保水平菜单在展开时关闭其他菜单
+      const submenus = document.querySelectorAll('.el-submenu');
+      submenus.forEach(submenu => {
+        submenu.addEventListener('mouseenter', () => {
+          // 当鼠标进入一个菜单时，关闭其他所有菜单
+          submenus.forEach(otherSubmenu => {
+            if (otherSubmenu !== submenu && otherSubmenu.classList.contains('is-opened')) {
+              // 模拟点击事件来关闭其他打开的菜单
+              const title = otherSubmenu.querySelector('.el-submenu__title');
+              if (title && !submenu.contains(otherSubmenu)) {
+                title.click();
+              }
+            }
+          });
+        });
+      });
+    },
     loginout() {
       this.$axios({
         method: 'get',
