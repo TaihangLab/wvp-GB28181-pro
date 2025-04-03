@@ -3,9 +3,12 @@
   <div class="limiter">
     <div class="container-login100">
       <div class="wrap-login100">
-					<span class="login100-form-title p-b-26">WVP视频平台</span>
+          
+					<span class="login100-form-title p-b-26">
+						<img src="static/logo.png" alt="太行视觉AI平台" style="max-width: 40px; margin-bottom: -10px;margin-right: 10px;">
+						太行视觉AI平台
+					</span>
           <span class="login100-form-title p-b-48">
-						<i class="fa fa-video-camera"></i>
 					</span>
 
           <div class="wrap-input100 validate-input" data-validate = "Valid email is: a@b.c">
