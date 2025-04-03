@@ -4,25 +4,69 @@
     <el-menu router :default-active="activeIndex" menu-trigger="click" background-color="#001529" text-color="#fff"
              active-text-color="#1890ff" mode="horizontal">
 
-      <el-menu-item index="/console">控制台</el-menu-item>
-      <el-menu-item index="/live">分屏监控</el-menu-item>
-<!--      <el-menu-item index="/map">电子地图</el-menu-item>-->
-      <el-menu-item index="/deviceList">国标设备</el-menu-item>
-      <el-menu-item index="/streamPushList">推流列表</el-menu-item>
-      <el-menu-item index="/streamProxyList">拉流代理</el-menu-item>
+      <!-- 新增视频监控菜单，将多个菜单项移入其中 -->
+      <el-submenu index="/videoMonitor">
+        <template slot="title">视频监控</template>
+        <el-menu-item index="/console">控制台</el-menu-item>
+        <el-menu-item index="/live">分屏监控</el-menu-item>
+        <el-menu-item index="/deviceList">国标设备</el-menu-item>
+        <el-menu-item index="/streamPushList">推流列表</el-menu-item>
+        <el-menu-item index="/streamProxyList">拉流代理</el-menu-item>
+        <el-menu-item index="/recordPlan">录制计划</el-menu-item>
+        <el-menu-item index="/cloudRecord">云端录像</el-menu-item>
+        <el-menu-item index="/mediaServerManger">节点管理</el-menu-item>
+        <el-menu-item index="/platformList/15/1">国标级联</el-menu-item>
+        <el-submenu index="/channel">
+          <template slot="title">通道管理</template>
+          <el-menu-item index="/channel/region">行政区划</el-menu-item>
+          <el-menu-item index="/channel/group">业务分组</el-menu-item>
+        </el-submenu>
+      </el-submenu>
+      
+      <!-- 新增监控预警菜单 -->
+      <el-submenu index="/monitoring">
+        <template slot="title">监控预警</template>
+        <el-menu-item index="/monitoring/realtime">实时监控</el-menu-item>
+        <el-menu-item index="/monitoring/statistics">统计分析</el-menu-item>
+        <el-menu-item index="/monitoring/warningArchive">预警档案</el-menu-item>
+        <el-menu-item index="/monitoring/warningManage">预警管理</el-menu-item>
+      </el-submenu>
+      
+      <!-- 新增设备管理菜单 -->
+      <el-submenu index="/deviceManage">
+        <template slot="title">设备管理</template>
+        <el-menu-item index="/deviceManage/camera">摄像头</el-menu-item>
+      </el-submenu>
+      
+      <!-- 新增模型管理菜单 -->
+      <el-submenu index="/modelManage">
+        <template slot="title">模型管理</template>
+        <el-menu-item index="/modelManage/modelList">模型列表</el-menu-item>
+      </el-submenu>
+      
+      <!-- 新增技能管理菜单 -->
+      <el-submenu index="/skillManage">
+        <template slot="title">技能管理</template>
+        <el-menu-item index="/skillManage/deviceSkill">设备技能列表</el-menu-item>
+      </el-submenu>
+      
+      <!-- 新增智能管控菜单 -->
+      <el-submenu index="/intelligentControl">
+        <template slot="title">智能管控</template>
+        <el-menu-item index="/intelligentControl/logRecord">日志记录</el-menu-item>
+      </el-submenu>
+      
+      <!-- 新增边缘管理菜单 -->
+      <el-submenu index="/edgeManage">
+        <template slot="title">边缘管理</template>
+        <el-menu-item index="/edgeManage/edgeServer">边缘服务器</el-menu-item>
+      </el-submenu>
+      
       <el-submenu index="/visualAI">
         <template slot="title">可视中心</template>
         <el-menu-item index="/visualCenter">可视中心首页</el-menu-item>
       </el-submenu>
-      <el-submenu index="/channel">
-        <template slot="title">通道管理</template>
-        <el-menu-item index="/channel/region">行政区划</el-menu-item>
-        <el-menu-item index="/channel/group">业务分组</el-menu-item>
-      </el-submenu>
-      <el-menu-item index="/recordPlan">录制计划</el-menu-item>
-      <el-menu-item index="/cloudRecord">云端录像</el-menu-item>
-      <el-menu-item index="/mediaServerManger">节点管理</el-menu-item>
-      <el-menu-item index="/platformList/15/1">国标级联</el-menu-item>
+      
       <el-menu-item v-if="editUser" index="/userManager">用户管理</el-menu-item>
       <el-menu-item index="/operations">运维中心</el-menu-item>
 
