@@ -28,6 +28,10 @@ import group from '../components/group.vue'
 import operations from '../components/operations.vue'
 import recordPLan from '../components/RecordPLan.vue'
 import visualCenter from '../components/visionAI/ivisualCenter/index.vue'
+import realTimeMonitoring from '../components/visionAI/monitoringWarning/realTimeMonitoring.vue'
+import statisticsAnalysis from '../components/visionAI/monitoringWarning/statisticsAnalysis.vue'
+import warningArchives from '../components/visionAI/monitoringWarning/warningArchives.vue'
+import warningManagement from '../components/visionAI/monitoringWarning/warningManagement.vue'
 
 const originalPush = VueRouter.prototype.push
 VueRouter.prototype.push = function push(location) {
@@ -69,6 +73,26 @@ export default new VueRouter({
         {
           path: '/visualCenter',
           component: visualCenter,
+        },
+        {
+          path: '/monitoring/realtime',
+          name: 'realTimeMonitoring',
+          component: realTimeMonitoring,
+        },
+        {
+          path: '/monitoring/statistics',
+          name: 'statisticsAnalysis',
+          component: statisticsAnalysis,
+        },
+        {
+          path: '/monitoring/warningArchive',
+          name: 'warningArchives',
+          component: warningArchives,
+        },
+        {
+          path: '/monitoring/warningManage',
+          name: 'warningManagement',
+          component: warningManagement,
         },
         {
           path: '/channelList/:deviceId/:parentChannelId/',
