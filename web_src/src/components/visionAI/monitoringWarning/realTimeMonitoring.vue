@@ -202,17 +202,18 @@ export default {
 
 <style scoped>
 .page-container {
-  height: calc(100vh - 120px); /* 预留顶部菜单栏空间 */
-  min-height: 700px;
-  display: flex;
+  height: 100vh;
+  margin: 0;
   padding: 16px;
   gap: 16px;
-  background: #f0f2f5;
-  overflow: auto;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+  display: flex;
+  overflow: hidden;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
-/* 左侧设备列表样式 */
+/* 左侧设备列表样式调整 - 增强色彩 */
 .device-list {
   width: 240px;
   background: white;
@@ -220,47 +221,58 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  max-height: calc(100vh - 32px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border-top: 3px solid #409eff;
 }
 
 .device-list .list-header {
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: bold;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  border-bottom: 1px solid #ebeef5;
+  background: linear-gradient(to right, #f0f5ff, #f5f7fa);
+  color: #303133;
 }
 
 .device-list .list-content {
   flex: 1;
-  padding: 4px;
+  padding: 8px;
   overflow-y: auto;
 }
 
 .device-list .list-content .device-item {
-  padding: 6px 12px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
+  color: #303133;
+  border-radius: 4px;
+  margin-bottom: 4px;
 }
 
 .device-list .list-content .device-item:hover {
-  background: #f5f5f5;
+  background: #f5f7fa;
 }
 
 .device-list .list-content .device-item .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #52c41a;
+  background: #67c23a;
+  box-shadow: 0 0 0 2px rgba(103, 194, 58, 0.2);
 }
 
 .device-list .list-content .device-item.offline {
-  color: #999;
+  color: #909399;
 }
 
 .device-list .list-content .device-item.offline .status-dot {
-  background: #ff4d4f;
+  background: #f56c6c;
+  box-shadow: 0 0 0 2px rgba(245, 108, 108, 0.2);
 }
 
 /* 中间监控区域样式 */
@@ -269,41 +281,77 @@ export default {
   display: flex;
   flex-direction: column;
   min-width: 600px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding-top: 8px;
   height: 100%;
+  max-height: calc(100vh - 32px);
 }
 
 .monitoring-container .toolbar {
-  padding: 4px 0;
-  margin-bottom: 8px;
+  padding: 6px 0;
+  margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+}
+
+.monitoring-container .toolbar::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(64, 158, 255, 0.3), transparent);
 }
 
 .monitoring-container .toolbar .view-modes {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .monitoring-container .toolbar .view-modes button {
-  padding: 4px 12px;
-  border: 1px solid #d9d9d9;
+  padding: 6px 14px;
+  border: none;
   border-radius: 4px;
   background: white;
   cursor: pointer;
   font-size: 13px;
+  transition: all 0.3s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  color: #606266;
+}
+
+.monitoring-container .toolbar .view-modes button::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 0;
+  background: linear-gradient(to bottom, rgba(64, 158, 255, 0.1), transparent);
+  transition: height 0.3s;
 }
 
 .monitoring-container .toolbar .view-modes button:hover {
-  color: #1890ff;
-  border-color: #1890ff;
+  color: #409eff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.monitoring-container .toolbar .view-modes button:hover::before {
+  height: 100%;
 }
 
 .monitoring-container .toolbar .view-modes button.active {
-  color: #1890ff;
-  border-color: #1890ff;
+  color: white;
+  border-color: #409eff;
+  background: linear-gradient(135deg, #409eff, #1890ff);
+  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.25);
 }
 
 .monitoring-container .toolbar .fullscreen-btn {
@@ -311,14 +359,44 @@ export default {
   align-items: center;
   gap: 6px;
   padding: 6px 16px;
-  border: 1px solid #d9d9d9;
+  border: none;
   border-radius: 4px;
-  background: linear-gradient(to bottom, #ffffff, #fafafa);
+  background: white;
   cursor: pointer;
   font-size: 13px;
-  color: #333;
+  color: #606266;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.monitoring-container .toolbar .fullscreen-btn::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 0;
+  background: linear-gradient(to bottom, rgba(64, 158, 255, 0.1), transparent);
+  transition: height 0.3s;
+}
+
+.monitoring-container .toolbar .fullscreen-btn:hover::before {
+  height: 100%;
+}
+
+.monitoring-container .toolbar .fullscreen-btn:hover:not(.disabled) {
+  color: #409eff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.monitoring-container .toolbar .fullscreen-btn.active {
+  background: linear-gradient(135deg, #409eff, #1890ff);
+  color: white;
+  border-color: #409eff;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
 }
 
 .monitoring-container .toolbar .fullscreen-btn .btn-icon {
@@ -331,50 +409,31 @@ export default {
   display: inline-block;
   width: 14px;
   height: 14px;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%231890ff"><path d="M3 3h7v2H5v5H3V3m18 0h-7v2h5v5h2V3M3 21h7v-2H5v-5H3v7m18 0h-7v-2h5v-5h2v7"/></svg>');
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23409eff"><path d="M3 3h7v2H5v5H3V3m18 0h-7v2h5v5h2V3M3 21h7v-2H5v-5H3v7m18 0h-7v-2h5v-5h2v7"/></svg>');
   background-size: cover;
   transition: all 0.3s ease;
-}
-
-.monitoring-container .toolbar .fullscreen-btn:hover:not(.disabled) {
-  background: linear-gradient(to bottom, #ffffff, #f0f7ff);
-  border-color: #1890ff;
-  color: #1890ff;
-  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.15);
-}
-
-.monitoring-container .toolbar .fullscreen-btn.active {
-  background: #1890ff;
-  color: white;
-  border-color: #1890ff;
-  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.25);
 }
 
 .monitoring-container .toolbar .fullscreen-btn.active .fullscreen-icon {
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffffff"><path d="M3 3h7v2H5v5H3V3m18 0h-7v2h5v5h2V3M3 21h7v-2H5v-5H3v7m18 0h-7v-2h5v-5h2v7"/></svg>');
 }
 
-.monitoring-container .toolbar .fullscreen-btn.active:hover {
-  background: #40a9ff;
-  border-color: #40a9ff;
+.monitoring-container .toolbar .fullscreen-btn .btn-text {
+  font-weight: 500;
 }
 
 .monitoring-container .toolbar .fullscreen-btn.disabled {
   cursor: not-allowed;
   opacity: 0.6;
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  box-shadow: none;
-}
-
-.monitoring-container .toolbar .fullscreen-btn .btn-text {
-  font-weight: 500;
+  background: #f5f7fa;
+  border-color: #e4e7ed;
+  color: #c0c4cc;
 }
 
 .monitoring-container .video-grid {
   display: grid;
-  gap: 8px;
-  height: 500px;
+  gap: 12px;
+  height: calc(100vh - 130px);
 }
 
 .monitoring-container .video-grid.single {
@@ -393,27 +452,34 @@ export default {
 
 .monitoring-container .video-grid .video-cell {
   background: white;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #e8e8e8;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   height: 100%;
   display: flex;
   flex-direction: column;
   cursor: pointer;
   transition: all 0.3s;
+  border: none;
 }
 
 .monitoring-container .video-grid .video-cell .video-header {
-  padding: 4px 8px;
-  background: #fafafa;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 6px 10px;
+  background: linear-gradient(to right, #0062cc, #1890ff);
+  border-bottom: none;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 13px;
+  color: white;
 }
 
 .monitoring-container .video-grid .video-cell .video-content {
   flex: 1;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background-color: #171e2e;
 }
 
 .monitoring-container .video-grid .video-cell .video-content .video-placeholder {
@@ -422,20 +488,47 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: #1890ff;
+  background: linear-gradient(45deg, #0a1526, #1e3c72);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 14px;
+  border-radius: 0;
+}
+
+.monitoring-container .video-grid .video-cell .video-content .video-placeholder::before {
+  content: attr(data-timestamp);
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: monospace;
+  font-size: 12px;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  z-index: 3;
+}
+
+.monitoring-container .video-grid .video-cell .video-content .video-placeholder::after {
+  content: attr(data-camera);
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: monospace;
+  font-size: 12px;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  z-index: 3;
 }
 
 .monitoring-container .video-grid .video-cell:hover {
-  border-color: #1890ff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .monitoring-container .video-grid .video-cell.selected {
-  border: 2px solid #1890ff;
+  border: 2px solid #409eff;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.3);
 }
 
 .monitoring-container .video-grid .video-cell.fullscreen {
@@ -451,7 +544,32 @@ export default {
   grid-template-rows: 1fr;
 }
 
-/* 右侧预警列表样式 */
+/* 全屏模式下的水印文本样式 */
+body.camera-fullscreen-mode .video-cell .video-content .video-placeholder::before {
+  content: attr(data-timestamp) !important;
+  position: absolute !important;
+  left: 12px !important;
+  top: 12px !important;
+  color: #409eff !important;
+  font-family: monospace !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  z-index: 3 !important;
+}
+
+body.camera-fullscreen-mode .video-cell .video-content .video-placeholder::after {
+  content: attr(data-camera) !important;
+  position: absolute !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  color: #409eff !important;
+  font-family: monospace !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  z-index: 3 !important;
+}
+
+/* 右侧预警列表样式调整 */
 .warning-list {
   width: 300px;
   background: white;
@@ -459,66 +577,105 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  max-height: calc(100vh - 32px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border-top: 3px solid #f56c6c;
 }
 
 .warning-list .list-header {
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: bold;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  border-bottom: 1px solid #ebeef5;
+  background: linear-gradient(to right, #fff0f0, #fff5f5);
+  color: #f56c6c;
 }
 
 .warning-list .list-content {
   flex: 1;
-  padding: 4px;
+  padding: 12px;
   overflow-y: auto;
+  background-color: #fafbfc;
 }
 
 .warning-list .list-content .warning-item {
-  padding: 8px;
-  background: #fff1f0;
-  border-radius: 4px;
-  margin-bottom: 6px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  margin-bottom: 12px;
   font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: none;
+  position: relative;
+  overflow: hidden;
 }
 
 .warning-list .list-content .warning-item.high {
-  background: #fff1f0;
-  border-left: 3px solid #ff4d4f;
+  border-left: 4px solid #f56c6c;
+}
+
+.warning-list .list-content .warning-item.high::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 24px 24px 0;
+  border-color: transparent #ffeeee transparent transparent;
 }
 
 .warning-list .list-content .warning-item.medium {
-  background: #fff7e6;
-  border-left: 3px solid #ffa940;
+  border-left: 4px solid #e6a23c;
+}
+
+.warning-list .list-content .warning-item.medium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 24px 24px 0;
+  border-color: transparent #fff8e6 transparent transparent;
 }
 
 .warning-list .list-content .warning-item .warning-video {
   width: 100%;
-  height: 120px;
-  margin-bottom: 8px;
+  height: 130px;
+  margin-bottom: 10px;
   border-radius: 4px;
   overflow: hidden;
+  padding: 0;
+  position: relative;
 }
 
 .warning-list .list-content .warning-item .warning-video .video-placeholder {
   width: 100%;
   height: 100%;
-  background: #1890ff;
+  background: linear-gradient(45deg, #0a1526, #1e3c72);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 14px;
+  border-radius: 0;
 }
 
 .warning-list .list-content .warning-item .warning-info .warning-time {
   font-size: 12px;
-  color: #999;
-  margin-bottom: 2px;
+  color: #909399;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 
 .warning-list .list-content .warning-item .warning-info .warning-detail {
   font-size: 13px;
+  color: #303133;
+  font-weight: 500;
 }
 </style>
 
@@ -536,7 +693,7 @@ body.camera-fullscreen-mode .page-container {
   width: 100vw !important;
   padding: 0 !important;
   margin: 0 !important;
-  background: #000 !important;
+  background: linear-gradient(135deg, #0a1526, #1e3a70) !important;
 }
 
 /* 隐藏顶部菜单栏 */
@@ -560,18 +717,18 @@ body.camera-fullscreen-mode .monitoring-container {
 
 /* 全屏状态下视频网格占满屏幕 */
 body.camera-fullscreen-mode .video-grid {
-  height: calc(100vh - 60px) !important;
+  height: calc(100vh - 70px) !important;
 }
 
 /* 全屏状态下工具栏样式调整 */
 body.camera-fullscreen-mode .toolbar {
   background: rgba(0, 0, 0, 0.7) !important;
   padding: 8px 16px !important;
-  border-radius: 4px !important;
+  border-radius: 8px !important;
   margin-bottom: 16px !important;
   position: absolute !important;
-  top: 10px !important;
-  right: 10px !important;
+  top: 16px !important;
+  right: 16px !important;
   z-index: 10 !important;
   width: auto !important;
 }
@@ -597,18 +754,20 @@ body.camera-fullscreen-mode .video-cell {
   border-width: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
 }
 
 body.camera-fullscreen-mode .video-cell .video-header {
   background: rgba(0, 0, 0, 0.5) !important;
   color: white !important;
-  font-size: 14px !important;
-  padding: 8px !important;
+  font-size: 15px !important;
+  padding: 12px 16px !important;
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
   z-index: 2 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 body.camera-fullscreen-mode .video-cell .video-content {
@@ -621,18 +780,9 @@ body.camera-fullscreen-mode .video-cell .video-content {
 }
 
 body.camera-fullscreen-mode .video-cell .video-content .video-placeholder {
-  background: url("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAEsAZADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDOJpM0E0mavQwKTNGaTNNIY6im5paLFXFoptFFhcwUUlLSsK4UUUUCuFJS0lACUUppKBiUGlpKAsJRRRQMKSijigQUUUlMBaSnUlAxKSlxSUCEooPWkoGLSUtJQIKSikoAWkpaSgBKDRSUwCkpaSgApKWkoASkNLSGgBtJSmkoASilpKQxKQ0tIaYhtIaWkNSUMNFLikNMY004+XNIacRlM0hjKM0UU2UJmikNJmoLHUUmaKQXCiii5I6ikpQKLjHZozxTc0maLjJM0UgNFO47i5pM0AUtJiuJRRRSGFFFFABRRRQAUGikoADSUUlMAooooAKKKSgQ4GloFLTGJRRRQISiikoGFJS0lABSUtJQAlFFFMAoopKAA0lFJQACkpaSgANIaKQ0ANpDQaSgApKWkNIYlJS0hpgMNJinEU2pGANPzlaZTc8UxkYpKM0VMYUUUUAFFLikoGFFFNoAcDTqZT80aBYKKKKkYhpppaQ0DEop1NpgFFFFAgooooAKKKKACkoooEJRRSGmAUUlFAAaQ0tJSGJRRRTAKSlpKBAaSlpDQMQ0hpTSUDEpKWkoASiiigYUlLTaBAaQ0tIaAG0hpTSUhhSUtIaACkpTSGgBtJTqbTJG0lOpKQDadUNPBqkJokopu6lpoTQGmUuaY3WkDYlFAooJuFFFGaAFFFJS0FDs0lGKTFBIuafUeKkBpMaHUUUUhiE03FP7U3FMYlJTsUYoASikNJTAWkpaSgQlApcUlABRS4pKAEpDSmmmgApDQaQ0DEpDQaSgBDSUpptAwoNFJQAUlLSUAJSGlppoASim7qXNMQ6im5paQwzSZpc0maYDRThTaejZoaAfSGiiokFxhopTSVJQUlApKQgooopiBaeDUGakWpaKTJaKQ0hNIQppabS5pjFpabmlzSGFFFFACUUGmk0XHYWlpopwouAUmKKKQxhptPIplMApKWimIKQ0tJQMbSGlNJQAmaSiigBKaacabQAUhopDQAlJS0lAAabTjTaYCU006m0ALmim5opD1P//Z") !important;
-  background-size: cover !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 0 !important; /* 隐藏原文字 */
-  color: transparent !important;
+  background: linear-gradient(135deg, #102948, #1e3c72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* 添加监控视频常见的日期时间水印 */

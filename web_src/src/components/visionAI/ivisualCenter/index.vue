@@ -576,8 +576,9 @@ export default {
     
     // 更新当前时间
     updateCurrentTime() {
-      // 更改为固定时间，与截图一致
-      this.currentDetailTime = '2025-04-03 15:53:39';
+      // 获取实时时间
+      const now = new Date();
+      this.currentDetailTime = this.formatDate(now, 'yyyy-MM-dd HH:mm:ss');
     },
     
     // 切换全屏

@@ -625,7 +625,7 @@ export default {
       
       <!-- 预警卡片列表 -->
       <div class="warning-cards-container">
-        <el-row :gutter="16">
+        <el-row :gutter="12">
           <el-col 
             v-for="item in filteredWarningList" 
             :key="item.id" 
@@ -633,7 +633,7 @@ export default {
             :sm="12" 
             :md="8" 
             :lg="6" 
-            :xl="6"
+            :xl="4"
           >
             <div 
               class="warning-card" 
@@ -795,6 +795,7 @@ export default {
   display: flex;
   flex-direction: column;
   padding: 16px;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -866,6 +867,8 @@ export default {
 .warning-cards-container {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1px 1px 0 1px;
 }
 
 .warning-card {
@@ -878,6 +881,10 @@ export default {
   position: relative;
   transition: all 0.25s;
   border-top: 3px solid transparent;
+  width: 100%;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .warning-card:hover {
@@ -913,6 +920,7 @@ export default {
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
 }
 
 .warning-icon {
@@ -932,17 +940,18 @@ export default {
 }
 
 .warning-content {
-  padding: 16px;
+  padding: 12px;
 }
 
 .warning-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: #303133;
-  margin: 0 0 12px 0;
+  margin: 0 0 10px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
 }
 
 .info-list {
@@ -951,8 +960,8 @@ export default {
 
 .info-item {
   display: flex;
-  margin-bottom: 8px;
-  font-size: 13px;
+  margin-bottom: 6px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -970,7 +979,7 @@ export default {
 }
 
 .time-item {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .time-item .time {
@@ -982,7 +991,7 @@ export default {
   display: flex;
   justify-content: flex-end;
   border-top: 1px solid #ebeef5;
-  padding-top: 12px;
+  padding-top: 10px;
 }
 
 .warning-footer .el-button {
@@ -1094,6 +1103,7 @@ export default {
   
   .select-wrapper {
     width: calc(33.33% - 8px);
+    min-width: 120px;
   }
   
   .filter-actions {
@@ -1116,6 +1126,11 @@ export default {
   .select-wrapper {
     width: 100%;
     margin-right: 0;
+  }
+  
+  .warning-management-container {
+    height: auto;
+    min-height: calc(100vh - 60px);
   }
 }
 
@@ -1164,5 +1179,16 @@ export default {
 
 .no-data p {
   font-size: 14px;
+}
+
+/* 调整行间距 */
+.el-row {
+  margin-left: -6px !important;
+  margin-right: -6px !important;
+}
+
+.el-col {
+  padding-left: 6px !important;
+  padding-right: 6px !important;
 }
 </style>
