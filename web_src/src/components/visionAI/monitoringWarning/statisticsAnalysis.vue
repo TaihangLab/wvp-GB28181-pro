@@ -717,9 +717,11 @@ export default {
   color: #fff;
   padding: 16px;
   position: relative;
+  width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  margin: 0 auto;
+  margin: 0;
+  overflow-x: hidden;
 }
 
 /* 顶部标题栏 */
@@ -1100,6 +1102,23 @@ export default {
   .level-chart,
   .top-chart {
     height: 300px;
+  }
+}
+
+/* 添加媒体查询确保在任何屏幕尺寸下内容都能充满整个宽度 */
+@media (min-width: 1200px) {
+  .visual-statistics {
+    padding: 16px 0;
+  }
+  
+  .header-bar,
+  .statistics-header,
+  .main-content {
+    padding-left: 16px;
+    padding-right: 16px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 }
 </style>
