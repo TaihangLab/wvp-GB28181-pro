@@ -32,6 +32,12 @@ import realTimeMonitoring from '../components/visionAI/monitoringWarning/realTim
 import statisticsAnalysis from '../components/visionAI/monitoringWarning/statisticsAnalysis.vue'
 import warningArchives from '../components/visionAI/monitoringWarning/warningArchives.vue'
 import warningManagement from '../components/visionAI/monitoringWarning/warningManagement.vue'
+import camera from '../components/visionAI/deviceManagement/camera.vue'
+import modelList from '../components/visionAI/modelManagement/modelList.vue'
+import deviceSkills from '../components/visionAI/skillManagement/deviceSkills.vue'
+import logRecords from '../components/visionAI/smartControl/logRecords.vue'
+import edgeServer from '../components/visionAI/edgeManagement/edgeServer.vue'
+import edgeBox from '../components/visionAI/edgeManagement/edgeBox.vue'
 
 const originalPush = VueRouter.prototype.push
 VueRouter.prototype.push = function push(location) {
@@ -93,6 +99,40 @@ export default new VueRouter({
           path: '/monitoring/warningManage',
           name: 'warningManagement',
           component: warningManagement,
+        },
+        {
+          path: '/deviceManage/camera',
+          name: 'camera',
+          component: camera,
+        },
+        {
+          path: '/device/camera',
+          redirect: '/deviceManage/camera'
+        },
+        {
+          path: '/modelManage/modelList',
+          name: 'modelList',
+          component: modelList,
+        },
+        {
+          path: '/skillManage/deviceSkills',
+          name: 'deviceSkills',
+          component: deviceSkills,
+        },
+        {
+          path: '/intelligentControl/logRecord',
+          name: 'logRecords',
+          component: logRecords,
+        },
+        {
+          path: '/edgeManage/edgeServer',
+          name: 'edgeServer',
+          component: edgeServer,
+        },
+        {
+          path: '/edgeManage/edgeBox',
+          name: 'edgeBox',
+          component: edgeBox,
         },
         {
           path: '/channelList/:deviceId/:parentChannelId/',

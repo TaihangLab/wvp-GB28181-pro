@@ -29,7 +29,7 @@
       <!-- 新增技能管理菜单 -->
       <el-submenu index="/skillManage">
         <template slot="title">技能管理</template>
-        <el-menu-item index="/skillManage/deviceSkill">设备技能列表</el-menu-item>
+        <el-menu-item index="/skillManage/deviceSkills">设备技能列表</el-menu-item>
       </el-submenu>
       
       <!-- 新增智能管控菜单 -->
@@ -42,6 +42,7 @@
       <el-submenu index="/edgeManage">
         <template slot="title">边缘管理</template>
         <el-menu-item index="/edgeManage/edgeServer">边缘服务器</el-menu-item>
+        <el-menu-item index="/edgeManage/edgeBox">边缘盒子</el-menu-item>
       </el-submenu>
       
       <el-submenu index="/visualAI">

@@ -1,16 +1,260 @@
-<script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import { Search, Plus, Edit, Delete, Setting, Refresh } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+<template>
+  <div>
+    <div class="camera-management">
+      <!-- 左侧设备树 -->
+      <div class="device-tree">
+        <h3 class="tree-title">设备目录</h3>
+        <el-input
+          v-model="searchKeyword"
+          placeholder="输入关键字搜索"
+          prefix-icon="search"
+        />
+        <el-tree
+          :data="deviceTree"
+          :props="{ children: 'children', label: 'label' }"
+          default-expand-all
+          highlight-current
+          node-key="id"
+          class="custom-tree"
+        >
+          <template slot-scope="{ node }">
+            <span class="custom-tree-node">
+              <span>{{ node.label }}</span>
+              <el-tag
+                v-if="node.data.status"
+                :type="node.data.status === 'online' ? 'success' : 'danger'"
+                size="small"
+              >
+                {{ node.data.status === 'online' ? '在线' : '离线' }}
+              </el-tag>
+            </span>
+          </template>
+        </el-tree>
+      </div>
 
-interface TreeNode {
-  label: string;
-  children?: TreeNode[];
-  status?: 'online' | 'offline';
-}
+      <!-- 右侧设备列表 -->
+      <div class="device-list">
+        <div class="operation-bar">
+          <div class="left-operations">
+            <el-button type="primary" @click="handleAddDevice">
+              <i class="el-icon-plus"></i>添加摄像头
+            </el-button>
+            <el-button type="danger" @click="handleBatchDelete" :disabled="selectedDevices.length === 0">
+              <i class="el-icon-delete"></i>批量删除
+            </el-button>
+          </div>
+          <div class="right-operations">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="请输入设备名称搜索"
+              style="width: 200px"
+              clearable
+            >
+              <i slot="prefix" style="align-items: center; display: flex; height: 40px;" class="el-icon-search"></i>
+            </el-input>
+            <el-button 
+              type="primary" 
+              icon="el-icon-refresh" 
+              circle 
+              @click="handleRefresh"
+              class="search-button"
+            />
+          </div>
+        </div>
 
+        <el-table 
+          :data="deviceList" 
+          style="width: 100%"
+          @selection-change="handleSelectionChange"
+        >
+          <el-table-column type="selection" width="55" align="center" />
+          <el-table-column prop="name" label="摄像头名称" align="center" />
+          <el-table-column prop="status" label="状态" align="center">
+            <template slot-scope="{ row }">
+              <el-tag :type="row.status === 'online' ? 'success' : 'danger'">
+                {{ row.status === 'online' ? '在线' : '离线' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="location" label="设备来源" align="center" />
+          <el-table-column prop="skill" label="视频技能" align="center" />
+          <el-table-column label="操作" width="280" align="center">
+            <template slot-scope="{ row }">
+              <el-button-group>
+                <el-button type="primary" size="small" icon="el-icon-setting" @click="handleConfigSkill(row)">配置技能</el-button>
+                <el-button type="primary" size="small" icon="el-icon-edit" @click="handleEdit(row)">编辑</el-button>
+                <el-button type="danger" size="small" icon="el-icon-delete" @click="handleDelete(row)">删除</el-button>
+              </el-button-group>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="pagination-container">
+          <el-pagination
+            :current-page.sync="currentPage"
+            :page-size.sync="pageSize"
+            :page-sizes="[10, 20, 30, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </div>
+
+      <!-- 添加设备对话框 -->
+      <el-dialog
+        :visible.sync="deviceDialogVisible"
+        title="添加摄像头"
+        width="450px"
+      >
+        <el-form :model="deviceForm" label-width="80px" class="skill-form">
+          <el-form-item label="设备名称">
+            <el-input v-model="deviceForm.name" style="width: 200pt;" />
+          </el-form-item>
+          <el-form-item label="设备类型">
+            <el-select v-model="deviceForm.type" placeholder="请选择设备类型" style="width: 200pt;">
+              <el-option label="监控摄像头" value="camera" />
+              <el-option label="AI摄像头" value="ai-camera" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="关联地点">
+            <el-input v-model="deviceForm.location" style="width: 200pt;"/>
+          </el-form-item>
+          <el-form-item label="设备技能">
+            <el-select
+              v-model="deviceForm.skills"
+              multiple
+              placeholder="请选择设备技能"
+              style="width: 200pt;"
+            >
+              <el-option label="未带安全帽检测" value="helmet" />
+              <el-option label="未穿工服检测" value="uniform" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="deviceDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmAddDevice">确认</el-button>
+        </span>
+      </el-dialog>
+
+      <!-- 配置技能对话框 -->
+      <el-dialog
+        title="配置技能"
+        :visible.sync="skillDialogVisible"
+        width="650px"
+        :close-on-click-modal="false"
+        @close="handleClose"
+      >
+      <el-form :model="skillForm" label-width="85px" :rules="rules" ref="skillForm" class="skill-form">
+          <el-form-item label="选择技能" required prop="selectedSkill">
+            <el-select 
+              v-model="skillForm.selectedSkill" 
+              placeholder="请选择技能" 
+              style="width: 100%"
+              popper-class="skill-select"
+            >
+              <el-option v-for="item in skillOptions" :key="item.value" :label="item.label" :value="item.value"/>
+            </el-select>
+          </el-form-item>
+          
+          
+          <el-form-item label="预警等级" required prop="alarmLevel">
+            <el-select 
+              v-model="skillForm.alarmLevel" 
+              placeholder="请选择预警等级" 
+              style="width: 100%"
+              popper-class="alarm-select"
+            >
+              <el-option
+                  v-for="item in levelOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="技能状态" required prop="status">
+            <div class="status-wrapper">
+              <el-switch v-model="skillForm.status" class="status-switch" />
+            </div>
+          </el-form-item>
+          <el-form-item label="运行时段" required prop="timeRanges">
+            <div v-for="(timeRange, index) in skillForm.timeRanges" :key="index" class="time-range">
+              <el-time-picker
+                v-model="timeRange.start"
+                placeholder="开始时间"
+                format="HH:mm"
+                class="time-picker"
+              />
+              <span class="time-separator">-</span>
+              <el-time-picker
+                v-model="timeRange.end"
+                placeholder="结束时间"
+                format="HH:mm"
+                class="time-picker"
+              />
+              <el-button type="text" icon="el-icon-delete" @click="removeTimeRange(index)" style="margin-left: 15px;" />
+            </div>
+            <div class="add-time">
+              <el-link 
+                type="primary" 
+                @click="addTimeRange" 
+                :disabled="skillForm.timeRanges.length >= 3"
+                class="add-time-link"
+              >
+                + 添加时间 ({{ skillForm.timeRanges.length }}/3)
+              </el-link>
+            </div>
+          </el-form-item>
+          <el-form-item label="抽帧频率" required prop="frequency">
+            <div class="frequency-input">
+              <span>每</span>
+              <el-input-number 
+                v-model="skillForm.frequency.seconds" 
+                :min="1"
+                :max="99"
+                controls-position="right"
+                class="number-input"
+              />
+              <span>秒</span>
+              <span>抽取</span>
+              <el-input-number 
+                v-model="skillForm.frequency.frames" 
+                :min="1"
+                :max="99"
+                controls-position="right"
+                class="number-input"
+              />
+              <span>帧</span>
+            </div>
+            <div class="frequency-tip">支持设置多秒1帧1秒多帧，不支持多秒多帧设置</div>
+          </el-form-item>
+
+
+          <el-form-item label="电子围栏" style="margin-left: 10px;" >
+            <span class="fence-count">0/1</span>
+            <el-button type="primary" plain size="small" class="add-fence-btn">去添加</el-button>
+          </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="skillDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleConfirm">确定</el-button>
+        </div>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'CameraManagement',
+  data() {
+    return {
 // 设备树数据
-const deviceTree = ref<TreeNode[]>([
+      deviceTree: [
   {
     label: '电力行业',
     children: [
@@ -25,13 +269,13 @@ const deviceTree = ref<TreeNode[]>([
       { label: '消防设备', status: 'offline' }
     ]
   }
-])
+      ],
 
 // 搜索关键词
-const searchKeyword = ref('')
+      searchKeyword: '',
 
 // 设备列表数据
-const deviceList = ref([
+      deviceList: [
   {
     id: '1',
     name: '监控设备1',
@@ -96,39 +340,124 @@ const deviceList = ref([
     skill: 'ks_xuangan_detect_851_v1_0',
     createTime: '2024-03-13'
   }
-])
+      ],
+      
+      // 原始设备列表数据（用于搜索和刷新）
+      originalDeviceList: [],
 
 // 添加设备对话框
-const dialogVisible = ref(false)
-const deviceForm = ref({
+      deviceDialogVisible: false,
+      deviceForm: {
   name: '',
   type: '',
   location: '',
   skills: []
-})
-
-// 处理添加设备
-const handleAddDevice = () => {
-  dialogVisible.value = true
-}
+      },
 
 // 新增：选中的设备列表
-const selectedDevices = ref<string[]>([])
+      selectedDevices: [],
+      
+      // 添加分页相关的数据
+      currentPage: 1,
+      pageSize: 10,
+      total: 0,
+      
+      // 配置技能对话框
+      skillDialogVisible: false,
+      skillForm: {
+        selectedSkill: '',
+        alarmLevel: '',
+        status: true,
+        timeRanges: [{
+          start: new Date(2024, 0, 1, 0, 0),
+          end: new Date(2024, 0, 1, 23, 59)
+        }],
+        frequency: {
+          seconds: 1,
+          frames: 1
+        },
+        images: []
+      },
+      
+      // 可选技能列表
+      skillOptions: [
+        { label: '未佩戴安全帽 (v7)', value: '未佩戴安全帽 (v7)' },
+        { label: '管道泄漏 (v2)', value: '管道泄漏 (v2)' },
+        { label: '烟雾识别 (v6)', value: '烟雾识别 (v6)' },
+        { label: '明火识别 (v3)', value: '明火识别 (v3)' },
+        { label: '人员摔倒 (v1)', value: '人员摔倒 (v1)' },
+        { label: '人员聚集 (v1)', value: '人员聚集 (v1)' },
+        { label: '人员离岗 (v2)', value: '人员离岗 (v2)' },
+        { label: '未穿工服 (v3)', value: '未穿工服 (v3)' }
+      ],
+      
+      // 预警等级选项
+      levelOptions: [
+        { label: '四级预警', value: '四级预警' },
+        { label: '三级预警', value: '三级预警' },
+        { label: '二级预警', value: '二级预警' },
+        { label: '一级预警', value: '一级预警' }
+      ],
+      
+      // 配置技能表单验证规则
+      rules: {
+        selectedSkill: [
+          { required: true, message: '请选择技能', trigger: 'change' }
+        ],
+        alarmLevel: [
+          { required: true, message: '请选择预警等级', trigger: 'change' }
+        ],
+        timeRanges: [
+          { required: true, message: '请设置运行时段', trigger: 'change' }
+        ],
+        frequency: [
+          { required: true, message: '请设置抽帧频率', trigger: 'change' }
+        ]
+      }
+    }
+  },
+  
+  created() {
+    this.originalDeviceList = [...this.deviceList]
+    this.total = this.deviceList.length
+  },
+  
+  watch: {
+    searchKeyword(newValue) {
+      if (!newValue) {
+        // 如果搜索关键词为空，恢复原始数据
+        this.deviceList = [...this.originalDeviceList]
+      } else {
+        // 根据关键词过滤设备列表
+        this.deviceList = this.originalDeviceList.filter(device => 
+          device.name.toLowerCase().includes(newValue.toLowerCase()) ||
+          device.skill.toLowerCase().includes(newValue.toLowerCase()) ||
+          device.location.toLowerCase().includes(newValue.toLowerCase())
+        )
+      }
+    }
+  },
+  
+  methods: {
+    // 处理添加设备
+    handleAddDevice() {
+      this.deviceDialogVisible = true
+    },
 
 // 新增：表格选择变化处理
-const handleSelectionChange = (selection: any[]) => {
-  selectedDevices.value = selection.map(item => item.id)
-}
+    handleSelectionChange(selection) {
+      this.selectedDevices = selection.map(item => item.id)
+    },
 
 // 新增：批量删除处理
-const handleBatchDelete = () => {
-  if (selectedDevices.value.length === 0) {
-    ElMessage.warning('请选择要删除的设备')
+    handleBatchDelete() {
+      if (this.selectedDevices.length === 0) {
+        this.$message.warning('请选择要删除的设备')
     return
   }
   
-  ElMessageBox.confirm(
-    `确认删除选中的 ${selectedDevices.value.length} 个设备吗？`,
+      this.$confirm(
+        `确认删除选中的 ${this.selectedDevices.length} 个设备吗？`,
     '警告',
     {
       confirmButtonText: '确定',
@@ -137,145 +466,119 @@ const handleBatchDelete = () => {
     }
   ).then(() => {
     // 从设备列表中移除选中的设备
-    deviceList.value = deviceList.value.filter(
-      device => !selectedDevices.value.includes(device.id)
+        this.deviceList = this.deviceList.filter(
+          device => !this.selectedDevices.includes(device.id)
     )
-    selectedDevices.value = []
-    ElMessage.success('删除成功')
+        this.selectedDevices = []
+        this.$message.success('删除成功')
   }).catch(() => {
     // 用户点击取消，不做操作
   })
-}
+    },
 
 // 确认添加设备
-const confirmAddDevice = () => {
+    confirmAddDevice() {
   // TODO: 处理设备添加逻辑
-  dialogVisible.value = false
-}
-
-// 添加分页相关的响应式数据
-const currentPage = ref(1)
-const pageSize = ref(10)
-const total = ref(deviceList.value.length)
+      this.deviceDialogVisible = false
+    },
 
 // 处理页码改变
-const handleCurrentChange = (val: number) => {
-  currentPage.value = val
-}
+    handleCurrentChange(val) {
+      this.currentPage = val
+    },
 
 // 处理每页条数改变
-const handleSizeChange = (val: number) => {
-  pageSize.value = val
-}
-
-// 原始设备列表数据（用于搜索和刷新）
-const originalDeviceList = ref([...deviceList.value])
-
-// 搜索功能实现
-watch(searchKeyword, (newValue) => {
-  if (!newValue) {
-    // 如果搜索关键词为空，恢复原始数据
-    deviceList.value = [...originalDeviceList.value]
-  } else {
-    // 根据关键词过滤设备列表
-    deviceList.value = originalDeviceList.value.filter(device => 
-      device.name.toLowerCase().includes(newValue.toLowerCase()) ||
-      device.skill.toLowerCase().includes(newValue.toLowerCase()) ||
-      device.location.toLowerCase().includes(newValue.toLowerCase())
-    )
-  }
-})
+    handleSizeChange(val) {
+      this.pageSize = val
+    },
 
 // 刷新功能实现
-const handleRefresh = () => {
+    handleRefresh() {
   // 恢复原始数据
-  deviceList.value = [...originalDeviceList.value]
+      this.deviceList = [...this.originalDeviceList]
   // 清空搜索关键词
-  searchKeyword.value = ''
+      this.searchKeyword = ''
   // 重置分页
-  currentPage.value = 1
-  ElMessage.success('刷新成功')
-}
+      this.currentPage = 1
+      this.$message.success('刷新成功')
+    },
 
 // 处理编辑设备
-const handleEdit = (row: any) => {
+    handleEdit(row) {
   // 打开编辑对话框，并填充当前设备数据
-  deviceForm.value = {
+      this.deviceForm = {
     name: row.name,
     type: row.type || '',
     location: row.location,
-    skills: row.skill ? row.skill.split(',').map((s: string) => s.trim()) : []
-  }
-  dialogVisible.value = true
-}
-
-// 配置技能对话框
-const skillDialogVisible = ref(false)
-const skillForm = ref({
+        skills: row.skill ? row.skill.split(',').map(s => s.trim()) : []
+      }
+      this.deviceDialogVisible = true
+    },
+    
+    // 处理配置技能
+    handleConfigSkill(row) {
+      this.skillForm = {
   selectedSkill: '未佩戴安全帽 (v7)',
   alarmLevel: '四级预警',
-  isEnabled: true,
+        status: true,
   timeRanges: [{
-    start: '00:00',
-    end: '23:59'
+          start: new Date(2024, 0, 1, 0, 0),
+          end: new Date(2024, 0, 1, 23, 59)
   }],
   frequency: {
     seconds: 1,
     frames: 1
   },
-  images: [] as string[]
-})
-
-// 可选技能列表
-const skillOptions = [
-  { label: '未佩戴安全帽 (v7)', value: '未佩戴安全帽 (v7)' },
-  { label: '管道泄漏 (v2)', value: '管道泄漏 (v2)' },
-  { label: '烟雾识别 (v6)', value: '烟雾识别 (v6)' },
-  { label: '明火识别 (v3)', value: '明火识别 (v3)' },
-  { label: '人员摔倒 (v1)', value: '人员摔倒 (v1)' },
-  { label: '人员聚集 (v1)', value: '人员聚集 (v1)' },
-  { label: '人员离岗 (v2)', value: '人员离岗 (v2)' },
-  { label: '未穿工服 (v3)', value: '未穿工服 (v3)' }
-]
-
-// 预警等级选项
-const alarmLevels = [
-  { label: '四级预警', value: '四级预警' },
-  { label: '三级预警', value: '三级预警' },
-  { label: '二级预警', value: '二级预警' },
-  { label: '一级预警', value: '一级预警' }
-]
-
-// 处理配置技能
-const handleConfigSkill = (row: any) => {
-  skillDialogVisible.value = true
-}
+        images: []
+      }
+      this.skillDialogVisible = true
+    },
 
 // 添加时间段
-const addTimeRange = () => {
-  if (skillForm.value.timeRanges.length < 3) {
-    skillForm.value.timeRanges.push({
+    addTimeRange() {
+      if (this.skillForm.timeRanges.length < 3) {
+        this.skillForm.timeRanges.push({
       start: '00:00',
       end: '23:59'
     })
   }
-}
-
-// 删除时间段
-const removeTimeRange = (index: number) => {
-  skillForm.value.timeRanges.splice(index, 1)
-}
-
-// 保存配置
-const saveSkillConfig = () => {
+    },
+    
+    // 处理关闭对话框
+    handleClose() {
+      // 重置表单
+      this.skillForm = {
+        selectedSkill: '',
+        alarmLevel: '',
+        status: true,
+        timeRanges: [{
+          start: new Date(2024, 0, 1, 0, 0),
+          end: new Date(2024, 0, 1, 23, 59)
+        }],
+        frequency: {
+          seconds: 1,
+          frames: 1
+        },
+        images: []
+      }
+    },
+    
+    // 处理确认配置
+    handleConfirm() {
+      this.$refs.skillForm.validate((valid) => {
+        if (valid) {
   // TODO: 保存配置到后端
-  ElMessage.success('保存成功')
-  skillDialogVisible.value = false
-}
+          this.$message.success('保存成功')
+          this.skillDialogVisible = false
+        } else {
+          return false
+        }
+      })
+    },
 
 // 处理删除单个设备
-const handleDelete = (row: any) => {
-  ElMessageBox.confirm(
+    handleDelete(row) {
+      this.$confirm(
     `确认删除设备 ${row.name} 吗？`,
     '警告',
     {
@@ -284,268 +587,40 @@ const handleDelete = (row: any) => {
       type: 'warning',
     }
   ).then(() => {
-    deviceList.value = deviceList.value.filter(device => device.id !== row.id)
-    ElMessage.success('删除成功')
+        this.deviceList = this.deviceList.filter(device => device.id !== row.id)
+        this.$message.success('删除成功')
   }).catch(() => {
     // 用户点击取消，不做操作
   })
+    },
+    
+    // 处理移除时间段
+    removeTimeRange(index) {
+      if (this.skillForm.timeRanges.length > 1) {
+        this.skillForm.timeRanges.splice(index, 1);
+      } else {
+        this.$message.warning('至少保留一个时间段');
+      }
+    }
+  }
 }
 </script>
 
-<template>
-  <div class="camera-management">
-    <!-- 左侧设备树 -->
-    <div class="device-tree">
-      <h3 class="tree-title">设备目录</h3>
-      <el-input
-        v-model="searchKeyword"
-        placeholder="输入关键字搜索"
-        prefix-icon="Search"
-      />
-      <el-tree
-        :data="deviceTree"
-        :props="{ children: 'children', label: 'label' }"
-        default-expand-all
-      >
-        <template #default="{ node }">
-          <span class="custom-tree-node">
-            <span>{{ node.label }}</span>
-            <el-tag
-              v-if="node.data.status"
-              :type="node.data.status === 'online' ? 'success' : 'danger'"
-              size="small"
-            >
-              {{ node.data.status === 'online' ? '在线' : '离线' }}
-            </el-tag>
-          </span>
-        </template>
-      </el-tree>
-    </div>
-
-    <!-- 右侧设备列表 -->
-    <div class="device-list">
-      <div class="operation-bar">
-        <div class="left-operations">
-          <el-button type="primary" @click="handleAddDevice">
-            <el-icon><Plus /></el-icon>添加摄像头
-          </el-button>
-          <el-button type="danger" @click="handleBatchDelete" :disabled="selectedDevices.length === 0">
-            <el-icon><Delete /></el-icon>批量删除
-          </el-button>
-        </div>
-        <div class="right-operations">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="请输入设备名称搜索"
-            style="width: 200px"
-            clearable
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-          <el-button 
-            type="primary" 
-            :icon="Refresh" 
-            circle 
-            @click="handleRefresh"
-          />
-        </div>
-      </div>
-
-      <el-table 
-        :data="deviceList" 
-        style="width: 100%"
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column type="selection" width="55" align="center" />
-        <el-table-column prop="name" label="摄像头名称" align="center" />
-        <el-table-column prop="status" label="状态" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'online' ? 'success' : 'danger'">
-              {{ row.status === 'online' ? '在线' : '离线' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="location" label="设备来源" align="center" />
-        <el-table-column prop="skill" label="视频技能" align="center" />
-        <el-table-column label="操作" width="280" align="center">
-          <template #default="{ row }">
-            <el-button-group>
-              <el-button type="primary" size="small" :icon="Setting" @click="handleConfigSkill(row)">配置技能</el-button>
-              <el-button type="primary" size="small" :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-              <el-button type="danger" size="small" :icon="Delete" @click="handleDelete(row)">删除</el-button>
-            </el-button-group>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 30, 50]"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
-    </div>
-
-    <!-- 添加设备对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      title="添加摄像头"
-      width="500px"
-    >
-      <el-form :model="deviceForm" label-width="100px">
-        <el-form-item label="设备名称">
-          <el-input v-model="deviceForm.name" />
-        </el-form-item>
-        <el-form-item label="设备类型">
-          <el-select v-model="deviceForm.type" placeholder="请选择设备类型">
-            <el-option label="监控摄像头" value="camera" />
-            <el-option label="AI摄像头" value="ai-camera" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="关联地点">
-          <el-input v-model="deviceForm.location" />
-        </el-form-item>
-        <el-form-item label="设备技能">
-          <el-select
-            v-model="deviceForm.skills"
-            multiple
-            placeholder="请选择设备技能"
-          >
-            <el-option label="未带安全帽检测" value="helmet" />
-            <el-option label="未穿工服检测" value="uniform" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="confirmAddDevice">确认</el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <!-- 配置技能对话框 -->
-    <el-dialog
-      v-model="skillDialogVisible"
-      title="配置技能"
-      width="650px"
-    >
-      <el-form :model="skillForm" label-width="100px">
-        <el-form-item label="选择技能" required>
-          <el-select v-model="skillForm.selectedSkill" placeholder="请选择技能">
-            <el-option
-              v-for="option in skillOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="预警等级" required>
-          <el-select v-model="skillForm.alarmLevel" placeholder="请选择预警等级">
-            <el-option
-              v-for="level in alarmLevels"
-              :key="level.value"
-              :label="level.label"
-              :value="level.value"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="技能状态" required>
-          <el-switch v-model="skillForm.isEnabled" />
-        </el-form-item>
-
-        <el-form-item label="运行时段" required>
-          <div v-for="(range, index) in skillForm.timeRanges" :key="index" class="time-range">
-            <el-time-picker
-              v-model="range.start"
-              format="HH:mm"
-              placeholder="开始时间"
-            />
-            <span class="range-separator">-</span>
-            <el-time-picker
-              v-model="range.end"
-              format="HH:mm"
-              placeholder="结束时间"
-            />
-            <el-button 
-              v-if="index > 0"
-              type="danger" 
-              circle 
-              size="small"
-              @click="removeTimeRange(index)"
-            >
-              <el-icon><Delete /></el-icon>
-            </el-button>
-          </div>
-          <el-button 
-            v-if="skillForm.timeRanges.length < 3"
-            type="primary" 
-            link 
-            @click="addTimeRange"
-          >
-            + 添加时间 ({{ skillForm.timeRanges.length }}/3)
-          </el-button>
-        </el-form-item>
-
-        <el-form-item label="抽帧频率" required>
-          <div class="frequency-input">
-            <span>每</span>
-            <el-input-number 
-              v-model="skillForm.frequency.seconds" 
-              :min="1" 
-              controls-position="right"
-            />
-            <span>秒</span>
-            <span class="frequency-separator">抽取</span>
-            <el-input-number 
-              v-model="skillForm.frequency.frames" 
-              :min="1" 
-              controls-position="right"
-            />
-            <span>帧</span>
-          </div>
-          <div class="frequency-hint">支持设置多秒1帧1秒多帧，不支持多秒多帧设置</div>
-        </el-form-item>
-
-        <el-form-item label="电子围栏">
-          <div class="fence-upload">
-            <span>{{ skillForm.images.length }}/1</span>
-            <el-button type="primary">去添加</el-button>
-          </div>
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="skillDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveSkillConfig">确定</el-button>
-        </span>
-      </template>
-    </el-dialog>
-  </div>
-</template>
-
-<style scoped lang="scss">
+<style scoped>
 .camera-management {
   display: flex;
-  height: 100%;  // 确保整个容器占满高度
+  height: 100%;
+  width: 100%;
+}
   
   .device-tree {
     width: 250px;
     padding: 20px;
     border-right: 1px solid #dcdfe6;
-    height: 100vh;  // 让分界线占满整个视窗高度
-    box-sizing: border-box;  // 确保padding不会增加总宽度
+  height: calc(100vh - 60px);
+  box-sizing: border-box;
+  background-color: #f5f7fa;
+}
     
     .tree-title {
       margin: 0 0 16px 0;
@@ -553,31 +628,54 @@ const handleDelete = (row: any) => {
       font-weight: 500;
     }
     
-    .el-input {
+.device-tree .el-input {
       margin-bottom: 20px;
     }
+
+/* 自定义树节点样式 */
+.custom-tree >>> .el-tree-node__content {
+  background-color: #f5f7fa;
+}
+
+.custom-tree >>> .el-tree-node.is-current > .el-tree-node__content {
+  background-color: #ffffff;
+}
+
+.custom-tree >>> .el-tree-node:not(.is-current) > .el-tree-node__content:hover {
+  background-color: #ebeef5;
   }
 
   .device-list {
     flex: 1;
     padding: 20px;
+  background-color: #fff;
+}
 
     .operation-bar {
       display: flex;
       justify-content: space-between;
       margin-bottom: 20px;
+}
 
       .left-operations {
         display: flex;
-        gap: 10px;
+}
+
+.left-operations .el-button {
+  margin-right: 10px;
       }
 
       .right-operations {
         display: flex;
-        gap: 10px;
         align-items: center;
       }
+
+.right-operations .el-input {
+  margin-right: 10px;
     }
+
+.search-button {
+  margin-left: 8px;
   }
 
   .custom-tree-node {
@@ -591,44 +689,181 @@ const handleDelete = (row: any) => {
     margin-top: 20px;
     display: flex;
     justify-content: flex-end;
-  }
 }
 
 .time-range {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-  
-  .el-time-picker {
-    width: 150px;
-  }
+  margin-bottom: 10px;
 }
 
 .range-separator {
-  margin: 0 8px;
+  margin: 0 10px;
   color: #606266;
+}
+
+.delete-time-btn {
+  margin-left: 10px;
+  padding: 0;
+  color: #F56C6C;
+}
+
+.add-time-range {
+  margin-top: 10px;
+}
+
+.frequency-item {
+  margin-bottom: 20px;
 }
 
 .frequency-input {
   display: flex;
   align-items: center;
-  gap: 10px;
-
-  .el-input-number {
-    width: 100px;
+  margin-bottom: 5px;
   }
+
+.frequency-label {
+  margin: 0 8px;
+  color: #606266;
 }
 
 .frequency-hint {
   color: #909399;
   font-size: 12px;
-  margin-top: 5px;
+  line-height: 1.4;
 }
 
 .fence-upload {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.fence-status {
+  color: #606266;
+}
+
+/* 调整输入数字框的样式 */
+.el-input-number {
+  width: 80px;
+}
+
+/* 调整开关的样式 */
+.el-switch {
+  margin-left: 8px;
+}
+
+/* 新增配置技能弹窗样式 */
+.skill-config-dialog {
+  border-radius: 4px;
+}
+
+.skill-config-dialog >>> .el-dialog__header {
+  padding: 20px;
+  border-bottom: 1px solid #EBEEF5;
+}
+
+.skill-config-dialog >>> .el-dialog__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1F2329;
+}
+
+.skill-config-dialog >>> .el-dialog__headerbtn {
+  top: 20px;
+}
+
+.skill-config-dialog >>> .el-dialog__body {
+  padding: 24px 0;
+}
+
+.skill-form {
+  padding: 0 20px;
+}
+
+.skill-form >>> .el-form-item {
+  margin-bottom: 24px;
+}
+
+.skill-form >>> .el-form-item__label {
+  font-size: 14px;
+  color: #1F2329;
+  font-weight: 600;
+  padding-right: 12px;
+  text-align: left;
+}
+
+.skill-form >>> .el-form-item__content {
+  margin-left: 85px !important;
+  text-align: left;
+}
+
+.skill-form >>> .el-form-item__label::before {
+  margin-right: 4px;
+  color: #F53F3F;
+  font-weight: 600;
+}
+
+.status-wrapper {
+  text-align: left;
+  align-items: center;
+}
+
+.status-switch {
+  margin-right: auto;
+}
+
+.time-range {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.time-picker {
+  width: 180px !important;
+}
+
+.time-separator {
+  margin: 0 8px;
+  color: #1F2329;
+}
+
+.add-time {
+  margin-top: 8px;
+  text-align: left;
+}
+
+.add-time-link {
+  font-size: 14px;
+}
+
+.frequency-input {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.frequency-input span {
+  margin: 0 8px;
+  color: #1F2329;
+  font-size: 14px;
+}
+
+.number-input {
+  width: 100px !important;
+}
+
+.number-input >>> .el-input__inner {
+  line-height: 32px;
+  border-radius: 4px;
+  padding: 0 8px;
+  text-align: left;
+}
+
+.frequency-tip {
+  color: #86909C;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
 }
 </style>
