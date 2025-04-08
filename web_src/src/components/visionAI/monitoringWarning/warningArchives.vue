@@ -182,7 +182,7 @@ export default {
         } else {
           startDate = '2023/6/7';
           startTime = '13:15:00';
-          endTime = '13:18:52';
+          startTime = '13:18:52';
         }
         
         const warningTime = `${startDate} ${startTime}-${startDate} ${endTime}`;
@@ -360,9 +360,9 @@ export default {
           <el-table-column label="预警图片" width="100" align="center">
             <template slot-scope="scope">
               <div class="preview-image-cell">
-                <el-button type="text" class="image-link" @click="showImagePreview(scope.row)">
-                  预警图片
-                </el-button>
+                <div class="mini-blue-box" @click="showImagePreview(scope.row)">
+                  <span>预警图片</span>
+                </div>
               </div>
             </template>
           </el-table-column>
@@ -463,7 +463,7 @@ export default {
     <el-dialog
       title="预警详情"
       :visible.sync="detailDialogVisible"
-      width="40%"
+      width="30%"
       :append-to-body="true"
       custom-class="warning-detail-dialog"
     >
@@ -507,11 +507,13 @@ export default {
     <el-dialog
       title="预警图片预览"
       :visible.sync="imagePreviewVisible"
-      width="45%"
+      width="30%"
       custom-class="image-preview-dialog"
     >
       <div class="image-preview-container" v-if="currentPreviewImage">
-        <img :src="currentPreviewImage" alt="预警图片" class="preview-image-full" />
+        <div class="blue-preview-box preview-image-full">
+          <el-button type="text" class="preview-btn">预警图像</el-button>
+        </div>
       </div>
     </el-dialog>
     
@@ -519,7 +521,7 @@ export default {
     <el-dialog
       title="编辑档案信息"
       :visible.sync="editDialogVisible"
-      width="45%"
+      width="30%"
       :before-close="cancelEdit"
       custom-class="edit-archive-dialog"
     >
@@ -547,7 +549,7 @@ export default {
     <el-dialog
       title="添加预警"
       :visible.sync="addDialogVisible"
-      width="45%"
+      width="30%"
       custom-class="add-warning-dialog"
     >
       <el-form :model="addForm" label-width="100px" class="add-form">
@@ -820,7 +822,7 @@ export default {
 
 /* 详情蓝色框 */
 .detail-image-box {
-  height: 150px;
+  height: 200px;
 }
 
 /* 信息列表 */
@@ -834,17 +836,20 @@ export default {
   display: flex;
   font-size: 14px;
   line-height: 1.5;
+  text-align: left;
 }
 
 .info-item .label {
   color: #606266;
   width: 80px;
   flex-shrink: 0;
+  text-align: left;
 }
 
 .info-item .value {
   color: #333;
   flex: 1;
+  text-align: left;
 }
 
 /* 弹窗通用样式 */
@@ -928,8 +933,8 @@ export default {
 }
 
 .preview-image-full {
-  max-width: 100%;
-  max-height: 400px;
+  width: 100%;
+  height: 300px;
   object-fit: contain;
 }
 
@@ -991,5 +996,26 @@ export default {
   text-align: center;
   font-size: 14px;
   color: #606266;
+}
+
+/* 表格中预警图片小蓝框 */
+.mini-blue-box {
+  width: 80px;
+  height: 50px;
+  background-color: #ecf5ff;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  cursor: pointer;
+  font-size: 12px;
+  color: #409eff;
+  transition: all 0.2s;
+}
+
+.mini-blue-box:hover {
+  background-color: #d9ecff;
+  color: #1890ff;
 }
 </style>
