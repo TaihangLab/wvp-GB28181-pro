@@ -688,7 +688,7 @@ export default {
                 {{ label }}
               </div>
             </div>
-            <div class="device-top-list no-scroll">
+            <div class="device-top-list">
               <div v-for="(device, index) in deviceWarnings" :key="index" class="device-item">
                 <span class="device-rank">{{ index + 1 }}</span>
                 <span class="device-name">{{ device.name }}</span>
@@ -973,12 +973,20 @@ export default {
 }
 
 .device-top-list {
-  height: auto;
+  height: calc(100% - 50px);
+  overflow-y: auto;
   padding: 10px 0;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.device-top-list::-webkit-scrollbar {
+  width: 0;
+  display: none; /* Chrome, Safari and Opera */
 }
 
 .device-top-list.no-scroll {
-  overflow-y: visible;
+  overflow-y: auto;
 }
 
 .device-item {
