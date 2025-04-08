@@ -62,7 +62,7 @@
         <el-menu-item index="/cloudRecord">云端录像</el-menu-item>
         <el-menu-item index="/mediaServerManger">节点管理</el-menu-item>
         <el-menu-item index="/platformList/15/1">国标级联</el-menu-item>
-        <el-submenu index="/channel">
+        <el-submenu index="/channel" popper-append-to-body>
           <template slot="title">通道管理</template>
           <el-menu-item index="/channel/region">行政区划</el-menu-item>
           <el-menu-item index="/channel/group">业务分组</el-menu-item>
@@ -128,29 +128,22 @@ export default {
       this.sseControl()
     }, 3000);
     
-    // 添加自定义菜单交互逻辑
-    this.setupMenuInteraction();
+    // 添加通道管理菜单的特殊处理
+    this.$nextTick(() => {
+      // 获取到通道管理的菜单项
+      const channelSubmenu = document.querySelector('.el-submenu[index="/channel"]');
+      if (channelSubmenu) {
+        const channelTitle = channelSubmenu.querySelector('.el-submenu__title');
+        if (channelTitle) {
+          // 阻止点击通道管理时的冒泡，防止触发父菜单的关闭
+          channelTitle.addEventListener('click', (e) => {
+            e.stopPropagation();
+          });
+        }
+      }
+    });
   },
   methods: {
-    // 添加自定义菜单交互逻辑
-    setupMenuInteraction() {
-      // 为了确保水平菜单在展开时关闭其他菜单
-      const submenus = document.querySelectorAll('.el-submenu');
-      submenus.forEach(submenu => {
-        submenu.addEventListener('mouseenter', () => {
-          // 当鼠标进入一个菜单时，关闭其他所有菜单
-          submenus.forEach(otherSubmenu => {
-            if (otherSubmenu !== submenu && otherSubmenu.classList.contains('is-opened')) {
-              // 模拟点击事件来关闭其他打开的菜单
-              const title = otherSubmenu.querySelector('.el-submenu__title');
-              if (title && !submenu.contains(otherSubmenu)) {
-                title.click();
-              }
-            }
-          });
-        });
-      });
-    },
     loginout() {
       this.$axios({
         method: 'get',
@@ -275,5 +268,42 @@ export default {
 }
 #UiHeader .el-submenu.is-active .el-submenu__icon-arrow {
   color: #fff !important;
+}
+
+/* 消除下拉菜单间距并缩窄宽度 */
+.el-menu--horizontal .el-menu .el-menu-item, 
+.el-menu--horizontal .el-menu .el-submenu__title {
+  padding: 0 10px;
+  height: 36px;
+  line-height: 36px;
+}
+
+.el-menu--horizontal > .el-submenu .el-submenu__icon-arrow {
+  margin-top: -4px;
+}
+
+.el-menu--popup {
+  padding: 0;
+  margin: 0;
+  min-width: 120px;
+}
+
+.el-menu--horizontal .el-menu--popup {
+  margin-top: 0;
+}
+
+/* 修复子菜单顶部与父菜单之间的间隔 */
+.el-menu--horizontal .el-menu.el-menu--popup {
+  margin-top: 0;
+}
+
+/* 缩窄菜单宽度 */
+.el-menu--horizontal>.el-submenu .el-submenu__title {
+  padding: 0 15px;
+}
+
+/* 调整下拉菜单的箭头位置 */
+.el-submenu__icon-arrow {
+  margin-top: -3px;
 }
 </style>
