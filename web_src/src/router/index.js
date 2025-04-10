@@ -28,6 +28,7 @@ import group from '../components/group.vue'
 import operations from '../components/operations.vue'
 import recordPLan from '../components/RecordPLan.vue'
 import visualCenter from '../components/visionAI/ivisualCenter/index.vue'
+import algorithmInference from '../components/visionAI/ivisualCenter/algorithmInference.vue'
 import realTimeMonitoring from '../components/visionAI/monitoringWarning/realTimeMonitoring.vue'
 import statisticsAnalysis from '../components/visionAI/monitoringWarning/statisticsAnalysis.vue'
 import warningArchives from '../components/visionAI/monitoringWarning/warningArchives.vue'
@@ -79,6 +80,10 @@ export default new VueRouter({
         {
           path: '/visualCenter',
           component: visualCenter,
+        },
+        {
+          path: '/algorithmInference',
+          component: algorithmInference,
         },
         {
           path: '/monitoring/realtime',

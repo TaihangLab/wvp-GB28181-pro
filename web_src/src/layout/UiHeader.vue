@@ -48,6 +48,7 @@
       <el-submenu index="/visualAI">
         <template slot="title">可视中心</template>
         <el-menu-item index="/visualCenter">可视中心首页</el-menu-item>
+        <el-menu-item index="/algorithmInference">算法推理平台</el-menu-item>
       </el-submenu>
       
       <!-- 新增视频监控菜单，将多个菜单项移入其中 -->
@@ -84,7 +85,7 @@
         <el-menu-item @click="openDoc">在线文档</el-menu-item>
         <el-menu-item>
           <el-switch v-model="alarmNotify" inactive-text="报警信息推送" @change="alarmNotifyChannge"></el-switch>
-        </el-menu-item>
+        </el-menu-item> 
         <el-menu-item @click="changePassword">修改密码</el-menu-item>
         <el-menu-item @click="loginout">注销</el-menu-item>
       </el-submenu>
