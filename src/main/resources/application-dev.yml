@@ -15,22 +15,22 @@ spring:
   # REDIS数据库配置
   redis:
     # [必须修改] Redis服务器IP, REDIS安装在本机的,使用127.0.0.1
-    host: 127.0.0.1
+    host: 192.168.1.107
     # [必须修改] 端口号
     port: 6379
     # [可选] 数据库 DB
     database: 7
     # [可选] 访问密码,若你的redis服务器没有设置密码，就不需要用密码去连接
-    password: luna
+    password: ruoyi123
     # [可选] 超时时间
     timeout: 10000
     # mysql数据源
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/wvp273数据库统合?useUnicode=true&characterEncoding=UTF8&rewriteBatchedStatements=true&serverTimezone=PRC&useSSL=false&allowMultiQueries=true&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://192.168.1.107:3306/wvp?useUnicode=true&characterEncoding=UTF8&rewriteBatchedStatements=true&serverTimezone=PRC&useSSL=false&allowMultiQueries=true&allowPublicKeyRetrieval=true
     username: root
-    password: 12345678
+    password: root
 #[可选] WVP监听的HTTP端口, 网页和接口调用都是这个端口
 server:
   port: 18080
@@ -47,8 +47,9 @@ server:
 
 # 作为28181服务器的配置
 sip:
+  ip: 192.168.1.101
   # [可选] 28181服务监听的端口
-  port: 8116
+  port: 5060
   # 根据国标6.1.2中规定，domain宜采用ID统一编码的前十位编码。国标附录D中定义前8位为中心编码（由省级、市级、区级、基层编号组成，参照GB/T 2260-2007）
   # 后两位为行业编码，定义参照附录D.3
   # 3701020049标识山东济南历下区 信息行业接入
@@ -63,13 +64,14 @@ sip:
 
 #zlm 默认服务器配置
 media:
-  id: zlmediakit-local
+  id: XwFtVZrtZbHJq4UV
   # [必须修改] zlm服务器的内网IP
-  ip: 192.168.1.10
+  ip: 192.168.1.107
   # [必须修改] zlm服务器的http.port
+  hook-ip: 192.168.1.107
   http-port: 9092
   # [必选选] zlm服务器的hook.admin_params=secret
-  secret: TWSYFgYJOQWB4ftgeYut8DW4wbs7pQnj
+  secret: 7TFF0VJ9B1JZcUdDGnufYWUaskpwW3EG
   # 启用多端口模式, 多端口模式使用端口区分每路流，兼容性更好。 单端口使用流的ssrc区分， 点播超时建议使用多端口测试
   rtp:
     # [可选] 是否启用多端口模式, 开启后会在portRange范围内选择端口用于媒体流传输
