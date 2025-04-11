@@ -11,30 +11,27 @@ module.exports = {
     assetsPublicPath: '/',
     proxyTable: {
       '/debug': {
-        target: 'http://192.168.1.107:18080',
+        target: 'http://127.0.0.1:18080',
         changeOrigin: true,
         pathRewrite: {
           '^/debug': '/'
         }
       },
       '/static/snap': {
-        target: 'http://192.168.1.107:18080',
+        target: 'http://127.0.0.1:18080',
         changeOrigin: true,
+        // pathRewrite: {
+        //   '^/static/snap': '/static/snap'
+        // }
       },
-      '/api': {
-        target: 'http://192.168.1.107:18080',
-        changeOrigin: true,
-        pathRewrite: {
-          '^/api': '/api'
-        }
-      }
+
     },
 
     // Various Dev Server settings
-    host: '0.0.0.0', // 允许局域网访问
-    useLocalIp: true,
-    port: 8080,
-    autoOpenBrowser: true, // 自动打开浏览器
+    host:"0.0.0.0",
+    useLocalIp: true, // can be overwritten by process.env.HOST
+    port: 8080, // can be overwritten by process.env.PORT, if port is in use, a free one will be determined
+    autoOpenBrowser: false,
     errorOverlay: true,
     notifyOnErrors: true,
     hot: true,

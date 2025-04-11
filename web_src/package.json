@@ -17,6 +17,7 @@
     "@wchbrad/vue-easy-tree": "^1.0.12",
     "axios": "^0.24.0",
     "byte-weektime-picker": "^1.1.1",
+    "chart.js": "^3.9.1",
     "core-js": "^2.6.5",
     "date-fns": "^4.1.0",
     "echarts": "4.9.0",

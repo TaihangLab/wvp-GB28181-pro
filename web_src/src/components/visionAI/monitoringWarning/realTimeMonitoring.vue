@@ -3,13 +3,44 @@
     <!-- 左侧设备列表 -->
     <div class="device-list">
       <div class="list-header">设备列表</div>
+      <div class="search-bar">
+        <input type="text" placeholder="输入关键字搜索" />
+      </div>
       <div class="list-content">
-        <div v-for="device in deviceList" 
-             :key="device.id" 
-             class="device-item"
-             :class="{ 'offline': device.status === 'offline' }">
-          <span class="status-dot"></span>
-          <span>{{ device.name }}</span>
+        <!-- 电力行业设备组 -->
+        <div class="industry-group">
+          <div class="industry-header" @click="toggleIndustry('power')">
+            <i class="el-icon-arrow-down" :class="{ 'is-open': industryStatus.power }"></i>
+            电力行业
+          </div>
+          <div class="industry-devices" v-show="industryStatus.power">
+            <div class="device-item">
+              <span>监控设备1</span>
+              <span class="status-tag online">在线</span>
+            </div>
+            <div class="device-item">
+              <span>监控设备2</span>
+              <span class="status-tag offline">离线</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 油气行业设备组 -->
+        <div class="industry-group">
+          <div class="industry-header" @click="toggleIndustry('oil')">
+            <i class="el-icon-arrow-down" :class="{ 'is-open': industryStatus.oil }"></i>
+            油气行业
+          </div>
+          <div class="industry-devices" v-show="industryStatus.oil">
+            <div class="device-item">
+              <span>摄像头01</span>
+              <span class="status-tag online">在线</span>
+            </div>
+            <div class="device-item">
+              <span>消防设备</span>
+              <span class="status-tag offline">离线</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -132,7 +163,12 @@ export default {
       warningList: [
         { id: 1, time: '10:30:25', device: '摄像头01', type: '未戴安全帽', level: 'high' },
         { id: 2, time: '10:28:15', device: '摄像头03', type: '未穿工作服', level: 'medium' },
-      ]
+      ],
+      // 行业状态
+      industryStatus: {
+        power: true,
+        oil: true
+      }
     }
   },
   mounted() {
@@ -195,6 +231,10 @@ export default {
     // 格式化摄像头名称
     formatCameraName(index) {
       return `Camera ${String(index).padStart(2, '0')}`;
+    },
+    // 切换行业状态
+    toggleIndustry(industry) {
+      this.industryStatus[industry] = !this.industryStatus[industry];
     }
   }
 }
@@ -236,43 +276,92 @@ export default {
   color: #303133;
 }
 
+.device-list .search-bar {
+  padding: 10px 16px;
+  border-bottom: 1px solid #ebeef5;
+  display: flex;
+  justify-content: center;
+}
+
+.device-list .search-bar input {
+  width: 80%;
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #606266;
+  background-color: #f5f7fa;
+}
+
+.device-list .search-bar input::placeholder {
+  color: #a0a9b8;
+}
+
 .device-list .list-content {
   flex: 1;
   padding: 8px;
   overflow-y: auto;
 }
 
-.device-list .list-content .device-item {
-  padding: 10px 16px;
+.device-list .list-content .industry-group {
+  margin-bottom: 8px;
+}
+
+.device-list .list-content .industry-header {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #303133;
-  border-radius: 4px;
-  margin-bottom: 4px;
 }
 
-.device-list .list-content .device-item:hover {
-  background: #f5f7fa;
-}
-
-.device-list .list-content .device-item .status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #67c23a;
-  box-shadow: 0 0 0 2px rgba(103, 194, 58, 0.2);
-}
-
-.device-list .list-content .device-item.offline {
+.device-list .list-content .industry-header i {
+  margin-right: 6px;
+  transition: transform 0.3s;
+  font-size: 12px;
   color: #909399;
 }
 
-.device-list .list-content .device-item.offline .status-dot {
-  background: #f56c6c;
-  box-shadow: 0 0 0 2px rgba(245, 108, 108, 0.2);
+.device-list .list-content .industry-header i.is-open {
+  transform: rotate(90deg);
+}
+
+.device-list .list-content .industry-devices {
+  padding: 0 16px 0 32px;
+}
+
+.device-list .list-content .device-item {
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #606266;
+  border-radius: 0;
+  margin-bottom: 0;
+  border-bottom: 1px solid #f2f6fc;
+}
+
+.device-list .list-content .device-item:last-child {
+  border-bottom: none;
+}
+
+.device-list .list-content .device-item .status-tag {
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.device-list .list-content .device-item .status-tag.online {
+  background: #f0f9eb;
+  color: #67c23a;
+}
+
+.device-list .list-content .device-item .status-tag.offline {
+  background: #fff0f1;
+  color: #f56c6c;
 }
 
 /* 中间监控区域样式 */

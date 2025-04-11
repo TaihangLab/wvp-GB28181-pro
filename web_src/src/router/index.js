@@ -28,6 +28,7 @@ import group from '../components/group.vue'
 import operations from '../components/operations.vue'
 import recordPLan from '../components/RecordPLan.vue'
 import visualCenter from '../components/visionAI/ivisualCenter/index.vue'
+import algorithmInference from '../components/visionAI/ivisualCenter/algorithmInference.vue'
 import realTimeMonitoring from '../components/visionAI/monitoringWarning/realTimeMonitoring.vue'
 import statisticsAnalysis from '../components/visionAI/monitoringWarning/statisticsAnalysis.vue'
 import warningArchives from '../components/visionAI/monitoringWarning/warningArchives.vue'
@@ -38,6 +39,7 @@ import deviceSkills from '../components/visionAI/skillManagement/deviceSkills.vu
 import logRecords from '../components/visionAI/smartControl/logRecords.vue'
 import edgeServer from '../components/visionAI/edgeManagement/edgeServer.vue'
 import edgeBox from '../components/visionAI/edgeManagement/edgeBox.vue'
+import applicationSettings from '../components/visionAI/systemManagement/applicationSettings.vue'
 import parkManagement from '../components/visionAI/ivisualCenter/parkManagement.vue'
 
 const originalPush = VueRouter.prototype.push
@@ -80,6 +82,10 @@ export default new VueRouter({
         {
           path: '/visualCenter',
           component: visualCenter,
+        },
+        {
+          path: '/algorithmInference',
+          component: algorithmInference,
         },
         {
           path: '/visualCenter/parkManagement',
@@ -139,6 +145,11 @@ export default new VueRouter({
           path: '/edgeManage/edgeBox',
           name: 'edgeBox',
           component: edgeBox,
+        },
+        {
+          path: '/systemManage/appSettings',
+          name: 'applicationSettings',
+          component: applicationSettings,
         },
         {
           path: '/channelList/:deviceId/:parentChannelId/',
