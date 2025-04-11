@@ -7,6 +7,7 @@ import axios from 'axios';
 import VueCookies from 'vue-cookies';
 import VCharts from 'v-charts';
 import logViewer from '@femessage/log-viewer';
+import dataV from '@jiaminghi/data-view'
 
 import VueClipboard from 'vue-clipboard2';
 import Fingerprint2 from 'fingerprintjs2';
@@ -42,6 +43,7 @@ Vue.prototype.$notify = Notification;
 Vue.use(Contextmenu);
 Vue.use(VCharts);
 Vue.use(logViewer);
+Vue.use(dataV);
 
 axios.defaults.baseURL = (process.env.NODE_ENV === 'development') ? process.env.BASE_API : (window.baseUrl ? window.baseUrl : "");
 axios.defaults.withCredentials = true;

@@ -6,7 +6,6 @@ const path = require('path')
 
 module.exports = {
   dev: {
-
     // Paths
     assetsSubDirectory: 'static',
     assetsPublicPath: '/',
@@ -21,23 +20,25 @@ module.exports = {
       '/static/snap': {
         target: 'http://192.168.1.107:18080',
         changeOrigin: true,
-        // pathRewrite: {
-        //   '^/static/snap': '/static/snap'
-        // }
       },
-
+      '/api': {
+        target: 'http://192.168.1.107:18080',
+        changeOrigin: true,
+        pathRewrite: {
+          '^/api': '/api'
+        }
+      }
     },
 
     // Various Dev Server settings
-    host:"127.0.0.1",
-    useLocalIp: false, // can be overwritten by process.env.HOST
-    port: 8080, // can be overwritten by process.env.PORT, if port is in use, a free one will be determined
-    autoOpenBrowser: false,
+    host: '0.0.0.0', // 允许局域网访问
+    useLocalIp: true,
+    port: 8080,
+    autoOpenBrowser: true, // 自动打开浏览器
     errorOverlay: true,
     notifyOnErrors: true,
-    hot: true,//自动保存
-    poll: false, // https://webpack.js.org/configuration/dev-server/#devserver-watchoptions-
-
+    hot: true,
+    poll: false,
 
     /**
      * Source Maps
@@ -67,15 +68,15 @@ module.exports = {
      * Source Maps
      */
 
-    productionSourceMap: true,
+    productionSourceMap: false, // 关闭 source map
     // https://webpack.js.org/configuration/devtool/#production
-    devtool: '#source-map',
+    devtool: false,
 
     // Gzip off by default as many popular static hosts such as
     // Surge or Netlify already gzip all static assets for you.
     // Before setting to `true`, make sure to:
     // npm install --save-dev compression-webpack-plugin
-    productionGzip: false,
+    productionGzip: true,
     productionGzipExtensions: ['js', 'css'],
 
     // Run the build command with an extra argument to

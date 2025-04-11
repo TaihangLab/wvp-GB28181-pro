@@ -48,6 +48,7 @@
       <el-submenu index="/visualAI">
         <template slot="title">可视中心</template>
         <el-menu-item index="/visualCenter">可视中心首页</el-menu-item>
+        <el-menu-item index="/visualCenter/parkManagement">园区封闭管理平台</el-menu-item>
       </el-submenu>
       
       <!-- 新增视频监控菜单，将多个菜单项移入其中 -->
