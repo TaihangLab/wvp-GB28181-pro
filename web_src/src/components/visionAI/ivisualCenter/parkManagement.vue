@@ -161,21 +161,12 @@
 </template>
 
 <script>
-import {
-  dvBorderBox8,
-  dvBorderBox12,
-  dvBorderBox13,
-  dvDecoration5,
-  dvDecoration8,
-  dvDecoration6,
-  dvDecoration10,
-  dvActiveRingChart,
-  dvCharts
-} from '@jiaminghi/data-view'
-
 export default {
   name: 'ParkManagement',
   components: {
+    // 暂时注释掉data-view组件，使项目能够正常运行
+    // 这些组件仅在可视化中心功能中使用，不影响系统管理功能
+    /* 
     dvBorderBox8,
     dvBorderBox12,
     dvBorderBox13,
@@ -185,6 +176,7 @@ export default {
     dvDecoration10,
     dvActiveRingChart,
     dvCharts
+    */
   },
   data() {
     return {
