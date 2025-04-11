@@ -18,7 +18,10 @@
           <el-table
             :data="filteredSkillList"
             style="width: 100%"
-            border>
+            :border="false"
+            :header-cell-style="{background:'#eef1f6',color:'#606266',fontWeight:'bold'}"
+            class="custom-table"
+            >
             <el-table-column
               prop="skillName"
               label="技能名称"
@@ -499,5 +502,48 @@ export default {
 
 .status-text.disabled {
   color: #909399;
+}
+
+/* 移除表格纵向线条 */
+.el-table--border::after, 
+.el-table--group::after, 
+.el-table::before {
+  background-color: transparent;
+}
+
+.el-table td, .el-table th.is-leaf {
+  border-right: none;
+}
+
+.el-table--border td, 
+.el-table--border th {
+  border-right: none;
+}
+
+/* 强调表头样式 */
+.table-header {
+  background-color: #eef1f6 !important;
+  color: #606266 !important;
+  font-weight: bold !important;
+}
+
+/* 自定义表格样式 */
+.custom-table {
+  border: 1px solid #ebeef5;
+}
+
+.custom-table th {
+  background-color: #eef1f6;
+  color: #606266;
+  font-weight: bold;
+  border-bottom: 1px solid #dfe6ec;
+}
+
+.custom-table td {
+  border-bottom: 1px solid #ebeef5;
+}
+
+.custom-table tr:last-child td {
+  border-bottom: none;
 }
 </style>
