@@ -11,14 +11,14 @@ module.exports = {
     assetsPublicPath: '/',
     proxyTable: {
       '/debug': {
-        target: 'http://127.0.0.1:18080',
+        target: 'http://192.168.1.107:18080',
         changeOrigin: true,
         pathRewrite: {
           '^/debug': '/'
         }
       },
       '/static/snap': {
-        target: 'http://127.0.0.1:18080',
+        target: 'http://192.168.1.107:18080',
         changeOrigin: true,
         // pathRewrite: {
         //   '^/static/snap': '/static/snap'
@@ -28,7 +28,7 @@ module.exports = {
     },
 
     // Various Dev Server settings
-    host:"0.0.0.0",
+    host:"127.0.0.1",
     useLocalIp: true, // can be overwritten by process.env.HOST
     port: 8080, // can be overwritten by process.env.PORT, if port is in use, a free one will be determined
     autoOpenBrowser: false,
