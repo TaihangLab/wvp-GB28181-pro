@@ -45,6 +45,12 @@
         <el-menu-item index="/edgeManage/edgeBox">边缘盒子</el-menu-item>
       </el-submenu>
       
+       <!-- 新增系统管理菜单 -->
+       <el-submenu index="/systemManage">
+        <template slot="title">系统管理</template>
+        <el-menu-item index="/systemManage/appSettings">应用设置</el-menu-item>
+      </el-submenu>
+      
       <el-submenu index="/visualAI">
         <template slot="title">可视中心</template>
         <el-menu-item index="/visualCenter">可视中心首页</el-menu-item>
@@ -73,6 +79,8 @@
       <el-menu-item v-if="editUser" index="/userManager">用户管理</el-menu-item>
       <el-menu-item index="/operations">运维中心</el-menu-item>
 
+     
+      
       <!--            <el-submenu index="/setting">-->
       <!--              <template slot="title">系统设置</template>-->
       <!--              <el-menu-item index="/setting/web">WEB服务</el-menu-item>-->

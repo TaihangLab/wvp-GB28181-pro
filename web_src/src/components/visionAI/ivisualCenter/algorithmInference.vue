@@ -1,11 +1,34 @@
 <template>
   <div class="algorithm-inference-platform">
     <!-- 顶部标题 -->
-    <div class="main-title">太行AI算法推理平台</div>
-    <div class="current-time">{{ currentTime }}</div>
-    <div class="fullscreen-btn" @click="toggleFullScreen">
-      <i class="el-icon-full-screen"></i>
-      退出全屏
+    <div class="top-bar">
+      <div class="left-section">
+        <div class="time">{{ currentTime }}</div>
+      </div>
+      <div class="title">
+        <span>太行AI算法推理平台</span>
+      </div>
+      <div class="right-controls">
+        <div class="location-info">
+          <div v-if="locationInfo && locationInfo.loading" class="loading-indicator">
+            <span>加载中...</span>
+          </div>
+          <template v-else>
+            <div class="location" style="margin-right: -10px;">
+              <i class="el-icon-location"></i>
+              <span>{{ locationInfo ? locationInfo.location : '太行山工业园区' }}</span>
+            </div>
+            <div class="weather-info">
+              <i class="el-icon-sunny"></i>
+              <span>{{ locationInfo ? locationInfo.weather : '晴 26°C' }}</span>
+              <span class="air-quality">{{ locationInfo ? locationInfo.airQuality : '空气质量: 良' }}</span>
+            </div>
+            <div class="fullscreen-btn" @click="toggleFullScreen">
+              <i class="el-icon-full-screen"></i>
+            </div>
+          </template>
+        </div>
+      </div>
     </div>
 
     <div class="dashboard-container">
@@ -226,9 +249,9 @@
           </div>
           <!-- 时间选择器 -->
           <div class="time-selector">
-              <span class="date-btn active">今日</span>
-              <span class="date-btn">近7天</span>
-              <span class="date-btn">本月</span>
+            <span class="date-btn active">今日</span>
+            <span class="date-btn">近7天</span>
+            <span class="date-btn">本月</span>
           </div>
         </div>
       </div>
@@ -503,6 +526,12 @@ export default {
       networkUsage: 92.34,
       timerID: null,
       cubeRotateID: null,
+      locationInfo: {
+        location: '太行山工业园区',
+        weather: '晴 26°C',
+        airQuality: '空气质量: 良',
+        loading: false
+      },
       myAlgorithms: [
         { id: '9934', name: '打手识别', size: 1.5 },
         { id: '9926', name: '渣土车识别', size: 1.7 },
@@ -2427,7 +2456,7 @@ export default {
 
       // 更新算法球体大小 (Algo Sphere) - 确保这部分逻辑还在
       if (this.algoRenderer && this.algoCamera) {
-          this.handleAlgoResize(); // 调用现有的 algo resize 处理函数
+        this.handleAlgoResize(); // 调用现有的 algo resize 处理函数
       }
     },
     toggleResourcePanel() {
@@ -2808,10 +2837,10 @@ export default {
 
         // 添加悬停效果和提示
         path.addEventListener('mouseenter', (e) => {
-           this.showPieTooltip(e, item);
+          this.showPieTooltip(e, item);
         });
         path.addEventListener('mouseleave', () => {
-           this.hidePieTooltip();
+          this.hidePieTooltip();
         });
 
 
@@ -2830,59 +2859,59 @@ export default {
         startAngle = endAngle;
       });
 
-       // 添加中心圆和脉冲效果
-        const centerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        centerCircle.setAttribute('cx', '0');
-        centerCircle.setAttribute('cy', '0');
-        centerCircle.setAttribute('r', '50'); // 中心圆半径
-        centerCircle.setAttribute('fill', 'rgba(0, 11, 24, 0.7)'); // 半透明背景
-        centerCircle.setAttribute('stroke', 'rgba(30, 144, 255, 0.3)');
-        centerCircle.setAttribute('stroke-width', '1');
-        svg.appendChild(centerCircle);
+      // 添加中心圆和脉冲效果
+      const centerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      centerCircle.setAttribute('cx', '0');
+      centerCircle.setAttribute('cy', '0');
+      centerCircle.setAttribute('r', '50'); // 中心圆半径
+      centerCircle.setAttribute('fill', 'rgba(0, 11, 24, 0.7)'); // 半透明背景
+      centerCircle.setAttribute('stroke', 'rgba(30, 144, 255, 0.3)');
+      centerCircle.setAttribute('stroke-width', '1');
+      svg.appendChild(centerCircle);
 
-        const pulseCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        pulseCircle.setAttribute('cx', '0');
-        pulseCircle.setAttribute('cy', '0');
-        pulseCircle.setAttribute('r', '55'); // 脉冲环半径略大于中心圆
-        pulseCircle.setAttribute('fill', 'none');
-        pulseCircle.setAttribute('stroke', 'rgba(30, 144, 255, 0.5)');
-        pulseCircle.setAttribute('stroke-width', '1');
-        pulseCircle.classList.add('pulse-circle'); // 应用脉冲动画
-        svg.appendChild(pulseCircle);
+      const pulseCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      pulseCircle.setAttribute('cx', '0');
+      pulseCircle.setAttribute('cy', '0');
+      pulseCircle.setAttribute('r', '55'); // 脉冲环半径略大于中心圆
+      pulseCircle.setAttribute('fill', 'none');
+      pulseCircle.setAttribute('stroke', 'rgba(30, 144, 255, 0.5)');
+      pulseCircle.setAttribute('stroke-width', '1');
+      pulseCircle.classList.add('pulse-circle'); // 应用脉冲动画
+      svg.appendChild(pulseCircle);
 
-        const centerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        centerText.setAttribute('x', '0');
-        centerText.setAttribute('y', '0');
-        centerText.setAttribute('text-anchor', 'middle');
-        centerText.setAttribute('dy', '.3em');
-        centerText.setAttribute('fill', '#ffffff');
-        centerText.setAttribute('font-size', '14');
-        centerText.textContent = '报警占比';
-        svg.appendChild(centerText);
+      const centerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      centerText.setAttribute('x', '0');
+      centerText.setAttribute('y', '0');
+      centerText.setAttribute('text-anchor', 'middle');
+      centerText.setAttribute('dy', '.3em');
+      centerText.setAttribute('fill', '#ffffff');
+      centerText.setAttribute('font-size', '14');
+      centerText.textContent = '报警占比';
+      svg.appendChild(centerText);
     },
 
     // 添加 tooltip 方法
     showPieTooltip(event, item) {
-        let tooltip = document.getElementById('pie-tooltip');
-        if (!tooltip) {
-            tooltip = document.createElement('div');
-            tooltip.id = 'pie-tooltip';
-            tooltip.classList.add('pie-tooltip');
-            document.body.appendChild(tooltip);
-        }
-        tooltip.innerHTML = `<div>${item.label}</div><div>${item.value.toFixed(2)}%</div>`;
-        tooltip.style.left = `${event.clientX + 10}px`;
-        tooltip.style.top = `${event.clientY + 10}px`;
-        tooltip.style.display = 'block';
-        tooltip.style.opacity = '1'; // 确保可见
+      let tooltip = document.getElementById('pie-tooltip');
+      if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'pie-tooltip';
+        tooltip.classList.add('pie-tooltip');
+        document.body.appendChild(tooltip);
+      }
+      tooltip.innerHTML = `<div>${item.label}</div><div>${item.value.toFixed(2)}%</div>`;
+      tooltip.style.left = `${event.clientX + 10}px`;
+      tooltip.style.top = `${event.clientY + 10}px`;
+      tooltip.style.display = 'block';
+      tooltip.style.opacity = '1'; // 确保可见
     },
 
     hidePieTooltip() {
-        const tooltip = document.getElementById('pie-tooltip');
-        if (tooltip) {
-            tooltip.style.display = 'none';
-            tooltip.style.opacity = '0';
-        }
+      const tooltip = document.getElementById('pie-tooltip');
+      if (tooltip) {
+        tooltip.style.display = 'none';
+        tooltip.style.opacity = '0';
+      }
     },
   }
 }
@@ -2966,7 +2995,7 @@ export default {
 
 .fullscreen-btn {
   position: absolute;
-  top: 10px;
+  top: 0px;
   right: 20px;
   color: #91a7cc;
   font-size: 12px;
@@ -4373,19 +4402,21 @@ export default {
 .event-layout {
   display: grid;
   grid-template-columns: 3fr 1fr;
-  grid-template-rows: auto;
+  grid-template-rows: 5fr 1fr;
   gap: 5px;
   height: 100%;
 }
 
 .main-video-area {
   grid-column: 1;
-  grid-row: 1 / 3;
+  grid-row: 1;
   background-color: #0c1932;
   background-image: url('/static/img/traffic.jpg');
   background-size: cover;
   background-position: center;
   border: 1px solid #1c3f6e;
+  min-height: 152px;
+  height: 100%;
 }
 
 .thumbnail-list {
@@ -4419,16 +4450,17 @@ export default {
   grid-row: 3;
   background-color: #0c1932;
   border: 1px solid #1c3f6e;
-  padding: 10px;
+  padding: 5px 10px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  max-height: 80px;
 }
 
 .event-info-row {
   display: flex;
   align-items: center;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
 }
 
 .info-label {
@@ -4446,7 +4478,7 @@ export default {
 .alarm-tag {
   background-color: #ff5a5a;
   color: #ffffff;
-  padding: 2px 5px;
+  padding: 1px 5px;
   border-radius: 2px;
   font-size: 12px;
   margin-left: auto;
@@ -4669,7 +4701,8 @@ export default {
 
 .date-filter {
   display: flex;
-  justify-content: space-between; /* 两端对齐 */
+  justify-content: space-between;
+  /* 两端对齐 */
   align-items: center;
   margin-bottom: 10px;
   font-size: 11px;
@@ -4677,7 +4710,8 @@ export default {
 
 .date-filter-left {
   display: flex;
-  align-items: center; /* 垂直居中 */
+  align-items: center;
+  /* 垂直居中 */
 }
 
 .date-btn {
@@ -4783,7 +4817,7 @@ export default {
 
 .chart-tabs {
   display: flex;
-  
+
 }
 
 .tab {
@@ -5407,5 +5441,135 @@ export default {
     opacity: 0.8;
     stroke-width: 1;
   }
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0 10px 0;
+  position: relative;
+  z-index: 2;
+  padding: 0 20px;
+  height: 30px;
+}
+
+.left-section {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.top-bar .time {
+  font-size: 18px;
+  font-weight: bold;
+  color: #00ffff;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.top-bar .title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.right-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 15px;
+  flex: 0 0 auto;
+}
+
+.top-bar .title span {
+  font-size: 24px;
+  font-weight: bold;
+  color: #fff;
+  position: relative;
+}
+
+.top-bar .title span::before,
+.top-bar .title span::after {
+  content: '';
+  position: absolute;
+  height: 2px;
+  width: 70px;
+  background: linear-gradient(90deg, transparent, #00ffff, transparent);
+  top: 50%;
+}
+
+.top-bar .title span::before {
+  right: calc(100% + 15px);
+}
+
+.top-bar .title span::after {
+  left: calc(100% + 15px);
+}
+
+.location-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.location,
+.weather-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #7EAEE5;
+  margin-right: 40px;
+}
+
+.location i,
+.weather-info i {
+  color: #00FFFF;
+  font-size: 16px;
+}
+
+.air-quality {
+  margin-left: 8px;
+  color: #44FF9B;
+}
+
+.fullscreen-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: rgba(0, 20, 40, 0.5);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.fullscreen-btn i {
+  color: #00FFFF;
+  font-size: 18px;
+}
+
+.fullscreen-btn:hover {
+  background: rgba(0, 30, 60, 0.7);
+  border-color: rgba(0, 255, 255, 0.6);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+.loading-indicator {
+  color: #7EAEE5;
+  font-size: 14px;
+}
+
+.realtime-events .card-content {
+  height: calc(100% - 40px); /* 减去头部高度 */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 </style>

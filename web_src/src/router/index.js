@@ -39,6 +39,7 @@ import deviceSkills from '../components/visionAI/skillManagement/deviceSkills.vu
 import logRecords from '../components/visionAI/smartControl/logRecords.vue'
 import edgeServer from '../components/visionAI/edgeManagement/edgeServer.vue'
 import edgeBox from '../components/visionAI/edgeManagement/edgeBox.vue'
+import applicationSettings from '../components/visionAI/systemManagement/applicationSettings.vue'
 
 const originalPush = VueRouter.prototype.push
 VueRouter.prototype.push = function push(location) {
@@ -138,6 +139,11 @@ export default new VueRouter({
           path: '/edgeManage/edgeBox',
           name: 'edgeBox',
           component: edgeBox,
+        },
+        {
+          path: '/systemManage/appSettings',
+          name: 'applicationSettings',
+          component: applicationSettings,
         },
         {
           path: '/channelList/:deviceId/:parentChannelId/',
