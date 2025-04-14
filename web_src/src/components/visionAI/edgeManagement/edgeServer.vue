@@ -18,7 +18,7 @@
     </div>
   
     <!-- 边缘服务器列表 -->
-    <el-table :data="tableData" border style="width: 100%; text-align: center;">
+    <el-table :data="tableData" :border="false" class="custom-table" style="width: 100%; text-align: center;">
       <el-table-column type="selection" width="55" />
       <el-table-column prop="name" label="边缘服务器名称" min-width="180" align="center" />
       <el-table-column prop="status" label="状态" width="100" align="center">
@@ -363,5 +363,14 @@ export default {
 .el-table th, 
 .el-table td {
   text-align: center;
+}
+
+/* 移除表格竖线 */
+.custom-table >>> .el-table__cell {
+  border-right: none;
+}
+
+.custom-table >>> .el-table::before {
+  height: 0;
 }
 </style>

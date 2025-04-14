@@ -1,24 +1,22 @@
 <template>
   <div class="log-records-container">
-    <h2 class="page-title">日志记录</h2>
-    
     <!-- 搜索和筛选区域 -->
     <div class="filter-section">
       <el-form :inline="true">
         <el-form-item label="日志类型">
           <el-select v-model="searchForm.logType" placeholder="选择日志类型" clearable>
-            <el-option label="操作日志" value="operation"></el-option>
-            <el-option label="系统日志" value="system"></el-option>
-            <el-option label="错误日志" value="error"></el-option>
-            <el-option label="告警日志" value="warning"></el-option>
+            <el-option label="操作" value="操作"></el-option>
+            <el-option label="系统" value="系统"></el-option>
+            <el-option label="错误" value="错误"></el-option>
+            <el-option label="告警" value="告警"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="日志级别">
           <el-select v-model="searchForm.logLevel" placeholder="选择日志级别" clearable>
-            <el-option label="INFO" value="info"></el-option>
-            <el-option label="WARNING" value="warning"></el-option>
-            <el-option label="ERROR" value="error"></el-option>
-            <el-option label="CRITICAL" value="critical"></el-option>
+            <el-option label="信息" value="信息"></el-option>
+            <el-option label="警告" value="警告"></el-option>
+            <el-option label="错误" value="错误"></el-option>
+            <el-option label="严重" value="严重"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="时间范围">
@@ -58,12 +56,13 @@
       <el-table
         :data="tableData"
         v-loading="loading"
-        border
+        :border="false"
+        class="custom-table"
         style="width: 100%"
       >
-        <el-table-column prop="id" label="ID" width="80"></el-table-column>
-        <el-table-column prop="timestamp" label="时间" width="160"></el-table-column>
-        <el-table-column prop="type" label="日志类型" width="120">
+        <el-table-column prop="id" label="ID" width="80" align="center"></el-table-column>
+        <el-table-column prop="timestamp" label="时间" width="160" align="center"></el-table-column>
+        <el-table-column prop="type" label="日志类型" width="120" align="center">
           <template slot-scope="scope">
             <el-tag 
               :type="getLogTypeTag(scope.row.type)"
@@ -73,21 +72,22 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="level" label="级别" width="100">
+        <el-table-column prop="level" label="级别" width="100" align="center">
           <template slot-scope="scope">
             <el-tag 
               :type="getLevelTag(scope.row.level)"
+              :class="{'critical-level': scope.row.level === '严重'}"
               size="small"
             >
               {{ scope.row.level }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="user" label="用户" width="120"></el-table-column>
-        <el-table-column prop="module" label="模块" width="120"></el-table-column>
-        <el-table-column prop="message" label="日志内容"></el-table-column>
-        <el-table-column prop="ip" label="IP地址" width="130"></el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column prop="user" label="用户" width="120" align="center"></el-table-column>
+        <el-table-column prop="module" label="模块" width="120" align="center"></el-table-column>
+        <el-table-column prop="message" label="日志内容" align="center"></el-table-column>
+        <el-table-column prop="ip" label="IP地址" width="130" align="center"></el-table-column>
+        <el-table-column label="操作" width="100" fixed="right" align="center">
           <template slot-scope="scope">
             <el-button type="text" @click="viewLogDetail(scope.row)">详情</el-button>
           </template>
@@ -132,7 +132,7 @@
         <div class="detail-item">
           <span class="detail-label">级别：</span>
           <span class="detail-value">
-            <el-tag :type="getLevelTag(currentLog.level)" size="small">{{ currentLog.level }}</el-tag>
+            <el-tag :type="getLevelTag(currentLog.level)" :class="{'critical-level': currentLog.level === '严重'}" size="small">{{ currentLog.level }}</el-tag>
           </span>
         </div>
         <div class="detail-item">
@@ -224,18 +224,54 @@ export default {
       
       // 模拟API调用获取日志数据
       setTimeout(() => {
-        // 模拟数据
-        const mockData = this.generateMockLogs()
-        this.tableData = mockData
-        this.pagination.total = 200 // 模拟总数
+        // 模拟完整数据
+        const allMockData = this.generateAllMockLogs()
+        
+        // 根据搜索条件筛选
+        let filteredData = [...allMockData]
+        
+        if (this.searchForm.logType) {
+          filteredData = filteredData.filter(item => item.type === this.searchForm.logType)
+        }
+        
+        if (this.searchForm.logLevel) {
+          filteredData = filteredData.filter(item => item.level === this.searchForm.logLevel)
+        }
+        
+        if (this.searchForm.timeRange && this.searchForm.timeRange.length === 2) {
+          filteredData = filteredData.filter(item => {
+            const itemDate = item.timestamp.split(' ')[0]
+            return itemDate >= this.searchForm.timeRange[0] && itemDate <= this.searchForm.timeRange[1]
+          })
+        }
+        
+        if (this.searchForm.keyword) {
+          const keyword = this.searchForm.keyword.toLowerCase()
+          filteredData = filteredData.filter(item => 
+            item.message.toLowerCase().includes(keyword) ||
+            item.module.toLowerCase().includes(keyword) ||
+            item.user.toLowerCase().includes(keyword)
+          )
+        }
+        
+        // 设置总数
+        this.pagination.total = filteredData.length
+        
+        // 根据当前页码和每页数量过滤数据
+        const startIndex = (this.pagination.currentPage - 1) * this.pagination.pageSize
+        const endIndex = startIndex + this.pagination.pageSize
+        
+        // 截取当前页数据
+        this.tableData = filteredData.slice(startIndex, endIndex)
+        
         this.loading = false
-      }, 800)
+      }, 500)
     },
     
-    // 生成模拟日志数据
+    // 生成模拟日志数据 - 当前页
     generateMockLogs() {
-      const logTypes = ['operation', 'system', 'error', 'warning']
-      const logLevels = ['INFO', 'WARNING', 'ERROR', 'CRITICAL']
+      const logTypes = ['操作', '系统', '错误', '告警']
+      const logLevels = ['信息', '警告', '错误', '严重']
       const modules = ['用户管理', '设备管理', '系统设置', '视频监控', '模型管理']
       const users = ['admin', 'operator', 'system']
       
@@ -254,7 +290,38 @@ export default {
           module: modules[Math.floor(Math.random() * modules.length)],
           message: this.getRandomMessage(type),
           ip: `192.168.1.${Math.floor(Math.random() * 255)}`,
-          stackTrace: level === 'ERROR' || level === 'CRITICAL' ? this.getRandomStackTrace() : null
+          stackTrace: level === '错误' || level === '严重' ? this.getRandomStackTrace() : null
+        }
+      })
+    },
+    
+    // 生成所有模拟日志数据 - 用于分页
+    generateAllMockLogs() {
+      const logTypes = ['操作', '系统', '错误', '告警']
+      const logLevels = ['信息', '警告', '错误', '严重']
+      const modules = ['用户管理', '设备管理', '系统设置', '视频监控', '模型管理']
+      const users = ['admin', 'operator', 'system']
+      
+      // 生成200条模拟数据
+      return Array.from({ length: 200 }, (_, i) => {
+        const type = logTypes[Math.floor(Math.random() * logTypes.length)]
+        const level = logLevels[Math.floor(Math.random() * logLevels.length)]
+        const date = new Date()
+        
+        // 生成不同时间的日志
+        date.setHours(date.getHours() - Math.floor(Math.random() * 72)) // 近3天内
+        date.setMinutes(date.getMinutes() - Math.floor(Math.random() * 60))
+        
+        return {
+          id: 1000 + i,
+          timestamp: this.formatDate(date),
+          type,
+          level,
+          user: users[Math.floor(Math.random() * users.length)],
+          module: modules[Math.floor(Math.random() * modules.length)],
+          message: this.getRandomMessage(type),
+          ip: `192.168.1.${Math.floor(Math.random() * 255)}`,
+          stackTrace: level === '错误' || level === '严重' ? this.getRandomStackTrace() : null
         }
       })
     },
@@ -274,28 +341,28 @@ export default {
     // 获取随机日志信息
     getRandomMessage(type) {
       const messages = {
-        operation: [
+        '操作': [
           '用户登录系统',
           '修改设备配置',
           '添加新用户',
           '删除视频文件',
           '更新系统设置'
         ],
-        system: [
+        '系统': [
           '系统启动',
           '数据库备份完成',
           '服务重启',
           '系统资源检查',
           '缓存清理完成'
         ],
-        error: [
+        '错误': [
           '数据库连接失败',
           'API请求超时',
           '文件上传错误',
           '服务不可用',
           '权限验证失败'
         ],
-        warning: [
+        '告警': [
           '磁盘空间不足',
           'CPU使用率过高',
           '内存占用过大',
@@ -304,7 +371,7 @@ export default {
         ]
       }
       
-      const typeMessages = messages[type] || messages.system
+      const typeMessages = messages[type] || messages['系统']
       return typeMessages[Math.floor(Math.random() * typeMessages.length)]
     },
     
@@ -354,8 +421,74 @@ export default {
     
     // 导出日志
     exportLogs() {
+      this.loading = true
+      
+      // 获取筛选后的所有数据
+      const allMockData = this.generateAllMockLogs()
+      let dataToExport = [...allMockData]
+      
+      // 应用当前筛选条件
+      if (this.searchForm.logType) {
+        dataToExport = dataToExport.filter(item => item.type === this.searchForm.logType)
+      }
+      
+      if (this.searchForm.logLevel) {
+        dataToExport = dataToExport.filter(item => item.level === this.searchForm.logLevel)
+      }
+      
+      if (this.searchForm.timeRange && this.searchForm.timeRange.length === 2) {
+        dataToExport = dataToExport.filter(item => {
+          const itemDate = item.timestamp.split(' ')[0]
+          return itemDate >= this.searchForm.timeRange[0] && itemDate <= this.searchForm.timeRange[1]
+        })
+      }
+      
+      if (this.searchForm.keyword) {
+        const keyword = this.searchForm.keyword.toLowerCase()
+        dataToExport = dataToExport.filter(item => 
+          item.message.toLowerCase().includes(keyword) ||
+          item.module.toLowerCase().includes(keyword) ||
+          item.user.toLowerCase().includes(keyword)
+        )
+      }
+      
+      // 设置CSV表头
+      let csvContent = 'ID,时间,日志类型,级别,用户,模块,日志内容,IP地址\n'
+      
+      // 添加数据行
+      dataToExport.forEach(item => {
+        // 处理CSV中的特殊字符，确保内容中的逗号不会破坏CSV格式
+        const message = item.message.replace(/"/g, '""')
+        
+        csvContent += `${item.id},"${item.timestamp}","${item.type}","${item.level}","${item.user}","${item.module}","${message}","${item.ip}"\n`
+      })
+      
+      // 创建Blob对象
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      
+      // 创建下载链接
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      
+      // 设置文件名，使用当前日期
+      const now = new Date()
+      const fileName = `系统日志_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.csv`
+      
+      // 设置下载链接属性
+      link.setAttribute('href', url)
+      link.setAttribute('download', fileName)
+      link.style.visibility = 'hidden'
+      
+      // 添加到DOM并触发点击
+      document.body.appendChild(link)
+      link.click()
+      
+      // 清理
+      document.body.removeChild(link)
+      this.loading = false
+      
       this.$message({
-        message: '日志导出功能已触发，文件将开始下载',
+        message: '日志导出成功',
         type: 'success'
       })
     },
@@ -386,10 +519,10 @@ export default {
     // 获取日志类型对应的标签类型
     getLogTypeTag(type) {
       const typeMap = {
-        'operation': 'success',
-        'system': 'info',
-        'error': 'danger',
-        'warning': 'warning'
+        '操作': 'success',
+        '系统': 'info',
+        '错误': 'danger',
+        '告警': 'warning'
       }
       return typeMap[type] || 'info'
     },
@@ -397,10 +530,10 @@ export default {
     // 获取日志级别对应的标签类型
     getLevelTag(level) {
       const levelMap = {
-        'INFO': 'info',
-        'WARNING': 'warning',
-        'ERROR': 'danger',
-        'CRITICAL': 'danger'
+        '信息': 'info',
+        '警告': 'warning',
+        '错误': 'danger',
+        '严重': '' // 使用自定义颜色
       }
       return levelMap[level] || 'info'
     }
@@ -441,6 +574,24 @@ export default {
 .pagination-container {
   padding: 15px;
   text-align: right;
+}
+
+/* 自定义表格样式 */
+.custom-table >>> .el-table__cell {
+  border-right: none;
+}
+
+.custom-table >>> .el-table::before {
+  height: 0;
+}
+
+.custom-table >>> .el-table__header-wrapper th {
+  font-weight: bold;
+  text-align: center;
+}
+
+.custom-table >>> .el-table__row td {
+  text-align: center;
 }
 
 .log-detail {
@@ -504,5 +655,13 @@ export default {
   .detail-item {
     width: 100%;
   }
+}
+
+/* 自定义严重级别标签样式 */
+.critical-level {
+  background-color: #5d0404 !important;
+  border-color: #5d0404 !important;
+  color: #fff !important;
+  font-weight: bold;
 }
 </style>

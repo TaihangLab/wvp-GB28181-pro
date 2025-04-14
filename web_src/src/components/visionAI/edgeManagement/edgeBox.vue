@@ -18,7 +18,11 @@
     </div>
 
     <!-- 边缘盒子列表 -->
-    <el-table :data="tableData" border style="width: 100%; margin-top: 20px;">
+    <el-table 
+      :data="tableData" 
+      :border="false"
+      class="custom-table"
+      style="width: 100%; margin-top: 20px;">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column prop="name" label="盒子名称" min-width="150" align="center" />
       <el-table-column prop="serialNumber" label="序列号" min-width="150" align="center" />
@@ -326,5 +330,19 @@ export default {
 
 .dialog-footer {
   text-align: right;
+}
+
+/* 自定义表格样式 */
+.custom-table >>> .el-table__header-wrapper th {
+  font-weight: bold;
+}
+
+/* 移除表格竖线 */
+.custom-table >>> .el-table__cell {
+  border-right: none;
+}
+
+.custom-table >>> .el-table::before {
+  height: 0;
 }
 </style>
