@@ -36,17 +36,12 @@
       <el-submenu index="/intelligentControl">
         <template slot="title">智能管控</template>
         <el-menu-item index="/intelligentControl/logRecord">日志记录</el-menu-item>
-      </el-submenu>
-      
-      <!-- 新增边缘管理菜单 -->
-      <el-submenu index="/edgeManage">
-        <template slot="title">边缘管理</template>
         <el-menu-item index="/edgeManage/edgeServer">边缘服务器</el-menu-item>
         <el-menu-item index="/edgeManage/edgeBox">边缘盒子</el-menu-item>
       </el-submenu>
       
-       <!-- 新增系统管理菜单 -->
-       <el-submenu index="/systemManage">
+      <!-- 新增系统管理菜单 -->
+      <el-submenu index="/systemManage">
         <template slot="title">系统管理</template>
         <el-menu-item index="/systemManage/appSettings">应用设置</el-menu-item>
       </el-submenu>

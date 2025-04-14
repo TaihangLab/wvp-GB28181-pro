@@ -102,11 +102,18 @@
         </div>
       </div>
 
-      <!-- 添加设备对话框 -->
+      <!-- 添加/编辑设备对话框 -->
       <el-dialog
         :visible.sync="deviceDialogVisible"
-        title="添加摄像头"
+        :title="deviceForm.id ? '编辑摄像头' : '添加摄像头'"
         width="450px"
+        :close-on-click-modal="false"
+        :destroy-on-close="false"
+        :modal-append-to-body="true"
+        :append-to-body="true"
+        :show-close="true"
+        :lock-scroll="true"
+        custom-class="device-dialog"
       >
         <el-form :model="deviceForm" label-width="80px" class="skill-form">
           <el-form-item label="设备名称">
@@ -134,7 +141,7 @@
           </el-form-item>
         </el-form>
         <span slot="footer" class="dialog-footer">
-          <el-button @click="deviceDialogVisible = false">取消</el-button>
+          <el-button @click="closeDeviceDialog">取消</el-button>
           <el-button type="primary" @click="confirmAddDevice">确认</el-button>
         </span>
       </el-dialog>
@@ -143,44 +150,56 @@
       <el-dialog
         title="配置技能"
         :visible.sync="skillDialogVisible"
-        width="650px"
+        width="55%"
         :close-on-click-modal="false"
+        :destroy-on-close="false"
+        :modal-append-to-body="true"
+        :append-to-body="true"
+        :show-close="true"
+        :lock-scroll="true"
+        custom-class="skill-dialog"
+        center
         @close="handleClose"
       >
       <el-form :model="skillForm" label-width="85px" :rules="rules" ref="skillForm" class="skill-form">
-          <el-form-item label="选择技能" required prop="selectedSkill">
-            <el-select 
-              v-model="skillForm.selectedSkill" 
-              placeholder="请选择技能" 
-              style="width: 100%"
-              popper-class="skill-select"
-            >
-              <el-option v-for="item in skillOptions" :key="item.value" :label="item.label" :value="item.value"/>
-            </el-select>
-          </el-form-item>
-          
-          
-          <el-form-item label="预警等级" required prop="alarmLevel">
-            <el-select 
-              v-model="skillForm.alarmLevel" 
-              placeholder="请选择预警等级" 
-              style="width: 100%"
-              popper-class="alarm-select"
-            >
-              <el-option
-                  v-for="item in levelOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-            </el-select>
-          </el-form-item>
+          <div class="form-row">
+            <el-form-item label="选择技能" required prop="selectedSkill" class="form-item-inline form-item-skill">
+              <el-select 
+                v-model="skillForm.selectedSkill" 
+                placeholder="请选择技能" 
+                style="width: 220px"
+                size="small"
+                popper-class="skill-select"
+              >
+                <el-option v-for="item in skillOptions" :key="item.value" :label="item.label" :value="item.value"/>
+              </el-select>
+            </el-form-item>
+            
+            <el-form-item label="预警等级" required prop="alarmLevel" class="form-item-inline form-item-level">
+              <el-select 
+                v-model="skillForm.alarmLevel" 
+                placeholder="请选择预警等级" 
+                style="width: 140px"
+                size="small"
+                popper-class="alarm-select"
+              >
+                <el-option
+                    v-for="item in levelOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+              </el-select>
+            </el-form-item>
 
-          <el-form-item label="技能状态" required prop="status">
-            <div class="status-wrapper">
-              <el-switch v-model="skillForm.status" class="status-switch" />
-            </div>
-          </el-form-item>
+            <el-form-item label="技能状态" required prop="status" class="form-item-inline">
+              <div class="status-wrapper">
+                <el-switch v-model="skillForm.status" class="status-switch" />
+                <span class="status-label" :class="{ 'enabled': skillForm.status, 'disabled': !skillForm.status }"></span>
+              </div>
+            </el-form-item>
+          </div>
+          
           <el-form-item label="运行时段" required prop="timeRanges">
             <div v-for="(timeRange, index) in skillForm.timeRanges" :key="index" class="time-range">
               <el-time-picker
@@ -234,13 +253,124 @@
           </el-form-item>
 
 
-          <el-form-item label="电子围栏" style="margin-left: 10px;" >
-            <span class="fence-count">0/1</span>
-            <el-button type="primary" plain size="small" class="add-fence-btn">去添加</el-button>
+          <el-form-item label="电子围栏" required style="margin-left: 0px;">
+            <div class="electronic-fence-container">
+              <div class="fence-wrapper">
+                <div class="fence-preview">
+                  <div class="video-preview" v-if="!skillForm.electronicFence.image">
+                    <div class="preview-placeholder">
+                      <i class="el-icon-video-camera"></i>
+                      <p>视频预览区域</p>
+                    </div>
+                  </div>
+                  <div class="image-editor" v-else>
+                    <img 
+                      :src="skillForm.electronicFence.image" 
+                      alt="围栏图片" 
+                      class="fence-image"
+                      @click="handleImageClick"
+                    >
+                    <div class="fence-polygon" v-if="skillForm.electronicFence.points.length > 0">
+                      <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0;">
+                        <polygon 
+                          :points="formatPolygonPoints(skillForm.electronicFence.points)" 
+                          fill="rgba(24, 144, 255, 0.2)" 
+                          stroke="#1890ff" 
+                          stroke-width="2"
+                        />
+                        <polyline 
+                          v-if="skillForm.electronicFence.isDrawing && skillForm.electronicFence.points.length > 1"
+                          :points="formatPolygonPoints(skillForm.electronicFence.points)" 
+                          fill="none" 
+                          stroke="#1890ff" 
+                          stroke-width="2"
+                          stroke-dasharray="5,5"
+                        />
+                        <circle 
+                          v-for="(point, index) in skillForm.electronicFence.points" 
+                          :key="index"
+                          :cx="point.x" 
+                          :cy="point.y" 
+                          r="6" 
+                          fill="#fff" 
+                          stroke="#1890ff" 
+                          stroke-width="2"
+                          @mousedown.prevent="startDragPoint(index, $event)"
+                          @click.stop="handlePointClick(index)"
+                          :style="getPointStyle(index)"
+                        />
+                      </svg>
+                    </div>
+                    <div class="fence-controls" v-if="skillForm.electronicFence.image">
+                      <el-button-group v-if="!skillForm.electronicFence.isDrawing">
+                        <el-button size="mini" type="primary" icon="el-icon-edit" @click="startDrawFence">绘制围栏</el-button>
+                        <el-button size="mini" type="danger" icon="el-icon-delete" @click="clearFence" :disabled="skillForm.electronicFence.points.length === 0">清除围栏</el-button>
+                      </el-button-group>
+                      <el-button-group v-else>
+                        <el-button size="mini" type="success" icon="el-icon-check" @click="completeFence" :disabled="skillForm.electronicFence.points.length < 3">完成绘制</el-button>
+                        <el-button size="mini" type="warning" icon="el-icon-close" @click="cancelDrawFence">取消绘制</el-button>
+                      </el-button-group>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="fence-side-panel">
+                  <div class="fence-actions">
+                    <el-upload
+                      action="#"
+                      :show-file-list="false"
+                      :before-upload="handleFenceImageUpload"
+                      accept="image/*"
+                      class="fence-upload-btn"
+                    >
+                      <el-button type="primary" plain size="small" class="action-btn">
+                        <i class="el-icon-upload"></i> 上传图片
+                      </el-button>
+                    </el-upload>
+                    <el-button type="success" plain size="small" @click="captureSnapshot" class="action-btn" style="margin-top: 5px;">
+                      <i class="el-icon-camera"></i> 拍摄快照
+                    </el-button>
+                  </div>
+                  
+                  <div class="fence-tips">
+                    <el-alert
+                      title="电子围栏使用说明"
+                      type="info"
+                      description="上传图片或拍摄快照后，可以在图片上绘制多边形区域作为电子围栏。当检测到目标在围栏内/外活动时触发报警。"
+                      :closable="false"
+                      show-icon
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-form-item>
+          
+          <!-- 添加电子围栏的触发模式和灵敏度选项 -->
+          <el-form-item label="围栏设置" v-if="skillForm.electronicFence.points.length >= 3" style="margin-left: 10px; margin-top: 10px;">
+            <div class="fence-settings">
+              <div class="setting-item">
+                <span class="setting-label">触发模式：</span>
+                <el-radio-group v-model="skillForm.electronicFence.triggerMode" size="small">
+                  <el-radio-button label="inside">进入围栏触发</el-radio-button>
+                  <el-radio-button label="outside">离开围栏触发</el-radio-button>
+                </el-radio-group>
+              </div>
+              <div class="setting-item">
+                <span class="setting-label">检测灵敏度：</span>
+                <el-slider 
+                  v-model="skillForm.electronicFence.sensitivity" 
+                  :min="0" 
+                  :max="100" 
+                  :format-tooltip="value => `${value}%`"
+                  style="width: 200px;"
+                />
+              </div>
+            </div>
           </el-form-item>
         </el-form>
         <div slot="footer" class="dialog-footer">
-          <el-button @click="skillDialogVisible = false">取消</el-button>
+          <el-button @click="closeSkillDialog">取消</el-button>
           <el-button type="primary" @click="handleConfirm">确定</el-button>
         </div>
       </el-dialog>
@@ -282,7 +412,8 @@ export default {
     status: 'online',
     location: '中心节点',
     skill: '安全帽检测 v2',
-    createTime: '2024-03-20'
+    createTime: '2024-03-20',
+    config: null // 添加配置字段
   },
   {
     id: '2',
@@ -290,7 +421,8 @@ export default {
     status: 'online',
     location: '中心节点',
     skill: '工服检测 v1',
-    createTime: '2024-03-19'
+    createTime: '2024-03-19',
+    config: null
   },
   {
     id: '3',
@@ -298,7 +430,8 @@ export default {
     status: 'offline',
     location: '中心节点',
     skill: '未穿工服检测',
-    createTime: '2024-03-18'
+    createTime: '2024-03-18',
+    config: null
   },
   {
     id: '4',
@@ -306,7 +439,8 @@ export default {
     status: 'offline',
     location: '中心节点',
     skill: '安全帽检测 v2, 工服检测 v1',
-    createTime: '2024-03-17'
+    createTime: '2024-03-17',
+    config: null
   },
   {
     id: '5',
@@ -314,7 +448,8 @@ export default {
     status: 'online',
     location: '中心节点',
     skill: '车牌识别 v6',
-    createTime: '2024-03-16'
+    createTime: '2024-03-16',
+    config: null
   },
   {
     id: '6',
@@ -322,7 +457,8 @@ export default {
     status: 'online',
     location: '中心节点',
     skill: '雨天人车检测 v1',
-    createTime: '2024-03-15'
+    createTime: '2024-03-15',
+    config: null
   },
   {
     id: '7',
@@ -330,7 +466,8 @@ export default {
     status: 'offline',
     location: '中心节点',
     skill: '水位监测 v1',
-    createTime: '2024-03-14'
+    createTime: '2024-03-14',
+    config: null
   },
   {
     id: '8',
@@ -338,7 +475,8 @@ export default {
     status: 'online',
     location: '中心节点',
     skill: 'ks_xuangan_detect_851_v1_0',
-    createTime: '2024-03-13'
+    createTime: '2024-03-13',
+    config: null
   }
       ],
       
@@ -376,6 +514,16 @@ export default {
           seconds: 1,
           frames: 1
         },
+        electronicFence: {
+          image: '',
+          points: [],
+          isDrawing: false,
+          triggerMode: 'inside',
+          sensitivity: 80,
+          tempPoints: [], // 添加临时点数组，用于预览
+          draggedPointIndex: -1, // 当前拖动的点索引
+          isDragging: false // 是否正在拖动点
+        },
         images: []
       },
       
@@ -399,6 +547,9 @@ export default {
         { label: '一级预警', value: '一级预警' }
       ],
       
+      // 当前正在配置的设备ID
+      currentDeviceId: null,
+      
       // 配置技能表单验证规则
       rules: {
         selectedSkill: [
@@ -413,7 +564,11 @@ export default {
         frequency: [
           { required: true, message: '请设置抽帧频率', trigger: 'change' }
         ]
-      }
+      },
+      
+      // 拖动事件绑定引用
+      boundDragPoint: null,
+      boundStopDragPoint: null
     }
   },
   
@@ -505,33 +660,101 @@ export default {
 
 // 处理编辑设备
     handleEdit(row) {
-  // 打开编辑对话框，并填充当前设备数据
+      // 打开编辑对话框，并填充当前设备数据
       this.deviceForm = {
-    name: row.name,
-    type: row.type || '',
-    location: row.location,
+        id: row.id, // 保存ID以区分编辑还是新增
+        name: row.name,
+        type: row.type || '',
+        location: row.location,
         skills: row.skill ? row.skill.split(',').map(s => s.trim()) : []
-      }
-      this.deviceDialogVisible = true
+      };
+      
+      // 使用nextTick确保DOM更新后再显示对话框
+      this.$nextTick(() => {
+        this.deviceDialogVisible = true;
+        console.log('打开编辑对话框');
+      });
     },
     
     // 处理配置技能
     handleConfigSkill(row) {
+      // 设置当前设备ID，用于后续保存
+      this.currentDeviceId = row.id;
+      
+      // 初始化技能表单
       this.skillForm = {
-  selectedSkill: '未佩戴安全帽 (v7)',
-  alarmLevel: '四级预警',
+        selectedSkill: '未佩戴安全帽 (v7)',
+        alarmLevel: '四级预警',
         status: true,
-  timeRanges: [{
+        timeRanges: [{
           start: new Date(2024, 0, 1, 0, 0),
           end: new Date(2024, 0, 1, 23, 59)
-  }],
-  frequency: {
-    seconds: 1,
-    frames: 1
-  },
+        }],
+        frequency: {
+          seconds: 1,
+          frames: 1
+        },
+        electronicFence: {
+          image: '',
+          points: [],
+          isDrawing: false,
+          triggerMode: 'inside',
+          sensitivity: 80,
+          tempPoints: [],
+          draggedPointIndex: -1,
+          isDragging: false
+        },
         images: []
+      };
+      
+      // 如果设备已有配置，则加载已有配置
+      if (row.config) {
+        try {
+          this.loadExistingConfig(row.config);
+        } catch (error) {
+          console.error('加载配置失败', error);
+        }
       }
-      this.skillDialogVisible = true
+      
+      // 使用nextTick确保DOM更新后再显示对话框
+      this.$nextTick(() => {
+        this.skillDialogVisible = true;
+        console.log('打开配置技能对话框');
+      });
+    },
+
+    // 加载已有配置
+    loadExistingConfig(config) {
+      if (!config) return;
+      
+      // 使用深拷贝避免直接引用
+      const configCopy = JSON.parse(JSON.stringify(config));
+      
+      // 填充表单字段
+      this.skillForm.selectedSkill = configCopy.selectedSkill || this.skillForm.selectedSkill;
+      this.skillForm.alarmLevel = configCopy.alarmLevel || this.skillForm.alarmLevel;
+      this.skillForm.status = configCopy.status !== undefined ? configCopy.status : this.skillForm.status;
+      
+      // 时间段
+      if (configCopy.timeRanges && configCopy.timeRanges.length > 0) {
+        this.skillForm.timeRanges = configCopy.timeRanges.map(range => ({
+          start: range.start ? new Date(range.start) : new Date(2024, 0, 1, 0, 0),
+          end: range.end ? new Date(range.end) : new Date(2024, 0, 1, 23, 59)
+        }));
+      }
+      
+      // 抽帧频率
+      if (configCopy.frequency) {
+        this.skillForm.frequency = configCopy.frequency;
+      }
+      
+      // 电子围栏
+      if (configCopy.electronicFence) {
+        this.skillForm.electronicFence.image = configCopy.electronicFence.image || '';
+        this.skillForm.electronicFence.points = configCopy.electronicFence.points || [];
+        this.skillForm.electronicFence.triggerMode = configCopy.electronicFence.triggerMode || 'inside';
+        this.skillForm.electronicFence.sensitivity = configCopy.electronicFence.sensitivity || 80;
+      }
     },
 
 // 添加时间段
@@ -546,6 +769,7 @@ export default {
     
     // 处理关闭对话框
     handleClose() {
+      console.log('对话框关闭，重置表单');
       // 重置表单
       this.skillForm = {
         selectedSkill: '',
@@ -559,21 +783,80 @@ export default {
           seconds: 1,
           frames: 1
         },
+        electronicFence: {
+          image: '',
+          points: [],
+          isDrawing: false,
+          triggerMode: 'inside',
+          sensitivity: 80,
+          tempPoints: [],
+          draggedPointIndex: -1,
+          isDragging: false
+        },
         images: []
-      }
+      };
+      
+      // 清除当前设备ID
+      this.currentDeviceId = null;
     },
     
     // 处理确认配置
     handleConfirm() {
       this.$refs.skillForm.validate((valid) => {
         if (valid) {
-  // TODO: 保存配置到后端
-          this.$message.success('保存成功')
-          this.skillDialogVisible = false
+          if (this.currentDeviceId) {
+            // 构建要保存的配置对象
+            const config = this.prepareConfigForSave();
+            
+            // 找到当前设备并保存配置
+            const deviceIndex = this.deviceList.findIndex(device => device.id === this.currentDeviceId);
+            if (deviceIndex !== -1) {
+              this.$set(this.deviceList[deviceIndex], 'config', config);
+              
+              // 更新设备的技能名称显示
+              this.deviceList[deviceIndex].skill = this.skillForm.selectedSkill;
+              
+              this.$message.success('保存成功');
+              console.log('保存的电子围栏配置:', config.electronicFence);
+              
+              // 更新原始列表
+              this.originalDeviceList = [...this.deviceList];
+              
+              // 关闭对话框
+              this.closeSkillDialog();
+            } else {
+              this.$message.error('未找到设备，保存失败');
+            }
+          } else {
+            this.$message.error('未指定设备ID，保存失败');
+          }
         } else {
-          return false
+          return false;
         }
-      })
+      });
+    },
+    
+    // 准备保存的配置数据
+    prepareConfigForSave() {
+      // 创建一个深拷贝，避免引用原始对象
+      const config = JSON.parse(JSON.stringify({
+        selectedSkill: this.skillForm.selectedSkill,
+        alarmLevel: this.skillForm.alarmLevel,
+        status: this.skillForm.status,
+        timeRanges: this.skillForm.timeRanges.map(range => ({
+          start: range.start instanceof Date ? range.start.toISOString() : range.start,
+          end: range.end instanceof Date ? range.end.toISOString() : range.end
+        })),
+        frequency: this.skillForm.frequency,
+        electronicFence: {
+          image: this.skillForm.electronicFence.image,
+          points: this.skillForm.electronicFence.points,
+          triggerMode: this.skillForm.electronicFence.triggerMode,
+          sensitivity: this.skillForm.electronicFence.sensitivity
+        }
+      }));
+      
+      return config;
     },
 
 // 处理删除单个设备
@@ -601,6 +884,228 @@ export default {
       } else {
         this.$message.warning('至少保留一个时间段');
       }
+    },
+    
+    // 格式化多边形点坐标为SVG格式
+    formatPolygonPoints(points) {
+      return points.map(point => `${point.x},${point.y}`).join(' ');
+    },
+    
+    // 处理上传电子围栏图片
+    handleFenceImageUpload(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.skillForm.electronicFence.image = e.target.result;
+        this.skillForm.electronicFence.points = [];
+      };
+      reader.readAsDataURL(file);
+      return false; // 阻止自动上传
+    },
+    
+    // 拍摄快照
+    captureSnapshot() {
+      // 模拟拍摄快照，实际应用中需要调用摄像头API
+      this.$message.info('已拍摄快照，实际应用中需调用摄像头API');
+      // 演示用，使用示例图片
+      this.skillForm.electronicFence.image = 'https://img.alicdn.com/imgextra/i4/O1CN01sjwb8s1jrJWEFhxnJ_!!6000000004601-2-tps-1076-717.png';
+      this.skillForm.electronicFence.points = [];
+    },
+    
+    // 处理图片点击事件，添加电子围栏点
+    handleImageClick(event) {
+      if (!this.skillForm.electronicFence.isDrawing) {
+        return;
+      }
+      
+      // 获取点击坐标相对于图片的位置
+      const rect = event.target.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      
+      // 添加点到围栏
+      this.skillForm.electronicFence.points.push({ x, y });
+      
+      // 如果点数超过10个，自动完成绘制
+      if (this.skillForm.electronicFence.points.length >= 10) {
+        this.completeFence(); // 完成绘制
+      } else {
+        // 显示用户添加的点数提示
+        this.$message.info(`已添加 ${this.skillForm.electronicFence.points.length} 个点，至少需要3个点才能形成有效围栏`);
+      }
+    },
+
+    // 开始绘制电子围栏
+    startDrawFence() {
+      if (this.skillForm.electronicFence.isDrawing) {
+        this.completeFence(); // 完成绘制
+      } else {
+        // 开始绘制
+        this.skillForm.electronicFence.isDrawing = true;
+        this.skillForm.electronicFence.points = [];
+        this.$message.info('请在图片上点击添加围栏顶点，至少需要3个点');
+      }
+    },
+    
+    // 完成围栏绘制
+    completeFence() {
+      // 如果点数不足，提示用户
+      if (this.skillForm.electronicFence.points.length < 3) {
+        this.$message.warning('电子围栏至少需要3个点');
+        return;
+      }
+      
+      // 如果需要自动闭合多边形（第一个点和最后一个点不同）
+      const points = this.skillForm.electronicFence.points;
+      const firstPoint = points[0];
+      const lastPoint = points[points.length - 1];
+      
+      // 如果首尾点距离较远，自动闭合
+      const distance = Math.sqrt(
+        Math.pow(firstPoint.x - lastPoint.x, 2) + 
+        Math.pow(firstPoint.y - lastPoint.y, 2)
+      );
+      
+      if (distance > 10) { // 距离超过10像素则添加闭合点
+        points.push({ x: firstPoint.x, y: firstPoint.y });
+      }
+      
+      // 完成绘制
+      this.skillForm.electronicFence.isDrawing = false;
+      this.$message.success('电子围栏绘制完成');
+    },
+    
+    // 清除电子围栏
+    clearFence() {
+      this.$confirm('确定要清除当前绘制的电子围栏吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.skillForm.electronicFence.points = [];
+        this.skillForm.electronicFence.isDrawing = false;
+      }).catch(() => {});
+    },
+    
+    // 取消绘制电子围栏
+    cancelDrawFence() {
+      this.skillForm.electronicFence.isDrawing = false;
+      this.skillForm.electronicFence.points = [];
+      this.$message.info('已取消绘制');
+    },
+    
+    // 移除单个点
+    removePoint(index) {
+      if (this.skillForm.electronicFence.isDrawing) {
+        this.skillForm.electronicFence.points.splice(index, 1);
+      }
+    },
+    
+    // 关闭设备对话框
+    closeDeviceDialog() {
+      console.log('手动关闭设备对话框');
+      this.deviceDialogVisible = false;
+      this.deviceForm = {
+        name: '',
+        type: '',
+        location: '',
+        skills: []
+      };
+    },
+    
+    // 关闭技能对话框
+    closeSkillDialog() {
+      console.log('手动关闭技能对话框');
+      this.skillDialogVisible = false;
+      this.handleClose(); // 确保清理表单
+    },
+
+    // 开始拖动点
+    startDragPoint(index, event) {
+      console.log('开始拖动点', index);
+      
+      // 绘制模式下不允许拖动
+      if (this.skillForm.electronicFence.isDrawing) {
+        return;
+      }
+      
+      // 设置拖动状态
+      this.skillForm.electronicFence.draggedPointIndex = index;
+      this.skillForm.electronicFence.isDragging = true;
+      
+      // 绑定事件处理器到实例方法
+      this.boundDragPoint = this.dragPoint.bind(this);
+      this.boundStopDragPoint = this.stopDragPoint.bind(this);
+      
+      // 添加鼠标移动和抬起事件监听
+      document.addEventListener('mousemove', this.boundDragPoint);
+      document.addEventListener('mouseup', this.boundStopDragPoint);
+      
+      this.$message.info('正在调整围栏点位置，松开鼠标完成');
+    },
+    
+    // 拖动点
+    dragPoint(event) {
+      if (!this.skillForm.electronicFence.isDragging) {
+        return;
+      }
+      
+      const index = this.skillForm.electronicFence.draggedPointIndex;
+      if (index === -1) {
+        return;
+      }
+      
+      console.log('拖动点', index);
+      
+      // 获取图片元素
+      const imgElement = document.querySelector('.fence-image');
+      if (!imgElement) {
+        return;
+      }
+      
+      // 计算相对于图片的坐标
+      const rect = imgElement.getBoundingClientRect();
+      let x = event.clientX - rect.left;
+      let y = event.clientY - rect.top;
+      
+      // 限制在图片范围内
+      x = Math.max(0, Math.min(rect.width, x));
+      y = Math.max(0, Math.min(rect.height, y));
+      
+      // 使用Vue的响应式更新确保界面更新
+      this.$set(this.skillForm.electronicFence.points, index, { x, y });
+    },
+    
+    // 停止拖动点
+    stopDragPoint() {
+      console.log('停止拖动点');
+      
+      if (!this.skillForm.electronicFence.isDragging) {
+        return;
+      }
+      
+      // 移除事件监听
+      document.removeEventListener('mousemove', this.boundDragPoint);
+      document.removeEventListener('mouseup', this.boundStopDragPoint);
+      
+      // 重置拖动状态
+      this.skillForm.electronicFence.isDragging = false;
+      this.skillForm.electronicFence.draggedPointIndex = -1;
+    },
+    
+    // 处理点击点
+    handlePointClick(index) {
+      if (this.skillForm.electronicFence.isDrawing) {
+        this.removePoint(index);
+      }
+    },
+    
+    // 获取点的样式
+    getPointStyle(index) {
+      const isDragging = this.skillForm.electronicFence.draggedPointIndex === index;
+      return {
+        cursor: this.skillForm.electronicFence.isDrawing ? 'pointer' : 'move',
+        filter: isDragging ? 'drop-shadow(0 0 4px rgba(24, 144, 255, 0.8))' : 'none'
+      };
     }
   }
 }
@@ -629,8 +1134,8 @@ export default {
     }
     
 .device-tree .el-input {
-      margin-bottom: 20px;
-    }
+  margin-bottom: 20px;
+}
 
 /* 自定义树节点样式 */
 .custom-tree >>> .el-tree-node__content {
@@ -865,5 +1370,164 @@ export default {
   font-size: 12px;
   line-height: 1.5;
   text-align: left;
+}
+
+/* 电子围栏样式 */
+.electronic-fence-container {
+  width: 100%;
+}
+
+.fence-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
+.fence-preview {
+  width: 60%;
+  height: 240px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.video-preview {
+  width: 100%;
+  height: 100%;
+  background-color: #f2f6fc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.preview-placeholder {
+  text-align: center;
+  color: #909399;
+}
+
+.preview-placeholder i {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.image-editor {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.fence-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: all;
+  user-select: none;
+}
+
+.fence-controls {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.fence-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.fence-side-panel {
+  width: 40%;
+  display: flex;
+  flex-direction: column;
+}
+
+.fence-tips {
+  width: 100%;
+}
+
+.fence-upload-btn {
+  display: inline-block;
+}
+
+.action-btn {
+  width: 110px;
+  height: 32px;
+}
+
+/* 同一行显示的表单项样式 */
+.form-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin-bottom: 20px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.form-item-inline {
+  margin-right: 15px;
+  margin-bottom: 0;
+}
+
+.form-item-skill {
+  flex: 3;
+}
+
+.form-item-level {
+  flex: 2;
+}
+
+.form-item-inline:last-child {
+  margin-right: 0;
+  flex: 1;
+}
+
+/* 修复行内表单项的标签对齐 */
+.form-item-inline /deep/ .el-form-item__label {
+  width: auto !important;
+}
+
+.form-item-inline /deep/ .el-form-item__content {
+  margin-left: 0 !important;
+  width: auto;
+}
+
+/* 围栏设置项样式 */
+.fence-settings {
+  width: 100%;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.setting-label {
+  min-width: 80px;
+  color: #606266;
+}
+
+.fence-polygon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.fence-polygon svg {
+  pointer-events: none;
+}
+
+.fence-polygon svg circle {
+  pointer-events: all !important;
+  cursor: move !important;
+  z-index: 1000;
 }
 </style>
