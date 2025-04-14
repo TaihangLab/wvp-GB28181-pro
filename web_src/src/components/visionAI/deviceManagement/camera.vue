@@ -155,7 +155,7 @@
           </el-form-item>
 
           <!-- 预警等级和技能状态在同一行，但两个元素独立 -->
-          <div class="controls-row">
+          <div class="controls-row" >
             <div class="control-item">
               <span class="control-label required">预警等级</span>
               <el-select v-model="skillForm.alarmLevel" placeholder="请选择预警等级" style="width: 140px;margin-left: 8px;"
@@ -201,7 +201,7 @@
           </el-form-item>
 
 
-          <el-form-item label="电子围栏" required style="margin-left: 0px;">
+          <el-form-item label="电子围栏" required style="margin-left: 0px;margin-top: -15px;">
             <div class="electronic-fence-container">
               <div class="fence-wrapper">
                 <div class="fence-preview">
@@ -301,7 +301,7 @@
             </div>
           </el-form-item>
         </el-form>
-        <div slot="footer" class="dialog-footer">
+        <div slot="footer" class="dialog-footer" style="margin-top: -30px;">
           <el-button @click="closeSkillDialog">取消</el-button>
           <el-button type="primary" @click="handleConfirm">确定</el-button>
         </div>
