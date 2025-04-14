@@ -1,8 +1,8 @@
 <template>
-  <div id="UiHeader">
+  <div id="UiHeader" style="width: 100%;">
 
     <el-menu router :default-active="activeIndex" menu-trigger="click" background-color="#001529" text-color="#fff"
-             active-text-color="#1890ff" mode="horizontal" :unique-opened="true">
+             active-text-color="#1890ff" mode="horizontal" :unique-opened="true" style="width: 100%;">
 
       
       <!-- 新增监控预警菜单 -->
@@ -248,6 +248,17 @@ export default {
 
 </script>
 <style>
+#UiHeader {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+.el-menu {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border-right: none;
+}
 #UiHeader .el-switch__label {
   color: white;
 }

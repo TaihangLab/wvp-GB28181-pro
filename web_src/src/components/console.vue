@@ -1,9 +1,9 @@
 <template>
   <div id="app" style="width: 100%">
-    <div class="page-header">
+    <div class="page-header" style="width: 100%; padding: 0.5rem 0;">
       <div class="page-title">控制台</div>
     </div>
-    <el-row style="width: 100%">
+    <el-row style="width: 100%; margin: 0;">
       <el-col :xl="{ span: 8 }" :lg="{ span: 8 }" :md="{ span: 12 }" :sm="{ span: 12 }" :xs="{ span: 24 }" >
         <div class="control-cell" id="ThreadsLoad" >
           <div style="width:100%; height:100%; ">
@@ -148,11 +148,15 @@ export default {
 <style>
 #app {
   height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 .control-cell {
   padding-top: 10px;
-  padding-left: 5px;
-  padding-right: 10px;
+  padding-left: 0;
+  padding-right: 0;
+  margin: 0 5px;
   height: 360px;
 }
 </style>

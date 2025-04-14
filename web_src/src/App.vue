@@ -54,9 +54,12 @@ export default {
 html,
 body,
 #app {
-  margin: 0 0;
+  margin: 0;
+  padding: 0;
   background-color: #e9eef3;
   height: 100%;
+  width: 100%;
+  overflow-x: hidden;
 }
 .el-header,
 .el-footer {
@@ -64,12 +67,15 @@ body,
   color: #333;
   text-align: center;
   line-height: 60px;
+  width: 100%;
+  padding: 0;
 }
 .el-main {
   background-color: #f0f2f5;
   color: #333;
   text-align: center;
-  padding: 0 20px;
+  padding: 0;
+  width: 100%;
 }
 
 /*定义滚动条高宽及背景 高宽分别对应横竖滚动条的尺寸*/
