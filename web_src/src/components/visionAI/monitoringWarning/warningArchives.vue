@@ -527,30 +527,31 @@ export default {
         <!-- 当前选中档案详情 -->
         <div class="detail-content">
           <div class="archive-detail-card">
-            <div class="info-list">
-              <div class="info-item">
-                <span class="label">档案名称：</span>
-                <span class="value">{{ archiveInfo.name }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">相关位置：</span>
-                <span class="value">{{ archiveInfo.location }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">档案时间：</span>
-                <span class="value">{{ archiveInfo.timeRange }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">创建时间：</span>
-                <span class="value">{{ archiveInfo.createTime }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">档案描述：</span>
-                <span class="value">{{ archiveInfo.description || '-' }}</span>
+            <div class="archive-detail-header">
+              <div class="archive-title">{{ archiveInfo.name }}</div>
+            </div>
+            <div class="archive-detail-body">
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="label">所属位置：</span>
+                  <span class="value">{{ archiveInfo.location }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">档案时间：</span>
+                  <span class="value">{{ archiveInfo.timeRange }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">创建时间：</span>
+                  <span class="value">{{ archiveInfo.createTime }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">档案描述：</span>
+                  <span class="value">{{ archiveInfo.description || '-' }}</span>
+                </div>
               </div>
             </div>
-            <div class="action-buttons">
-              <el-button type="primary" plain size="small" class="edit-archive-btn" @click="editArchive">编辑档案</el-button>
+            <div class="archive-detail-footer">
+              <el-button type="primary" class="edit-archive-btn" @click="editArchive">编辑档案</el-button>
             </div>
           </div>
         </div>
@@ -1044,20 +1045,46 @@ export default {
   gap: 16px;
 }
 
-.archive-detail-card {
-  background-color: #fff;
-  border-radius: 8px;
+/* 预览图片蓝色框 */
+.blue-preview-box {
+  width: 100%;
+  height: 150px;
+  background-color: #ecf5ff;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archive-image-container {
+  width: 100%;
+  height: 150px;
+  border-radius: 4px;
+  overflow: hidden;
   border: 1px solid #ebeef5;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
-  padding: 20px;
+}
+
+.archive-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-btn {
+  color: #409eff;
+  font-size: 14px;
+}
+
+/* 详情蓝色框 */
+.detail-image-box {
+  height: 200px;
 }
 
 /* 信息列表 */
 .info-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
 }
 
 .info-item {
@@ -1065,20 +1092,13 @@ export default {
   font-size: 14px;
   line-height: 1.5;
   text-align: left;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f5f7fa;
-}
-
-.info-item:last-child {
-  border-bottom: none;
 }
 
 .info-item .label {
-  color: #909399;
-  width: 90px;
+  color: #606266;
+  width: 80px;
   flex-shrink: 0;
   text-align: left;
-  font-weight: 500;
 }
 
 .info-item .value {
@@ -1092,12 +1112,10 @@ export default {
 .action-buttons {
   display: flex;
   justify-content: center;
-  margin-top: 10px;
 }
 
 .edit-archive-btn {
   width: 100%;
-  height: 36px;
 }
 
 /* 弹窗通用样式 */
@@ -1387,5 +1405,72 @@ export default {
 .image-actions i:hover {
   transform: scale(1.1);
   background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* 档案详情 */
+.detail-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.archive-detail-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.archive-detail-header {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #f9fbfe;
+}
+
+.archive-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.archive-detail-body {
+  padding: 20px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  align-items: baseline;
+}
+
+.info-item .label {
+  min-width: 90px;
+  color: #909399;
+  font-size: 14px;
+}
+
+.info-item .value {
+  color: #303133;
+  font-size: 14px;
+  flex: 1;
+  word-break: break-all;
+}
+
+.archive-detail-footer {
+  padding: 16px;
+  text-align: center;
+  border-top: 1px solid #f0f0f0;
+  background-color: #f9fbfe;
+}
+
+.edit-archive-btn {
+  width: 100%;
+  border-radius: 4px;
 }
 </style>
