@@ -24,7 +24,7 @@ export default {
       WARNING_LEVELS: {
         HIGH: { label: '高危预警', value: 'high', color: '#ff4d4f' },
         MEDIUM: { label: '中度预警', value: 'medium', color: '#faad14' },
-        LOW: { label: '低危预警', value: 'low', color: '#52c41a' }
+        LOW: { label: '低危预警', value: 'blue', color: '#52c41a' }
       },
       // 分页配置
       pagination: {
