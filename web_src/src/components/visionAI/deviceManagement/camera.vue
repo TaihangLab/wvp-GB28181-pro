@@ -50,14 +50,8 @@
           <el-table-column prop="location" label="设备来源" align="center" />
           <el-table-column label="设备标签" align="center">
             <template slot-scope="{ row }">
-              <el-tag
-                v-for="(tag, index) in row.tags"
-                :key="index"
-                :color="getTagColor(tag)"
-                effect="plain"
-                size="mini"
-                style="margin: 2px; color: #fff;"
-              >
+              <el-tag v-for="(tag, index) in row.tags" :key="index" :color="getTagColor(tag)" effect="plain" size="mini"
+                style="margin: 2px; color: #fff;">
                 {{ tag }}
               </el-tag>
               <span v-if="!row.tags || row.tags.length === 0">-</span>
@@ -92,44 +86,31 @@
             <el-input v-model="deviceForm.name" style="width: 200pt;" />
           </el-form-item>
           <el-form-item label="设备类型">
-            <el-select v-model="deviceForm.type" placeholder="请选择设备类型" style="width: 200pt;" @change="handleDeviceTypeChange">
+            <el-select v-model="deviceForm.type" placeholder="请选择设备类型" style="width: 200pt;"
+              @change="handleDeviceTypeChange">
               <el-option v-for="item in deviceTypes" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="摄像头">
-            <el-select v-model="deviceForm.cameraId" placeholder="请选择摄像头" style="width: 200pt;" :disabled="!deviceForm.type">
+            <el-select v-model="deviceForm.cameraId" placeholder="请选择摄像头" style="width: 200pt;"
+              :disabled="!deviceForm.type">
               <el-option v-for="camera in filteredCameras" :key="camera.id" :label="camera.name" :value="camera.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="关联地点">
             <el-input v-model="deviceForm.location" style="width: 200pt;" />
           </el-form-item>
-          
+
           <el-form-item label="设备标签">
             <div class="tag-input-container">
-              <el-input 
-                v-model="tagInputValue" 
-                placeholder="输入标签后按回车添加" 
-                style="width: 200pt;" 
-                @keyup.enter.native="addTag"
-              >
-                <el-button 
-                  slot="append" 
-                  icon="el-icon-plus" 
-                  @click="addTag"
-                ></el-button>
+              <el-input v-model="tagInputValue" placeholder="输入标签后按回车添加" style="width: 200pt;"
+                @keyup.enter.native="addTag">
+                <el-button slot="append" icon="el-icon-plus" @click="addTag"></el-button>
               </el-input>
             </div>
             <div class="device-tags" v-if="deviceForm.tags && deviceForm.tags.length > 0">
-              <el-tag
-                v-for="(tag, index) in deviceForm.tags"
-                :key="index"
-                :color="getTagColor(tag)"
-                effect="plain"
-                closable
-                @close="removeTag(index)"
-                style="margin: 5px 5px 0 0; color: #fff;"
-              >
+              <el-tag v-for="(tag, index) in deviceForm.tags" :key="index" :color="getTagColor(tag)" effect="plain"
+                closable @close="removeTag(index)" style="margin: 5px 5px 0 0; color: #fff;">
                 {{ tag }}
               </el-tag>
             </div>
@@ -146,31 +127,23 @@
         :destroy-on-close="false" :modal-append-to-body="true" :append-to-body="true" :show-close="true"
         :lock-scroll="true" custom-class="skill-dialog" center @close="handleClose">
         <el-form :model="skillForm" label-width="85px" :rules="rules" ref="skillForm" class="skill-form">
-          <!-- 选择技能单独一行 -->
+          <!-- 选择技能和技能状态放在同一行 -->
           <el-form-item label="选择技能" required prop="selectedSkill">
-            <el-select v-model="skillForm.selectedSkill" placeholder="请选择技能" style="width: 100%" size="small" multiple
-              popper-class="skill-select">
-              <el-option v-for="item in skillOptions" :key="item.value" :label="item.label" :value="item.value" />
-            </el-select>
+            <div class="skill-status-row">
+              <div class="skill-select-container">
+                <el-select v-model="skillForm.selectedSkill" placeholder="请选择技能" style="width: 100%" size="small" multiple
+                  popper-class="skill-select">
+                  <el-option v-for="item in skillOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+              </div>
+              <div class="status-container">
+                <span class="control-label required">技能状态</span>
+                <el-switch v-model="skillForm.status" class="status-switch" />
+                <span class="status-text">{{ skillForm.status ? '已启用' : '已停用' }}</span>
+              </div>
+            </div>
           </el-form-item>
 
-          <!-- 预警等级和技能状态在同一行，但两个元素独立 -->
-          <div class="controls-row" >
-            <div class="control-item">
-              <span class="control-label required">预警等级</span>
-              <el-select v-model="skillForm.alarmLevel" placeholder="请选择预警等级" style="width: 140px;margin-left: 8px;"
-                size="small" popper-class="alarm-select">
-                <el-option v-for="item in levelOptions" :key="item.value" :label="item.label" :value="item.value" />
-              </el-select>
-            </div>
-
-            <div class="control-item">
-              <span class="control-label required">技能状态</span>
-              <el-switch v-model="skillForm.status" class="status-switch" />
-            </div>
-          </div>
-
-          <!-- 抽帧频率单独一行 -->
           <el-form-item label="抽帧频率" required prop="frequency">
             <div class="frequency-input">
               <span>每</span>
@@ -507,14 +480,6 @@ export default {
         { label: '未穿工服 (v3)', value: '未穿工服 (v3)' }
       ],
 
-      // 预警等级选项
-      levelOptions: [
-        { label: '四级预警', value: '四级预警' },
-        { label: '三级预警', value: '三级预警' },
-        { label: '二级预警', value: '二级预警' },
-        { label: '一级预警', value: '一级预警' }
-      ],
-
       // 当前正在配置的设备ID
       currentDeviceId: null,
 
@@ -676,14 +641,14 @@ export default {
           createTime: new Date().toISOString().split('T')[0],
           config: null
         };
-        
+
         // 添加到设备列表
         this.deviceList.unshift(newDevice);
         this.originalDeviceList = [...this.deviceList];
         this.total = this.deviceList.length;
         this.$message.success('设备添加成功');
       }
-      
+
       // 关闭对话框并重置表单
       this.deviceDialogVisible = false;
       this.deviceForm = {
@@ -730,7 +695,7 @@ export default {
         skills: row.skill ? row.skill.split(',').map(s => s.trim()) : [],
         tags: row.tags || []
       };
-      
+
       // 使用nextTick确保DOM更新后再显示对话框
       this.$nextTick(() => {
         this.deviceDialogVisible = true;
@@ -1285,7 +1250,7 @@ export default {
         '#337CCF', '#4CAF50', '#FF9800', '#F44336', '#673AB7',  // Material设计色
         '#1976D2', '#388E3C', '#FFA000', '#D32F2F', '#7B1FA2'   // Material深色
       ];
-      
+
       // 使用字符串哈希算法生成随机但确定的颜色索引
       const hash = Array.from(tag).reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
       return colors[Math.abs(hash) % colors.length];
@@ -1807,5 +1772,30 @@ export default {
   margin-right: 8px;
   margin-bottom: 8px;
   cursor: default;
+}
+
+/* 选择技能和技能状态的同行显示样式 */
+.skill-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.skill-select-container {
+  flex: 1;
+  margin-right: 20px;
+}
+
+.status-container {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.status-text {
+  margin-left: 10px;
+  font-size: 13px;
+  color: #606266;
 }
 </style>
