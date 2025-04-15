@@ -22,9 +22,10 @@ export default {
       },
       // 预警等级枚举
       WARNING_LEVELS: {
-        HIGH: { label: '高危预警', value: 'high', color: '#ff4d4f' },
-        MEDIUM: { label: '中度预警', value: 'medium', color: '#faad14' },
-        LOW: { label: '低危预警', value: 'low', color: '#52c41a' }
+        LEVEL1: { label: '一级预警', value: 'level1', color: '#ff4d4f' },
+        LEVEL2: { label: '二级预警', value: 'level2', color: '#faad14' },
+        LEVEL3: { label: '三级预警', value: 'level3', color: '#1890ff' },
+        LEVEL4: { label: '四级预警', value: 'level4', color: '#52c41a' }
       },
       // 分页配置
       pagination: {
@@ -130,8 +131,8 @@ export default {
       ];
       
       for (let i = 1; i <= 9; i++) {
-        const randomLevel = Math.floor(Math.random() * 3);
-        const level = ['high', 'medium', 'low'][randomLevel];
+        const randomLevel = Math.floor(Math.random() * 4);
+        const level = ['level1', 'level2', 'level3', 'level4'][randomLevel];
         let deviceName;
         
         // 根据序号选择设备名
@@ -193,7 +194,7 @@ export default {
           image: this.getPreviewImage(),
           deviceName: deviceName,
           warningTime: warningTime,
-          warningLevel: i === 3 || i === 5 ? 'high' : (i === 1 || i === 2 || i === 4 || i === 9 ? 'medium' : 'low')
+          warningLevel: i === 3 || i === 5 ? 'level1' : (i === 1 || i === 2 || i === 4 || i === 9 ? 'level2' : (i === 6 || i === 7 ? 'level3' : 'level4'))
         });
       }
       return data;
@@ -373,12 +374,15 @@ export default {
               <span 
                 class="level-tag" 
                 :class="{
-                  'high-level': scope.row.warningLevel === 'high',
-                  'medium-level': scope.row.warningLevel === 'medium',
-                  'low-level': scope.row.warningLevel === 'low'
+                  'level1-tag': scope.row.warningLevel === 'level1',
+                  'level2-tag': scope.row.warningLevel === 'level2',
+                  'level3-tag': scope.row.warningLevel === 'level3',
+                  'level4-tag': scope.row.warningLevel === 'level4'
                 }"
               >
-                {{ scope.row.warningLevel === 'high' ? '高危预警' : scope.row.warningLevel === 'medium' ? '中度预警' : '低危预警' }}
+                {{ scope.row.warningLevel === 'level1' ? '一级预警' : 
+                   scope.row.warningLevel === 'level2' ? '二级预警' : 
+                   scope.row.warningLevel === 'level3' ? '三级预警' : '四级预警' }}
               </span>
             </template>
           </el-table-column>
@@ -490,12 +494,15 @@ export default {
               <span 
                 class="level-tag" 
                 :class="{
-                  'high-level': currentDetail.warningLevel === 'high',
-                  'medium-level': currentDetail.warningLevel === 'medium',
-                  'low-level': currentDetail.warningLevel === 'low'
+                  'level1-tag': currentDetail.warningLevel === 'level1',
+                  'level2-tag': currentDetail.warningLevel === 'level2',
+                  'level3-tag': currentDetail.warningLevel === 'level3',
+                  'level4-tag': currentDetail.warningLevel === 'level4'
                 }"
               >
-                {{ currentDetail.warningLevel === 'high' ? '高危预警' : currentDetail.warningLevel === 'medium' ? '中度预警' : '低危预警' }}
+                {{ currentDetail.warningLevel === 'level1' ? '一级预警' : 
+                   currentDetail.warningLevel === 'level2' ? '二级预警' : 
+                   currentDetail.warningLevel === 'level3' ? '三级预警' : '四级预警' }}
               </span>
             </span>
           </div>
@@ -561,9 +568,10 @@ export default {
         </el-form-item>
         <el-form-item label="预警等级" required>
           <el-select v-model="addForm.warningLevel" placeholder="请选择预警等级" style="width: 100%">
-            <el-option label="高危预警" value="high"></el-option>
-            <el-option label="中度预警" value="medium"></el-option>
-            <el-option label="低危预警" value="low"></el-option>
+            <el-option label="一级预警" value="level1"></el-option>
+            <el-option label="二级预警" value="level2"></el-option>
+            <el-option label="三级预警" value="level3"></el-option>
+            <el-option label="四级预警" value="level4"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="备注描述">
@@ -699,17 +707,22 @@ export default {
   border-radius: 2px;
 }
 
-.high-level {
+.level1-tag {
   background-color: #fff0f0;
   color: #f56c6c;
 }
 
-.medium-level {
+.level2-tag {
   background-color: #fff8e6;
   color: #e6a23c;
 }
 
-.low-level {
+.level3-tag {
+  background-color: #e6f2ff;
+  color: #1890ff;
+}
+
+.level4-tag {
   background-color: #e6f7e6;
   color: #67c23a;
 }
