@@ -11,6 +11,7 @@ import com.genersoft.iot.vmp.gb28181.transmit.callback.DeferredResultHolder;
 import com.genersoft.iot.vmp.gb28181.transmit.callback.RequestMessage;
 import com.genersoft.iot.vmp.media.service.IMediaServerService;
 import com.genersoft.iot.vmp.service.IMediaService;
+import com.genersoft.iot.vmp.streamProxy.bean.StreamProxy;
 import com.genersoft.iot.vmp.streamPush.bean.BatchRemoveParam;
 import com.genersoft.iot.vmp.streamPush.bean.StreamPush;
 import com.genersoft.iot.vmp.streamPush.bean.StreamPushExcelDto;
@@ -88,6 +89,15 @@ public class StreamPushController {
         }
         PageInfo<StreamPush> pushList = streamPushService.getPushList(page, count, query, pushing, mediaServerId);
         return pushList;
+    }
+    @Operation(summary = "查询单个推流", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @Parameter(name = "app", description = "应用名")
+    @Parameter(name = "stream", description = "流Id")
+    @GetMapping(value = "/one")
+    @ResponseBody
+    public StreamPush one(String app, String stream){
+
+        return streamPushService.getPush(app, stream);
     }
 
 
