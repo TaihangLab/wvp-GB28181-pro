@@ -9,10 +9,10 @@
 
 # 导出测试函数以便在其他模块中使用
 from tests.test_camera_api import (
-    test_create_camera, 
-    test_get_camera, 
-    test_update_camera, 
-    test_delete_camera, 
+    test_create_ai_camera, 
+    test_get_ai_camera, 
+    test_update_ai_camera, 
+    test_delete_ai_camera, 
     test_list_ai_cameras, 
     test_list_wvp_cameras,
     test_list_gb28181_devices,

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.camera import Camera, CameraSkill
 import json
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +14,9 @@ class CameraDAO:
     """摄像头数据访问对象，提供摄像头相关的数据库操作"""
     
     @staticmethod
-    def get_all_cameras(db: Session) -> List[Camera]:
+    def get_all_ai_cameras(db: Session) -> List[Camera]:
         """
-        获取所有摄像头
+        获取所有AI平台摄像头
         
         Args:
             db: 数据库会话
@@ -26,9 +27,9 @@ class CameraDAO:
         return db.query(Camera).all()
     
     @staticmethod
-    def get_camera_by_id(camera_id: int, db: Session) -> Optional[Camera]:
+    def get_ai_camera_by_id(camera_id: int, db: Session) -> Optional[Camera]:
         """
-        根据ID获取摄像头
+        根据ID获取AI平台摄像头
         
         Args:
             camera_id: 摄像头ID
@@ -40,23 +41,9 @@ class CameraDAO:
         return db.query(Camera).filter(Camera.id == camera_id).first()
     
     @staticmethod
-    def get_camera_by_device_id(device_id: str, db: Session) -> Optional[Camera]:
+    def create_ai_camera(camera_data: Dict[str, Any], db: Session) -> Optional[Camera]:
         """
-        根据设备ID获取摄像头
-        
-        Args:
-            device_id: 设备ID
-            db: 数据库会话
-            
-        Returns:
-            Optional[Camera]: 摄像头对象，如果不存在则返回None
-        """
-        return db.query(Camera).filter(Camera.device_id == device_id).first()
-    
-    @staticmethod
-    def create_camera(camera_data: Dict[str, Any], db: Session) -> Optional[Camera]:
-        """
-        创建新摄像头
+        创建新AI平台摄像头
         
         Args:
             camera_data: 摄像头数据
@@ -67,8 +54,10 @@ class CameraDAO:
         """
         try:
             # 检查是否已存在相同的摄像头
-            if CameraDAO.get_camera_by_device_id(camera_data.get('deviceId'), db):
-                return None
+            if 'id' in camera_data:
+                existing_camera = db.query(Camera).filter(Camera.id == camera_data.get('id')).first()
+                if existing_camera:
+                    return None
             
             # 创建新摄像头
             tags_json = json.dumps(camera_data.get('tags', []))
@@ -78,28 +67,56 @@ class CameraDAO:
             # 根据摄像头类型存储不同的元数据
             camera_type = camera_data.get('camera_type', 'gb28181')
             
-            if camera_type == 'gb28181' and 'deviceId' in camera_data:
-                meta_data['deviceId'] = camera_data['deviceId']
+            if camera_type == 'gb28181':
+                # 对于国标设备，保存设备标识信息
+                if 'deviceId' in camera_data:
+                    meta_data['deviceId'] = camera_data['deviceId']
+                if 'id' in camera_data:
+                    meta_data['gb_id'] = camera_data['id']
+                # 保存原始设备数据（如果存在）
+                if 'original_data' in camera_data:
+                    meta_data['original_data'] = camera_data['original_data']
             elif camera_type == 'proxy_stream':
+                # 代理流设备
                 if 'app' in camera_data:
                     meta_data['app'] = camera_data['app']
                 if 'stream' in camera_data:
                     meta_data['stream'] = camera_data['stream']
-                if 'proxy_id' in camera_data:
-                    meta_data['proxy_id'] = camera_data['proxy_id']
+                # 保存设备标识信息
+                if 'id' in camera_data:
+                    meta_data['proxy_id'] = camera_data['id']
+                # 如果存在gbId，也保存
+                if 'gbId' in camera_data:
+                    meta_data['gbId'] = camera_data['gbId']
+                # 保存原始设备数据（如果存在）
+                if 'original_data' in camera_data:
+                    meta_data['original_data'] = camera_data['original_data']
+                # 保存pulling状态
+                if 'pulling' in camera_data:
+                    meta_data['pulling'] = camera_data['pulling']
             elif camera_type == 'push_stream':
+                # 推流设备
                 if 'app' in camera_data:
                     meta_data['app'] = camera_data['app']
                 if 'stream' in camera_data:
                     meta_data['stream'] = camera_data['stream']
-                if 'push_id' in camera_data:
-                    meta_data['push_id'] = camera_data['push_id']
+                # 保存设备标识信息
+                if 'id' in camera_data:
+                    meta_data['push_id'] = camera_data['id']
+                # 如果存在gbId，也保存
+                if 'gbId' in camera_data:
+                    meta_data['gbId'] = camera_data['gbId']
+                # 保存原始设备数据（如果存在）
+                if 'original_data' in camera_data:
+                    meta_data['original_data'] = camera_data['original_data']
+                # 保存pushing状态
+                if 'pushing' in camera_data:
+                    meta_data['pushing'] = camera_data['pushing']
             
             # 将元数据序列化为JSON
             meta_data_json = json.dumps(meta_data)
             
             new_camera = Camera(
-                deviceId=camera_data.get('deviceId'),
                 name=camera_data.get('name'),
                 location=camera_data.get('location', ''),
                 tags=tags_json,
@@ -133,9 +150,9 @@ class CameraDAO:
             return None
     
     @staticmethod
-    def update_camera(camera_id: int, camera_data: Dict[str, Any], db: Session) -> Optional[Camera]:
+    def update_ai_camera(camera_id: int, camera_data: Dict[str, Any], db: Session) -> Optional[Camera]:
         """
-        更新摄像头信息
+        更新AI平台摄像头信息
         
         Args:
             camera_id: 摄像头ID
@@ -146,13 +163,11 @@ class CameraDAO:
             Optional[Camera]: 更新后的摄像头对象，如果更新失败则返回None
         """
         try:
-            camera = CameraDAO.get_camera_by_id(camera_id, db)
+            camera = CameraDAO.get_ai_camera_by_id(camera_id, db)
             if not camera:
                 return None
             
             # 更新摄像头基本信息
-            if 'deviceId' in camera_data:
-                camera.deviceId = camera_data['deviceId']
             if 'name' in camera_data:
                 camera.name = camera_data['name']
             if 'location' in camera_data:
@@ -177,8 +192,9 @@ class CameraDAO:
             camera_type = camera.camera_type
             
             # 根据摄像头类型更新不同的元数据
-            if camera_type == 'gb28181' and 'deviceId' in camera_data:
-                meta_data['deviceId'] = camera_data['deviceId']
+            if camera_type == 'gb28181':
+                if 'deviceId' in camera_data:
+                    meta_data['deviceId'] = camera_data['deviceId']
             elif camera_type == 'proxy_stream':
                 if 'app' in camera_data:
                     meta_data['app'] = camera_data['app']
@@ -219,9 +235,9 @@ class CameraDAO:
             return None
     
     @staticmethod
-    def delete_camera(camera_id: int, db: Session) -> bool:
+    def delete_ai_camera(camera_id: int, db: Session) -> bool:
         """
-        删除摄像头
+        删除AI平台摄像头
         
         Args:
             camera_id: 摄像头ID
@@ -231,7 +247,7 @@ class CameraDAO:
             bool: 是否成功删除
         """
         try:
-            camera = CameraDAO.get_camera_by_id(camera_id, db)
+            camera = CameraDAO.get_ai_camera_by_id(camera_id, db)
             if not camera:
                 return False
             

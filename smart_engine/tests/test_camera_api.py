@@ -47,12 +47,12 @@ def print_response(resp: requests.Response, message: str = "") -> None:
     
     print("-" * 50)
 
-def test_create_camera() -> Optional[Dict[str, Any]]:
-    """测试创建摄像头"""
+def test_create_ai_camera() -> Optional[Dict[str, Any]]:
+    """测试创建AI摄像头"""
     try:
-        logger.info("测试创建摄像头...")
+        logger.info("测试创建AI摄像头...")
         resp = requests.post(f"{BASE_URL}/cameras", json=TEST_CAMERA)
-        print_response(resp, "创建摄像头")
+        print_response(resp, "创建AI摄像头")
         
         # 如果摄像头已存在（409状态码），则尝试获取已存在的摄像头
         if resp.status_code == 409:
@@ -66,10 +66,10 @@ def test_create_camera() -> Optional[Dict[str, Any]]:
         
         return resp.json().get("camera") if resp.status_code == 200 else None
     except Exception as e:
-        logger.error(f"测试创建摄像头失败: {str(e)}")
+        logger.error(f"测试创建AI摄像头失败: {str(e)}")
         return None
 
-def test_get_camera(camera_id: int) -> Optional[Dict[str, Any]]:
+def test_get_ai_camera(camera_id: int) -> Optional[Dict[str, Any]]:
     """测试获取AI平台摄像头详细信息
     
     该测试会验证获取摄像头的详细信息，包括：
@@ -84,12 +84,12 @@ def test_get_camera(camera_id: int) -> Optional[Dict[str, Any]]:
         Optional[Dict[str, Any]]: 摄像头详细信息或None（如果失败）
     """
     try:
-        logger.info(f"测试获取摄像头详细信息: id={camera_id}")
+        logger.info(f"测试获取AI摄像头详细信息: id={camera_id}")
         resp = requests.get(f"{BASE_URL}/cameras/{camera_id}")
-        print_response(resp, f"获取摄像头详细信息: id={camera_id}")
+        print_response(resp, f"获取AI摄像头详细信息: id={camera_id}")
         
         if resp.status_code != 200:
-            logger.error(f"获取摄像头详细信息失败，状态码: {resp.status_code}")
+            logger.error(f"获取AI摄像头详细信息失败，状态码: {resp.status_code}")
             return None
             
         response_data = resp.json()
@@ -125,34 +125,34 @@ def test_get_camera(camera_id: int) -> Optional[Dict[str, Any]]:
             
         return camera_data
     except Exception as e:
-        logger.error(f"测试获取摄像头失败: {str(e)}")
+        logger.error(f"测试获取AI摄像头失败: {str(e)}")
         return None
 
-def test_update_camera(camera_id: int) -> Optional[Dict[str, Any]]:
-    """测试更新摄像头"""
+def test_update_ai_camera(camera_id: int) -> Optional[Dict[str, Any]]:
+    """测试更新AI摄像头"""
     try:
-        logger.info(f"测试更新摄像头 ID: {camera_id}...")
+        logger.info(f"测试更新AI摄像头 ID: {camera_id}...")
         update_data = {
             "name": "已更新的测试摄像头",
             "location": "后门",
             "tags": ["测试", "后门", "已更新"]
         }
         resp = requests.put(f"{BASE_URL}/cameras/{camera_id}", json=update_data)
-        print_response(resp, f"更新摄像头 ID: {camera_id}")
+        print_response(resp, f"更新AI摄像头 ID: {camera_id}")
         return resp.json().get("camera") if resp.status_code == 200 else None
     except Exception as e:
-        logger.error(f"测试更新摄像头失败: {str(e)}")
+        logger.error(f"测试更新AI摄像头失败: {str(e)}")
         return None
 
-def test_delete_camera(camera_id: int) -> bool:
-    """测试删除摄像头"""
+def test_delete_ai_camera(camera_id: int) -> bool:
+    """测试删除AI摄像头"""
     try:
-        logger.info(f"测试删除摄像头 ID: {camera_id}...")
+        logger.info(f"测试删除AI摄像头 ID: {camera_id}...")
         resp = requests.delete(f"{BASE_URL}/cameras/{camera_id}")
-        print_response(resp, f"删除摄像头 ID: {camera_id}")
+        print_response(resp, f"删除AI摄像头 ID: {camera_id}")
         return resp.status_code == 200
     except Exception as e:
-        logger.error(f"测试删除摄像头失败: {str(e)}")
+        logger.error(f"测试删除AI摄像头失败: {str(e)}")
         return False
 
 def test_list_ai_cameras() -> Optional[Dict[str, Any]]:
@@ -337,7 +337,7 @@ def test_end_to_end():
     
     # 3. 创建新摄像头
     logger.info("步骤3: 创建新摄像头")
-    camera = test_create_camera()
+    camera = test_create_ai_camera()
     if not camera:
         logger.error("创建摄像头失败，终止测试")
         return False
@@ -347,14 +347,14 @@ def test_end_to_end():
     
     # 4. 获取特定摄像头
     logger.info("步骤4: 获取特定摄像头")
-    camera_detail = test_get_camera(camera_id)
+    camera_detail = test_get_ai_camera(camera_id)
     if not camera_detail:
         logger.error("获取摄像头详情失败，终止测试")
         return False
     
     # 5. 更新摄像头
     logger.info("步骤5: 更新摄像头")
-    updated_camera = test_update_camera(camera_id)
+    updated_camera = test_update_ai_camera(camera_id)
     if not updated_camera:
         logger.error("更新摄像头失败，终止测试")
         return False
@@ -379,7 +379,7 @@ if __name__ == "__main__":
                 if camera.get("deviceId") == TEST_CAMERA["deviceId"]:
                     camera_id = int(camera.get("id"))
                     logger.info(f"清理：删除测试摄像头 ID: {camera_id}")
-                    test_delete_camera(camera_id)
+                    test_delete_ai_camera(camera_id)
     else:
         # 运行端到端测试
         test_end_to_end() 

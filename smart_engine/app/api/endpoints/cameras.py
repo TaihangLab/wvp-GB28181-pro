@@ -158,7 +158,7 @@ def list_all_wvp_cameras(
         )
 
 @router.get("/{camera_id}", response_model=Dict[str, Any])
-def get_camera(camera_id: int, db: Session = Depends(get_db)):
+def get_ai_camera(camera_id: int, db: Session = Depends(get_db)):
     """
     获取AI平台摄像头的基本信息
     
@@ -176,7 +176,7 @@ def get_camera(camera_id: int, db: Session = Depends(get_db)):
     """
     try:
         # 调用服务层获取摄像头信息
-        camera_data = CameraService.get_camera_by_id(camera_id, db)
+        camera_data = CameraService.get_ai_camera_by_id(camera_id, db)
         
         if not camera_data:
             logger.warning(f"未找到摄像头: {camera_id}")
@@ -196,7 +196,7 @@ def get_camera(camera_id: int, db: Session = Depends(get_db)):
         )
 
 @router.post("", response_model=Dict[str, Any])
-def add_camera(camera_data: Dict[str, Any], db: Session = Depends(get_db)):
+def add_ai_camera(camera_data: Dict[str, Any], db: Session = Depends(get_db)):
     """
     添加新摄像头到AI平台
     
@@ -239,9 +239,9 @@ def add_camera(camera_data: Dict[str, Any], db: Session = Depends(get_db)):
         )
 
 @router.put("/{camera_id}", response_model=Dict[str, Any])
-def update_camera(camera_id: int, camera_data: Dict[str, Any], db: Session = Depends(get_db)):
+def update_ai_camera(camera_id: int, camera_data: Dict[str, Any], db: Session = Depends(get_db)):
     """
-    更新指定摄像头信息
+    更新指定AI平台摄像头信息
     
     Args:
         camera_id: 摄像头ID
@@ -252,7 +252,7 @@ def update_camera(camera_id: int, camera_data: Dict[str, Any], db: Session = Dep
     """
     try:
         # 调用服务层更新摄像头
-        result = CameraService.update_camera(camera_id, camera_data, db)
+        result = CameraService.update_ai_camera(camera_id, camera_data, db)
         
         if not result:
             raise HTTPException(
@@ -271,12 +271,12 @@ def update_camera(camera_id: int, camera_data: Dict[str, Any], db: Session = Dep
         )
 
 @router.delete("/{camera_id}", response_model=Message)
-def delete_camera(
+def delete_ai_camera(
     camera_id: int = Path(..., title="Camera ID", description="The ID of the camera to delete"),
     db: Session = Depends(get_db)
 ):
     """
-    删除摄像头
+    删除AI平台摄像头
     
     Args:
         camera_id: 摄像头ID
@@ -286,7 +286,7 @@ def delete_camera(
     """
     try:
         # 调用服务层删除摄像头
-        result = CameraService.delete_camera(camera_id, db)
+        result = CameraService.delete_ai_camera(camera_id, db)
         
         if not result:
             raise HTTPException(
@@ -305,25 +305,25 @@ def delete_camera(
         )
 
 @router.post("/{camera_id}/analyze/{skill_id}", response_model=Dict[str, Any])
-def analyze_camera_stream(
+def analyze_ai_camera_stream(
     camera_id: int = Path(..., title="Camera ID", description="摄像头ID"),
     skill_id: int = Path(..., title="Skill ID", description="技能ID"),
     db: Session = Depends(get_db)
 ):
     """
-    分析摄像头实时流，并应用指定技能进行分析
+    分析AI平台摄像头实时流，并应用指定技能进行分析
     
     此接口将从摄像头获取一帧图像，并使用指定的技能进行处理，返回处理结果。
     返回结果包括技能分析结果和处理后的图像（base64编码）。
     """
-    return CameraService.analyze_camera_stream(camera_id, skill_id, db)
+    return CameraService.analyze_ai_camera_stream(camera_id, skill_id, db)
 
 @router.post("/init", response_model=Message)
-def init_camera_db(db: Session = Depends(get_db)):
+def init_ai_camera_db(db: Session = Depends(get_db)):
     """
-    初始化摄像头数据库
+    初始化AI平台摄像头数据库
     """
-    return CameraService.init_camera_db(db)
+    return CameraService.init_ai_camera_db(db)
 
 # 添加新的API端点用于获取单个国标设备
 @router.get("/wvp/gb28181/{deviceId}", response_model=Dict[str, Any])

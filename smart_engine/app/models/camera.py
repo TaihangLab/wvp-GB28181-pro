@@ -7,7 +7,6 @@ class Camera(Base):
     __tablename__ = "cameras"
 
     id = Column(Integer, primary_key=True, index=True)
-    device_id = Column(String(64), unique=True, index=True, nullable=False)
     name = Column(String(128), nullable=False)
     location = Column(String(256))
     tags = Column(JSON)
@@ -19,7 +18,7 @@ class Camera(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     camera_type = Column(String(32), default="gb28181")  # 摄像头类型: gb28181, proxy_stream, push_stream
-    meta_data = Column(JSON)  # 存储摄像头额外的元数据信息
+    meta_data = Column(JSON)  # 存储摄像头额外的元数据信息，包含设备标识等信息
 
     # 关联技能
     skills = relationship("CameraSkill", back_populates="camera")
