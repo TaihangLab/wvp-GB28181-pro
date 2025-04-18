@@ -472,7 +472,7 @@ class CameraService:
         try:
             # 获取代理流详细信息
             logger.info(f"获取代理流设备信息: app={app}, stream={stream}")
-            device = wvp_client.get_proxy_stream(app, stream)
+            device = wvp_client.get_proxy_one(app, stream)
             
             if not device:
                 logger.warning(f"未找到代理流设备: app={app}, stream={stream}")
@@ -514,7 +514,7 @@ class CameraService:
         try:
             # 获取推流详细信息
             logger.info(f"获取推流设备信息: app={app}, stream={stream}")
-            device = wvp_client.get_push_stream(app, stream)
+            device = wvp_client.get_push_one(app, stream)
             
             if not device:
                 logger.warning(f"未找到推流设备: app={app}, stream={stream}")

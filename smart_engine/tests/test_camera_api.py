@@ -61,8 +61,6 @@ def test_create_ai_camera() -> Optional[Dict[str, Any]]:
             if all_cameras and "cameras" in all_cameras:
                 for camera in all_cameras["cameras"]:
                     if camera.get("deviceId") == TEST_CAMERA["deviceId"]:
-                        print(f"找到已存在的摄像头，ID: {camera.get('id')}")
-                        print(f"找到已存在的摄像头，deviceId: {camera.get('deviceId')}")
                         logger.info(f"找到已存在的摄像头，ID: {camera.get('id')}")
                         return camera
         
@@ -299,6 +297,43 @@ def test_get_proxy_stream_device(app: str, stream: str) -> Optional[Dict[str, An
         logger.error(f"测试获取代理流设备失败: {str(e)}")
         return None
 
+def test_get_push_stream_device(app: str, stream: str) -> Optional[Dict[str, Any]]:
+    """测试获取单个推流设备
+    
+    通过WVP平台API直接获取推流设备信息
+    
+    Args:
+        app: 应用名称
+        stream: 流ID
+        
+    Returns:
+        Optional[Dict[str, Any]]: 设备详细信息或None（如果失败）
+    """
+    try:
+        logger.info(f"测试获取单个推流设备: app={app}, stream={stream}")
+        resp = requests.get(f"{BASE_URL}/cameras/wvp/push/detail", params={"app": app, "stream": stream})
+        print_response(resp, f"获取推流设备: app={app}, stream={stream}")
+        
+        if resp.status_code != 200:
+            logger.error(f"获取推流设备失败，状态码: {resp.status_code}")
+            return None
+            
+        response_data = resp.json()
+        
+        # 验证返回数据的完整性
+        if not response_data.get("success", False):
+            logger.warning("获取推流设备返回成功但success字段为False")
+            
+        device_data = response_data.get("device")
+        if not device_data:
+            logger.error("返回数据中没有设备信息")
+            return None
+            
+        return device_data
+    except Exception as e:
+        logger.error(f"测试获取推流设备失败: {str(e)}")
+        return None
+
 def test_end_to_end():
     """端到端测试整个摄像头API流程"""
     
@@ -336,6 +371,41 @@ def test_end_to_end():
     if proxy_list_result is None:
         logger.error("获取代理流设备列表失败，终止测试")
         return False
+    
+    # 2.4 测试获取单个国标设备（如果有）
+    logger.info("步骤2.4: 测试获取单个国标设备")
+    if gb_list_result.get("devices") and len(gb_list_result.get("devices")) > 0:
+        device_id = gb_list_result.get("devices")[0].get("deviceId")
+        logger.info(f"选择国标设备进行测试: {device_id}")
+        gb_device = test_get_gb28181_device(device_id)
+        if not gb_device:
+            logger.warning(f"获取单个国标设备失败: {device_id}")
+    else:
+        logger.warning("没有国标设备可供测试")
+    
+    # 2.5 测试获取单个推流设备（如果有）
+    logger.info("步骤2.5: 测试获取单个推流设备")
+    if push_list_result.get("devices") and len(push_list_result.get("devices")) > 0:
+        app = push_list_result.get("devices")[0].get("app")
+        stream = push_list_result.get("devices")[0].get("stream")
+        logger.info(f"选择推流设备进行测试: app={app}, stream={stream}")
+        push_device = test_get_push_stream_device(app, stream)
+        if not push_device:
+            logger.warning(f"获取单个推流设备失败: app={app}, stream={stream}")
+    else:
+        logger.warning("没有推流设备可供测试")
+    
+    # 2.6 测试获取单个代理流设备（如果有）
+    logger.info("步骤2.6: 测试获取单个代理流设备")
+    if proxy_list_result.get("devices") and len(proxy_list_result.get("devices")) > 0:
+        app = proxy_list_result.get("devices")[0].get("app")
+        stream = proxy_list_result.get("devices")[0].get("stream")
+        logger.info(f"选择代理流设备进行测试: app={app}, stream={stream}")
+        proxy_device = test_get_proxy_stream_device(app, stream)
+        if not proxy_device:
+            logger.warning(f"获取单个代理流设备失败: app={app}, stream={stream}")
+    else:
+        logger.warning("没有代理流设备可供测试")
     
     # 3. 创建新摄像头
     logger.info("步骤3: 创建新摄像头")

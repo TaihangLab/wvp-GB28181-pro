@@ -85,11 +85,7 @@ class CameraDAO:
                 # 对于国标设备，保存设备标识信息
                 if 'deviceId' in camera_data:
                     meta_data['deviceId'] = camera_data['deviceId']
-                if 'id' in camera_data:
-                    meta_data['gb_id'] = camera_data['id']
-                # 保存原始设备数据（如果存在）
-                if 'original_data' in camera_data:
-                    meta_data['original_data'] = camera_data['original_data']
+
             elif camera_type == 'proxy_stream':
                 # 代理流设备
                 if 'app' in camera_data:
@@ -99,15 +95,7 @@ class CameraDAO:
                 # 保存设备标识信息
                 if 'id' in camera_data:
                     meta_data['proxy_id'] = camera_data['id']
-                # 如果存在gbId，也保存
-                if 'gbId' in camera_data:
-                    meta_data['gbId'] = camera_data['gbId']
-                # 保存原始设备数据（如果存在）
-                if 'original_data' in camera_data:
-                    meta_data['original_data'] = camera_data['original_data']
-                # 保存pulling状态
-                if 'pulling' in camera_data:
-                    meta_data['pulling'] = camera_data['pulling']
+
             elif camera_type == 'push_stream':
                 # 推流设备
                 if 'app' in camera_data:
@@ -117,15 +105,7 @@ class CameraDAO:
                 # 保存设备标识信息
                 if 'id' in camera_data:
                     meta_data['push_id'] = camera_data['id']
-                # 如果存在gbId，也保存
-                if 'gbId' in camera_data:
-                    meta_data['gbId'] = camera_data['gbId']
-                # 保存原始设备数据（如果存在）
-                if 'original_data' in camera_data:
-                    meta_data['original_data'] = camera_data['original_data']
-                # 保存pushing状态
-                if 'pushing' in camera_data:
-                    meta_data['pushing'] = camera_data['pushing']
+
             
             # 将元数据序列化为JSON
             meta_data_json = json.dumps(meta_data)

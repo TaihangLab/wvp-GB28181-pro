@@ -216,9 +216,20 @@ def add_ai_camera(camera_data: Dict[str, Any], db: Session = Depends(get_db)):
         result = CameraService.create_ai_camera(camera_data, db)
         
         if not result:
+            # 根据摄像头类型提供不同的错误信息
+            camera_type = camera_data.get("camera_type", "")
+            if camera_type == "gb28181":
+                error_detail = f"国标摄像头已存在: deviceId={camera_data.get('deviceId')}"
+            elif camera_type == "proxy_stream":
+                error_detail = f"代理流摄像头已存在: app={camera_data.get('app')}, stream={camera_data.get('stream')}"
+            elif camera_type == "push_stream":
+                error_detail = f"推流摄像头已存在: app={camera_data.get('app')}, stream={camera_data.get('stream')}"
+            else:
+                error_detail = "摄像头已存在"
+                
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"摄像头已存在: {camera_data.get('deviceId')}"
+                detail=error_detail
             )
         
         return {"camera": result, "success": True}
@@ -380,7 +391,7 @@ def get_proxy_stream_device(
     """
     try:
         # 调用服务层获取代理流信息
-        proxy_info = CameraService.get_proxy_stream_device_by_id(app, stream)
+        proxy_info = CameraService.get_proxy_device_one(app, stream)
         
         if not proxy_info:
             logger.warning(f"未找到代理流设备: app={app}, stream={stream}")
@@ -403,35 +414,44 @@ def get_proxy_stream_device(
             detail=str(e)
         )
 
-# # 为了向后兼容，保留原有的路径
-# @router.get("/wvp/gb28181", response_model=Dict[str, Any])
-# def list_gb28181_devices_compat(
-#     page: int = Query(1, description="当前页数"),
-#     count: int = Query(100, description="每页数量"),
-#     query: str = Query("", description="查询条件"),
-#     status: bool = Query(True, description="设备状态")
-# ):
-#     """
-#     获取WVP平台中的国标设备列表（保留向后兼容）
-#     """
-#     return list_gb28181_devices(page=page, count=count, query=query, status=status)
+# 添加新的API端点用于获取单个推流设备
+@router.get("/wvp/push/detail", response_model=Dict[str, Any])
+def get_push_stream_device(
+    app: str = Query(..., description="应用名称"),
+    stream: str = Query(..., description="流ID")
+):
+    """
+    获取单个推流设备的详细信息
+    
+    Args:
+        app: 应用名称
+        stream: 流ID
+        
+    Returns:
+        Dict[str, Any]: 设备详细信息
+    """
+    try:
+        # 调用服务层获取推流信息
+        push_info = CameraService.get_push_device_one(app, stream)
+        
+        if not push_info:
+            logger.warning(f"未找到推流设备: app={app}, stream={stream}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Push stream not found"
+            )
+        
+        # 检查是否在获取设备状态时出现错误
+        if "error" in push_info:
+            logger.warning(f"获取推流设备状态时出现警告: {push_info['error']}")
+        
+        return {"device": push_info, "success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取推流设备详情失败: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
-# @router.get("/wvp/push", response_model=Dict[str, Any])
-# def list_push_devices_compat(
-#     page: int = Query(1, description="当前页数"),
-#     count: int = Query(100, description="每页数量")
-# ):
-#     """
-#     获取WVP平台中的推流设备列表（保留向后兼容）
-#     """
-#     return list_push_devices(page=page, count=count)
-
-# @router.get("/wvp/proxy", response_model=Dict[str, Any])
-# def list_proxy_devices_compat(
-#     page: int = Query(1, description="当前页数"),
-#     count: int = Query(100, description="每页数量")
-# ):
-#     """
-#     获取WVP平台中的代理流设备列表（保留向后兼容）
-#     """
-#     return list_proxy_devices(page=page, count=count) 
