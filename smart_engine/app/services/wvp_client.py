@@ -565,49 +565,71 @@ class WVPClient:
                 logger.error(f"Response content: {e.response.text}")
             return {}
             
-    def get_proxy_stream(self, app: str, stream: str) -> dict:
+    def get_proxy_one(self, app: str, stream: str) -> dict:
         """
-        查询单个流代理设备
-        
-        Args:
-            app (str): 应用名称
-            stream (str): 流ID
-            
-        Returns:
-            dict: 流代理设备信息
+        获取单个代理流设备信息
+        :param app: 应用名
+        :param stream: 流ID
+        :return: 代理流设备信息
         """
+        url = f"{self.base_url}/api/proxy/one"
         try:
-            url = f"{self.base_url}/api/proxy/one"
             params = {
                 "app": app,
                 "stream": stream
             }
-            
             response = self.session.get(url, params=params)
-            logger.info(f"Get proxy stream response status: {response.status_code}")
-            
             if response.status_code != 200:
                 logger.error(f"Get proxy stream failed with status code {response.status_code}")
                 logger.error(f"Response content: {response.text}")
-                response.raise_for_status()
+                return {}
             
             try:
                 data = response.json()
-                logger.info(f"Get proxy stream response code: {data.get('code')}")
-                
                 if data.get("code") != 0:
-                    logger.error(f"Failed to get proxy stream: {data.get('msg')}")
+                    logger.warning(f"获取代理流设备失败: {data.get('msg')}")
                     return {}
-                    
                 return data.get("data", {})
-            except ValueError:
-                logger.error(f"Response is not valid JSON: {response.text}")
+            except ValueError as e:
+                logger.error(f"Response is not valid JSON: {response.text}, {str(e)}")
                 return {}
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to get proxy stream: {str(e)}")
-            if hasattr(e, 'response') and e.response is not None:
-                logger.error(f"Response content: {e.response.text}")
+        except Exception as e:
+            logger.error(f"获取代理流设备异常: {str(e)}")
             return {}
+            
+    def get_push_one(self, app: str, stream: str) -> dict:
+        """
+        获取单个推流设备信息
+        :param app: 应用名
+        :param stream: 流ID
+        :return: 推流设备信息
+        """
+        url = f"{self.base_url}/api/push/one"
+        try:
+            params = {
+                "app": app,
+                "stream": stream
+            }
+            response = self.session.get(url, params=params)
+            if response.status_code != 200:
+                logger.error(f"Get push stream failed with status code {response.status_code}")
+                logger.error(f"Response content: {response.text}")
+                return {}
+            
+            try:
+                data = response.json()
+                if data.get("code") != 0:
+                    logger.warning(f"获取推流设备失败: {data.get('msg')}")
+                    return {}
+                return data.get("data", {})
+            except ValueError as e:
+                logger.error(f"Response is not valid JSON: {response.text}, {str(e)}")
+                return {}
+        except Exception as e:
+            logger.error(f"获取推流设备异常: {str(e)}")
+            return {}
+
+    
 
 # 创建全局WVP客户端实例
 wvp_client = WVPClient() 

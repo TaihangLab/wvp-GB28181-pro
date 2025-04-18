@@ -296,11 +296,14 @@ class CameraService:
                 stream = meta_data.get("stream")
                 
                 if app and stream:
-                    device_status = CameraService.get_proxy_stream_device_by_id(app, stream)
+                    device_status = CameraService.get_proxy_device_one(app, stream)
             elif camera.camera_type == "push_stream":
-                # 对于推流设备，也需要从数据库中获取app和stream字段
-                # 目前没有实现推流设备的状态获取方法，如果需要，可以添加
-                pass
+                # 对于推流设备，从数据库中获取app和stream字段
+                app = meta_data.get("app")
+                stream = meta_data.get("stream")
+                
+                if app and stream:
+                    device_status = CameraService.get_push_device_one(app, stream)
         except Exception as e:
             logger.warning(f"获取设备状态时出错: {str(e)}")
         
@@ -381,11 +384,14 @@ class CameraService:
                 stream = meta_data.get("stream")
                 
                 if app and stream:
-                    device_status = CameraService.get_proxy_stream_device_by_id(app, stream)
+                    device_status = CameraService.get_proxy_device_one(app, stream)
             elif camera.camera_type == "push_stream":
-                # 对于推流设备，也需要从数据库中获取app和stream字段
-                # 目前没有实现推流设备的状态获取方法，如果需要，可以添加
-                pass
+                # 对于推流设备，从数据库中获取app和stream字段
+                app = meta_data.get("app")
+                stream = meta_data.get("stream")
+                
+                if app and stream:
+                    device_status = CameraService.get_push_device_one(app, stream)
         except Exception as e:
             logger.warning(f"获取设备状态时出错: {str(e)}")
         
@@ -452,7 +458,7 @@ class CameraService:
             return {"error": str(e)}
 
     @staticmethod
-    def get_proxy_stream_device_by_id(app: str, stream: str) -> Dict[str, Any]:
+    def get_proxy_device_one(app: str, stream: str) -> Dict[str, Any]:
         """
         获取单个代理流设备详细信息
         
@@ -466,14 +472,72 @@ class CameraService:
         try:
             # 获取代理流详细信息
             logger.info(f"获取代理流设备信息: app={app}, stream={stream}")
-            proxy_info = wvp_client.get_proxy_stream(app, stream)
-            if not proxy_info:
+            device = wvp_client.get_proxy_stream(app, stream)
+            
+            if not device:
                 logger.warning(f"未找到代理流设备: app={app}, stream={stream}")
                 return {}
             
-            return proxy_info
+            # 创建摄像头信息对象
+            camera = {
+                "gbName": device.get("name", "Unknown Camera"),
+                "app": device.get("app", ""),
+                "stream": device.get("stream", ""),
+                "srcUrl": device.get("srcUrl", ""),
+                "ip": device.get("ip", ""),
+                "pulling": device.get("pulling", False),
+                "id": device.get("id", ""),
+                "gbId": device.get("gbId", ""),
+                "gbDeviceId": device.get("gbDeviceId", ""),
+                "dataDeviceId": device.get("dataDeviceId", ""),
+                "source_type": "proxy_stream",
+                "original_data": device  # 保存原始数据供前端参考
+            }
+            
+            return camera
         except Exception as e:
             logger.error(f"获取代理流设备状态时出错: {str(e)}")
+            return {"error": str(e)}
+    
+    @staticmethod
+    def get_push_device_one(app: str, stream: str) -> Dict[str, Any]:
+        """
+        获取单个推流设备详细信息
+        
+        Args:
+            app: 应用名称
+            stream: 流ID
+            
+        Returns:
+            Dict[str, Any]: 推流设备信息
+        """
+        try:
+            # 获取推流详细信息
+            logger.info(f"获取推流设备信息: app={app}, stream={stream}")
+            device = wvp_client.get_push_stream(app, stream)
+            
+            if not device:
+                logger.warning(f"未找到推流设备: app={app}, stream={stream}")
+                return {}
+            
+            # 创建摄像头信息对象
+            camera = {
+                "id": device.get("id", ""),
+                "gbId": device.get("gbId", ""),
+                "gbDeviceId": device.get("gbDeviceId", ""),
+                "gbName": device.get("gbName", ""),
+                "dataDeviceId": device.get("dataDeviceId", ""),
+                "app": device.get("app", ""),
+                "stream": device.get("stream", ""),
+                "pushing": device.get("pushing", False),
+                "startOfflinePush": device.get("startOfflinePush", False),
+                "source_type": "push",
+                "original_data": device  # 保存原始数据供前端参考
+            }
+            
+            return camera
+        except Exception as e:
+            logger.error(f"获取推流设备状态时出错: {str(e)}")
             return {"error": str(e)}
     
     @staticmethod
@@ -775,6 +839,10 @@ class CameraService:
                 stream_url = stream_info.get("rtmp")
                 if not stream_url:
                     stream_url = stream_info.get("flv")
+                    
+                if not stream_url:
+                    logger.error(f"无法获取推流摄像头流地址")
+                    raise HTTPException(status_code=500, detail="Failed to get stream URL")
                 
             elif camera_type == "proxy_stream":
                 # 代理流摄像头
@@ -794,6 +862,10 @@ class CameraService:
                 stream_url = stream_info.get("rtmp")
                 if not stream_url:
                     stream_url = stream_info.get("flv")
+                
+                if not stream_url:
+                    logger.error(f"无法获取代理流摄像头流地址")
+                    raise HTTPException(status_code=500, detail="Failed to get stream URL")
                 
             elif camera_type == "gb28181":
                 # 国标摄像头，尝试从meta_data获取deviceId
