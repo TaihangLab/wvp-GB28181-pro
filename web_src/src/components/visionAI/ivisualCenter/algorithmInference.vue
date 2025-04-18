@@ -48,6 +48,7 @@
               <span>Node: 10个</span>
             </div>
           </div>
+          
           <div class="resource-charts">
             <div class="chart-item">
               <div class="chart-container">
@@ -102,71 +103,68 @@
               <div class="chart-title">显存</div>
             </div>
           </div>
-          <div class="more-btn" @click="toggleResourcePanel">
-            <span>{{ isResourceExpanded ? '收起' : '展开' }}</span>
-            <i :class="isResourceExpanded ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
-          </div>
-        </div>
-        <div class="expanded-content" v-if="isResourceExpanded">
-          <div class="expanded-header">
-            <div class="resource-detail-title">资源详情</div>
-            <div class="resource-time">更新时间: {{ currentTime }}</div>
-          </div>
-          <div class="resource-details">
-            <div class="detail-group">
-              <div class="detail-item">
-                <div class="detail-label">CPU平均温度</div>
-                <div class="detail-value">46.5°C</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">CPU峰值温度</div>
-                <div class="detail-value">68.2°C</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">CPU核心数</div>
-                <div class="detail-value">32</div>
-              </div>
+          
+          <div class="resource-details-container">
+            <div class="expanded-header">
+              <div class="resource-detail-title">资源详情</div>
+              <div class="resource-time">更新时间: {{ currentTime }}</div>
             </div>
-            <div class="detail-group">
-              <div class="detail-item">
-                <div class="detail-label">内存总量</div>
-                <div class="detail-value">64GB</div>
+            <div class="resource-details">
+              <div class="detail-group">
+                <div class="detail-item">
+                  <div class="detail-label">CPU平均温度</div>
+                  <div class="detail-value">46.5°C</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">CPU峰值温度</div>
+                  <div class="detail-value">68.2°C</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">CPU核心数</div>
+                  <div class="detail-value">32</div>
+                </div>
               </div>
-              <div class="detail-item">
-                <div class="detail-label">已用内存</div>
-                <div class="detail-value">29.2GB</div>
+              <div class="detail-group">
+                <div class="detail-item">
+                  <div class="detail-label">内存总量</div>
+                  <div class="detail-value">64GB</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">已用内存</div>
+                  <div class="detail-value">29.2GB</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">内存频率</div>
+                  <div class="detail-value">3200MHz</div>
+                </div>
               </div>
-              <div class="detail-item">
-                <div class="detail-label">内存频率</div>
-                <div class="detail-value">3200MHz</div>
+              <div class="detail-group">
+                <div class="detail-item">
+                  <div class="detail-label">存储总量</div>
+                  <div class="detail-value">2TB</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">已用存储</div>
+                  <div class="detail-value">1.2TB</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">存储类型</div>
+                  <div class="detail-value">NVMe SSD</div>
+                </div>
               </div>
-            </div>
-            <div class="detail-group">
-              <div class="detail-item">
-                <div class="detail-label">存储总量</div>
-                <div class="detail-value">2TB</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">已用存储</div>
-                <div class="detail-value">1.2TB</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">存储类型</div>
-                <div class="detail-value">NVMe SSD</div>
-              </div>
-            </div>
-            <div class="detail-group">
-              <div class="detail-item">
-                <div class="detail-label">GPU型号</div>
-                <div class="detail-value">RTX 3090</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">显存总量</div>
-                <div class="detail-value">24GB</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">温度</div>
-                <div class="detail-value">72.5°C</div>
+              <div class="detail-group">
+                <div class="detail-item">
+                  <div class="detail-label">GPU型号</div>
+                  <div class="detail-value">RTX 3090</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">显存总量</div>
+                  <div class="detail-value">24GB</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">温度</div>
+                  <div class="detail-value">72.5°C</div>
+                </div>
               </div>
             </div>
           </div>
@@ -238,20 +236,38 @@
           <div class="title">报警统计</div>
         </div>
         <div class="card-content">
-          <!-- 饼图容器 -->
-          <div class="pie-chart-container" ref="alarmPieContainer">
-            <svg class="alarm-pie-chart" viewBox="-100 -100 200 200" ref="alarmPieChartSvg">
-              <!-- 饼图扇区将通过JS动态添加 -->
-            </svg>
-            <div class="chart-legend" ref="alarmPieLegend">
-              <!-- 图例项将通过JS动态添加 -->
+          <!-- 报警类型统计 -->
+          <div class="alarm-chart-section">
+            <!-- 圆环饼图 -->
+            <div class="donut-container">
+              <div class="donut-chart">
+                <!-- 百分比标签 -->
+                <div class="percent-label label-1">5%</div>
+                <div class="percent-label label-2">40%</div>
+                <div class="percent-label label-3">20%</div>
+                <div class="percent-label label-4">35%</div>
+              </div>
             </div>
-          </div>
-          <!-- 时间选择器 -->
-          <div class="time-selector">
-            <span class="date-btn active">今日</span>
-            <span class="date-btn">近7天</span>
-            <span class="date-btn">本月</span>
+            
+            <!-- 图例 -->
+            <div class="chart-legends">
+              <div class="legend-item">
+                <div class="legend-color type-1"></div>
+                <span class="legend-name">人员检测</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color type-2"></div>
+                <span class="legend-name">交通拥堵</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color type-3"></div>
+                <span class="legend-name">非机动车违规</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color type-4"></div>
+                <span class="legend-name">违章停车</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -533,39 +549,23 @@ export default {
         loading: false
       },
       myAlgorithms: [
-        { id: '9934', name: '打手识别', size: 1.5 },
-        { id: '9926', name: '渣土车识别', size: 1.7 },
-        { id: '9677', name: '人员闯入', size: 1.3 },
-        { id: '9650', name: '消防通道堵塞', size: 1.4 },
-        { id: '9768', name: '厨房夜间老鼠识别', size: 1.8 },
-        { id: '9610', name: '火焰识别', size: 1.6 },
-        { id: '9762', name: '街道垃圾识别', size: 1.4 },
-        { id: '9758', name: '积水识别', size: 1.7 },
-        { id: '9688', name: '其它检测', size: 1.5 },
-        { id: '9684', name: '烟雾检测', size: 1.4 }
+        { id: '9934', name: '打手识别', size: 1.2 },
+        { id: '9926', name: '渣土车识别', size: 1.3 },
+        { id: '9677', name: '人员闯入', size: 1.1 },
+        { id: '9650', name: '消防通道堵塞', size: 1.2 },
+        { id: '9768', name: '厨房夜间老鼠识别', size: 1.4 },
+        { id: '9610', name: '火焰识别', size: 1.3 },
+        { id: '9762', name: '街道垃圾识别', size: 1.2 },
+        { id: '9758', name: '积水识别', size: 1.3 },
+        { id: '9688', name: '其它检测', size: 1.2 },
+        { id: '9684', name: '烟雾检测', size: 1.2 }
       ],
-      alarmStatistics: {
-        labels: ['9758-滨湖机场切面', '9614-机动车非法占用专用车道', '9728-非机动车闯红灯', '9930-机动车闯红灯检测'],
-        values: [27.00, 14.85, 16.17, 16.08]
-      },
       deviceStatistics: {
         total: 286589,
         videoStreams: 562,
         captureServices: 23108,
         wvpCalls: 2389
       },
-      alarmData: {
-        total: 2342325,
-        algorithm: 90280,
-        daily: [12000, 14000, 16000, 15000, 18000, 16000, 15000, 19000, 17000, 16000,
-          14000, 15000, 17000, 16000, 18000, 16000, 18000, 17000, 15000, 17000,
-          16000, 15000, 19000, 17000, 16000, 14000, 15000, 17000, 16000, 18000]
-      },
-      alarmForwarding: {
-        days: ['4日', '5日', '6日', '7日', '8日', '9日', '10日'],
-        values: [24917, 16585, 25000, 12532, 15072, 6023, 14311]
-      },
-      isResourceExpanded: false,
       // Three.js相关变量
       cubeScene: null,
       cubeCamera: null,
@@ -604,30 +604,39 @@ export default {
       algoSphereGroup: null,
       algoAnimationId: null,
       algoControls: null,
-      alarmPieData: [
-        { label: '滨湖机场切面', value: 27.00, color: '#3eaef9' }, // 修改了label以更简洁
-        { label: '机动车非法占用', value: 14.85, color: '#ff9c38' }, // 修改了label以更简洁
-        { label: '非机动车闯红灯', value: 16.17, color: '#29de9c' },
-        { label: '机动车闯红灯', value: 16.08, color: '#ff5a5a' }, // 修改了label以更简洁
-        { label: '其他报警', value: 25.9, color: '#a9a9a9' }     // 添加了"其他"类别使总和接近100%
-      ],
     }
   },
   mounted() {
+    // 初始化时间更新
     this.updateTime();
     this.timer = setInterval(this.updateTime, 1000);
+
+    // 添加全屏变化事件监听器
+    document.addEventListener('fullscreenchange', this.handleFullscreenChange);
+    
     this.$nextTick(() => {
       this.initCubeScene();
       this.initAlgorithmSphere(); // 添加初始化算法球体
       this.initResourceChart();
-      this.initAlarmPieChart(); // <--- 添加调用
 
       // 添加窗口大小变化监听
       window.addEventListener('resize', this.handleResize);
+      
+      // 延迟300ms后再次初始化算法球体，确保容器大小已经正确计算
+      setTimeout(() => {
+        this.reinitAlgorithmSphere();
+      }, 300);
     });
   },
   beforeDestroy() {
-    clearInterval(this.timer);
+    // 清除定时器
+    if (this.timer) {
+      clearInterval(this.timer);
+    }
+    
+    // 移除全屏变化事件监听器
+    document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
+    
     // 清除动画循环
     if (this.cubeAnimationId) {
       cancelAnimationFrame(this.cubeAnimationId);
@@ -662,11 +671,23 @@ export default {
       this.currentTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     },
     toggleFullScreen() {
+      const navBar = document.querySelector('.el-header'); // 选择顶部导航栏元素
+      
       if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
+        document.documentElement.requestFullscreen().then(() => {
+          // 进入全屏后隐藏导航栏
+          if (navBar) navBar.style.display = 'none';
+        }).catch(err => {
+          console.error('全屏切换失败:', err);
+        });
       } else {
         if (document.exitFullscreen) {
-          document.exitFullscreen();
+          document.exitFullscreen().then(() => {
+            // 退出全屏后显示导航栏
+            if (navBar) navBar.style.display = '';
+          }).catch(err => {
+            console.error('退出全屏失败:', err);
+          });
         }
       }
     },
@@ -2437,27 +2458,14 @@ export default {
       if (this.cubeRenderer && this.cubeCamera) {
         const container = document.getElementById('threejs-cube');
         if (container) {
-          this.cubeRenderer.setSize(container.clientWidth, container.clientHeight);
           this.cubeCamera.aspect = container.clientWidth / container.clientHeight;
           this.cubeCamera.updateProjectionMatrix();
+          this.cubeRenderer.setSize(container.clientWidth, container.clientHeight);
         }
       }
-
-      // 如果饼图容器存在，重新初始化
-      if (this.$refs.alarmPieContainer) {
-        // 清空容器
-        const container = this.$refs.alarmPieContainer;
-        while (container.firstChild) {
-          container.removeChild(container.firstChild);
-        }
-        // 重新初始化
-        this.initAlarmPieChart();
-      }
-
-      // 更新算法球体大小 (Algo Sphere) - 确保这部分逻辑还在
-      if (this.algoRenderer && this.algoCamera) {
-        this.handleAlgoResize(); // 调用现有的 algo resize 处理函数
-      }
+      
+      // 重新初始化算法球体
+      this.reinitAlgorithmSphere();
     },
     toggleResourcePanel() {
       this.isResourceExpanded = !this.isResourceExpanded;
@@ -2551,8 +2559,8 @@ export default {
       // 创建相机，调整视场角使效果更突出
       const width = container.clientWidth;
       const height = container.clientHeight;
-      this.algoCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-      this.algoCamera.position.z = 16; // 调整相机距离，使更紧密的气泡能够正常显示
+      this.algoCamera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000); // 增大视场角为60度
+      this.algoCamera.position.z = 12; // 调整相机距离，使气泡能够完全显示在视野中
 
       // 创建渲染器，启用抗锯齿提高清晰度
       this.algoRenderer = new THREE.WebGLRenderer({
@@ -2563,6 +2571,7 @@ export default {
       this.algoRenderer.setSize(width, height);
       this.algoRenderer.setClearColor(0x000000, 0);
       this.algoRenderer.setPixelRatio(window.devicePixelRatio); // 根据设备像素比设置
+      container.innerHTML = ''; // 清空容器，防止重复添加
       container.appendChild(this.algoRenderer.domElement);
 
       // 创建球体组
@@ -2576,7 +2585,6 @@ export default {
       const directionalLight = new THREE.DirectionalLight(0x6688ff, 2.0);
       directionalLight.position.set(1, 1, 1);
       this.algoScene.add(directionalLight);
-
 
       // 创建气泡
       this.createAlgorithmBubbles();
@@ -2602,8 +2610,8 @@ export default {
 
     // 创建算法气泡
     createAlgorithmBubbles() {
-      // 生成均匀分布在球面上的点，减小半径从9到7，使气泡更紧密
-      const points = this.generateSpherePoints(this.myAlgorithms.length, 7);
+      // 生成均匀分布在球面上的点，减小半径使气泡更紧密
+      const points = this.generateSpherePoints(this.myAlgorithms.length, 5); // 缩小半径从7到5
 
       // 创建每个气泡
       this.myAlgorithms.forEach((algo, index) => {
@@ -2611,7 +2619,7 @@ export default {
         const position = points[index];
 
         // 创建气泡几何体和材质，增加细分以提高平滑度
-        const size = algo.size;
+        const size = Math.min(algo.size, 1.5); // 限制最大气泡大小为1.5
         const geometry = new THREE.SphereGeometry(size, 48, 48);
 
         // 随机颜色，但保持在蓝色系
@@ -2757,10 +2765,21 @@ export default {
       const width = container.clientWidth;
       const height = container.clientHeight;
 
+      // 更新相机和渲染器参数
       this.algoCamera.aspect = width / height;
       this.algoCamera.updateProjectionMatrix();
-
       this.algoRenderer.setSize(width, height);
+      
+      // 调整相机位置以适应新的容器尺寸
+      if (width < 300) {
+        // 如果容器宽度较小，拉远相机使整个场景可见
+        this.algoCamera.position.z = 15;
+      } else {
+        // 否则使用标准距离
+        this.algoCamera.position.z = 12;
+      }
+      
+      this.algoCamera.updateProjectionMatrix();
     },
 
     // 动画循环
@@ -2791,127 +2810,29 @@ export default {
       this.algoRenderer.render(this.algoScene, this.algoCamera);
     },
 
-    initAlarmPieChart() {
-      const data = this.alarmPieData;
-      const svg = this.$refs.alarmPieChartSvg;
-      const legendContainer = this.$refs.alarmPieLegend;
-      if (!svg || !legendContainer || !data || data.length === 0) return;
-
-      // 清空旧内容
-      while (svg.firstChild) {
-        svg.removeChild(svg.firstChild);
+    // 处理全屏变化事件
+    handleFullscreenChange() {
+      const navBar = document.querySelector('.el-header');
+      
+      if (!document.fullscreenElement) {
+        // 退出全屏时显示导航栏
+        if (navBar) navBar.style.display = '';
+      } else {
+        // 进入全屏时隐藏导航栏
+        if (navBar) navBar.style.display = 'none';
       }
-      while (legendContainer.firstChild) {
-        legendContainer.removeChild(legendContainer.firstChild);
-      }
-
-      const totalValue = data.reduce((sum, item) => sum + item.value, 0);
-      if (totalValue === 0) return; // 避免除以零
-
-      let startAngle = -Math.PI / 2; // 从顶部开始
-
-      data.forEach((item, index) => {
-        const percentage = item.value / totalValue;
-        const endAngle = startAngle + percentage * (2 * Math.PI);
-        const largeArcFlag = percentage > 0.5 ? 1 : 0;
-
-        // 计算坐标
-        const startX = 90 * Math.cos(startAngle);
-        const startY = 90 * Math.sin(startAngle);
-        const endX = 90 * Math.cos(endAngle);
-        const endY = 90 * Math.sin(endAngle);
-
-        // 创建 <path> 元素
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const d = [
-          `M ${startX} ${startY}`, // 移动到起点
-          `A 90 90 0 ${largeArcFlag} 1 ${endX} ${endY}`, // 绘制圆弧
-          'L 0 0' // 连接到圆心
-        ].join(' ');
-
-        path.setAttribute('d', d);
-        path.setAttribute('fill', item.color);
-        path.setAttribute('stroke', '#000b18'); // 添加描边以区分扇区
-        path.setAttribute('stroke-width', '1');
-        path.classList.add('pie-segment'); // 添加类名用于交互
-
-        // 添加悬停效果和提示
-        path.addEventListener('mouseenter', (e) => {
-          this.showPieTooltip(e, item);
-        });
-        path.addEventListener('mouseleave', () => {
-          this.hidePieTooltip();
-        });
-
-
-        svg.appendChild(path);
-
-        // 创建图例项
-        const legendItem = document.createElement('div');
-        legendItem.classList.add('legend-item');
-        legendItem.innerHTML = `
-          <span class="legend-color" style="background-color: ${item.color};"></span>
-          <span class="legend-text">${item.label}</span>
-          <span class="legend-value">${item.value.toFixed(2)}%</span>
-        `;
-        legendContainer.appendChild(legendItem);
-
-        startAngle = endAngle;
-      });
-
-      // 添加中心圆和脉冲效果
-      const centerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      centerCircle.setAttribute('cx', '0');
-      centerCircle.setAttribute('cy', '0');
-      centerCircle.setAttribute('r', '50'); // 中心圆半径
-      centerCircle.setAttribute('fill', 'rgba(0, 11, 24, 0.7)'); // 半透明背景
-      centerCircle.setAttribute('stroke', 'rgba(30, 144, 255, 0.3)');
-      centerCircle.setAttribute('stroke-width', '1');
-      svg.appendChild(centerCircle);
-
-      const pulseCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      pulseCircle.setAttribute('cx', '0');
-      pulseCircle.setAttribute('cy', '0');
-      pulseCircle.setAttribute('r', '55'); // 脉冲环半径略大于中心圆
-      pulseCircle.setAttribute('fill', 'none');
-      pulseCircle.setAttribute('stroke', 'rgba(30, 144, 255, 0.5)');
-      pulseCircle.setAttribute('stroke-width', '1');
-      pulseCircle.classList.add('pulse-circle'); // 应用脉冲动画
-      svg.appendChild(pulseCircle);
-
-      const centerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      centerText.setAttribute('x', '0');
-      centerText.setAttribute('y', '0');
-      centerText.setAttribute('text-anchor', 'middle');
-      centerText.setAttribute('dy', '.3em');
-      centerText.setAttribute('fill', '#ffffff');
-      centerText.setAttribute('font-size', '14');
-      centerText.textContent = '报警占比';
-      svg.appendChild(centerText);
     },
 
-    // 添加 tooltip 方法
-    showPieTooltip(event, item) {
-      let tooltip = document.getElementById('pie-tooltip');
-      if (!tooltip) {
-        tooltip = document.createElement('div');
-        tooltip.id = 'pie-tooltip';
-        tooltip.classList.add('pie-tooltip');
-        document.body.appendChild(tooltip);
+    // 重新初始化算法球体
+    reinitAlgorithmSphere() {
+      // 清除现有的动画和渲染器
+      if (this.algoAnimationId) {
+        cancelAnimationFrame(this.algoAnimationId);
+        this.algoAnimationId = null;
       }
-      tooltip.innerHTML = `<div>${item.label}</div><div>${item.value.toFixed(2)}%</div>`;
-      tooltip.style.left = `${event.clientX + 10}px`;
-      tooltip.style.top = `${event.clientY + 10}px`;
-      tooltip.style.display = 'block';
-      tooltip.style.opacity = '1'; // 确保可见
-    },
-
-    hidePieTooltip() {
-      const tooltip = document.getElementById('pie-tooltip');
-      if (tooltip) {
-        tooltip.style.display = 'none';
-        tooltip.style.opacity = '0';
-      }
+      
+      // 重新初始化
+      this.initAlgorithmSphere();
     },
   }
 }
@@ -2926,45 +2847,47 @@ export default {
   color: #ffffff;
   font-family: "Microsoft YaHei", Arial, sans-serif;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto; /* 保留垂直滚动 */
+  overflow-x: hidden; /* 隐藏水平滚动 */
   background-image: url('/static/img/bg-pattern.png');
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
+  scrollbar-width: none; /* Firefox 隐藏滚动条 */
+  -ms-overflow-style: none; /* IE 和 Edge 隐藏滚动条 */
 }
 
-/* 背景网格线效果 */
-.algorithm-inference-platform::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-    linear-gradient(to right, rgba(20, 80, 180, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(20, 80, 180, 0.05) 1px, transparent 1px);
-  background-size: 40px 40px;
-  background-position: center;
-  z-index: 0;
+/* 为 Chrome、Safari 和 Opera 隐藏滚动条 */
+.algorithm-inference-platform::-webkit-scrollbar {
+  display: none;
+  width: 0;
 }
 
-/* 顶部和底部边框装饰 */
-.algorithm-inference-platform::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(to right,
-      transparent,
-      rgba(30, 144, 255, 0.5) 20%,
-      rgba(30, 144, 255, 0.8) 50%,
-      rgba(30, 144, 255, 0.5) 80%,
-      transparent);
-  z-index: 2;
+/* 确保所有内容容器也使用同样的滚动条隐藏方式 */
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-gap: 8px;
+  flex: 1;
+  padding: 8px;
+  overflow: hidden;
+}
+
+/* 所有卡片的内容区域隐藏滚动条但保留滚动功能 */
+.card-content {
+  padding: 5px 10px;
+  height: calc(100% - 40px); /* 减去标题高度 */
+  overflow-y: auto !important; /* 启用垂直滚动 */
+  overflow-x: hidden !important; /* 隐藏水平滚动 */
+  scrollbar-width: none !important; /* Firefox 隐藏滚动条 */
+  -ms-overflow-style: none !important; /* IE and Edge 隐藏滚动条 */
+}
+
+.card-content::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari and Opera 隐藏滚动条 */
+  width: 0 !important; /* 确保滚动条宽度为0 */
 }
 
 .main-title {
@@ -3088,7 +3011,7 @@ export default {
 
 .card-content {
   padding: 5px 10px;
-  height: calc(100% - 40px);
+  height: calc(100% - 40px); /* 减去标题高度 */
   overflow: auto;
 }
 
@@ -3100,6 +3023,23 @@ export default {
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  height: 100%; /* 确保高度占满整个网格单元格 */
+}
+
+.resource-statistics .card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* 启用垂直滚动 */
+  padding: 0 10px;
+  scrollbar-width: none; /* Firefox 隐藏滚动条 */
+  -ms-overflow-style: none; /* IE and Edge 隐藏滚动条 */
+  max-height: 100%; /* 确保内容不会超出卡片高度 */
+}
+
+.resource-statistics .card-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera 隐藏滚动条 */
+  width: 0; /* 确保滚动条宽度为0 */
 }
 
 .server-info {
@@ -3108,6 +3048,7 @@ export default {
   margin-bottom: 15px;
   margin-top: 10px;
   padding: 0 5px;
+  flex-shrink: 0; /* 防止顶部元素收缩 */
 }
 
 .server-type {
@@ -3153,9 +3094,12 @@ export default {
 .resource-charts {
   display: flex;
   justify-content: space-around;
+  align-items: center;
   margin-top: 15px;
   padding: 0 5px;
   position: relative;
+  flex-shrink: 0; /* 防止顶部元素收缩 */
+  margin-bottom: 5px;
 }
 
 .resource-charts::before {
@@ -3171,13 +3115,34 @@ export default {
       rgba(30, 144, 255, 0));
 }
 
+/* 添加资源标签样式 */
+.resource-labels {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.resource-label {
+  width: 60px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #7888a8;
+}
+
 .chart-item {
   width: 22%;
   position: relative;
-  padding-bottom: 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* 隐藏原有的图表标题，由新添加的标签替代 */
+.chart-title {
+  display: none;
 }
 
 /* 图表容器 */
@@ -3441,22 +3406,8 @@ export default {
   opacity: 0.8;
 }
 
-/* 标题样式 */
-.chart-title {
-  color: #7888a8;
-  font-size: 13px;
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  text-align: center;
-  margin: 0;
-  padding-top: 8px;
-}
-
 .more-btn {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   margin-top: 15px;
@@ -3526,63 +3477,56 @@ export default {
 }
 
 .resource-detail-title {
-  font-size: 14px;
-  color: #3a9eff;
-  font-weight: bold;
+  color: #a0b4d0;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .resource-time {
-  font-size: 12px;
   color: #7888a8;
+  font-size: 11px;
 }
 
 .resource-details {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%; /* 确保宽度填满容器 */
 }
 
 .detail-group {
-  background: rgba(0, 24, 40, 0.4);
-  border: 1px solid rgba(30, 144, 255, 0.2);
-  border-radius: 4px;
-  padding: 10px;
-  position: relative;
-  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+  border-bottom: 1px dashed rgba(30, 80, 150, 0.2);
 }
 
-.detail-group::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(to right,
-      rgba(30, 144, 255, 0.1),
-      rgba(30, 144, 255, 0.4),
-      rgba(30, 144, 255, 0.1));
+.detail-group:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 .detail-item {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.detail-item:last-child {
-  margin-bottom: 0;
+  flex-direction: column;
+  flex: 1;
+  min-width: 90px;
 }
 
 .detail-label {
-  font-size: 12px;
   color: #7888a8;
+  font-size: 12px;
+  margin-bottom: 4px;
 }
 
 .detail-value {
-  font-size: 12px;
-  color: #ffffff;
-  font-weight: bold;
+  color: #e0e6f0;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* 中心显示区域 */
@@ -4330,7 +4274,20 @@ export default {
   grid-column: 1;
   grid-row: 2;
   height: 100%;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+  position: relative; /* 添加定位上下文 */
+}
+
+.my-algorithms .card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  height: calc(100% - 40px); /* 减去标题高度 */
+  position: relative; /* 添加定位上下文 */
 }
 
 .algorithm-bubbles {
@@ -4340,6 +4297,9 @@ export default {
   background-color: rgba(0, 15, 30, 0.6);
   overflow: hidden;
   background-image: radial-gradient(circle at center, rgba(10, 50, 100, 0.3) 0%, rgba(0, 15, 30, 0.8) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .algorithm-bubble {
@@ -5285,164 +5245,6 @@ export default {
   z-index: 0;
 }
 
-
-
-.pie-chart-container {
-  flex: 1;
-  position: relative;
-  margin: 5px 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(0, 15, 30, 0.3);
-  border-radius: 4px;
-  border: 1px solid rgba(30, 80, 150, 0.3);
-  overflow: hidden;
-}
-
-.pie-chart-container::before {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at center, rgba(30, 144, 255, 0.1), transparent 70%);
-  pointer-events: none;
-  animation: pulse 4s infinite alternate;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 0.3;
-  }
-
-  100% {
-    opacity: 0.7;
-  }
-}
-
-.alarm-pie-chart {
-  max-height: 200px;
-  position: relative;
-  z-index: 1;
-}
-
-.chart-legend {
-  display: flex;
-  flex-direction: column;
-  margin-top: 5px;
-  padding: 5px;
-  background-color: rgba(0, 15, 30, 0.2);
-  border-radius: 4px;
-  border: 1px solid rgba(30, 80, 150, 0.3);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-  font-size: 11px;
-  transition: all 0.3s ease;
-  padding: 3px 5px;
-  border-radius: 2px;
-}
-
-.legend-item:hover {
-  background-color: rgba(30, 144, 255, 0.1);
-  transform: translateX(2px);
-}
-
-.legend-color {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  margin-right: 8px;
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-}
-
-.legend-text {
-  flex: 1;
-  color: #91a7cc;
-}
-
-.legend-value {
-  color: #ffffff;
-  font-weight: bold;
-  text-shadow: 0 0 5px rgba(30, 144, 255, 0.5);
-}
-
-.time-selector {
-  color: #91a7cc;
-  font-size: 11px;
-}
-
-/* 响应式调整 */
-@media (max-width: 1366px) {
-  .pie-chart-container {
-    margin: 3px 0;
-  }
-
-  .legend-item {
-    margin-bottom: 3px;
-    font-size: 10px;
-  }
-
-  .legend-color {
-    width: 8px;
-    height: 8px;
-    margin-right: 5px;
-  }
-}
-
-/* 饼图提示框样式 */
-.pie-tooltip {
-  position: absolute;
-  background-color: rgba(0, 15, 30, 0.9);
-  border: 1px solid rgba(30, 80, 150, 0.8);
-  border-radius: 4px;
-  padding: 8px;
-  font-size: 12px;
-  color: #ffffff;
-  pointer-events: none;
-  z-index: 1000;
-  box-shadow: 0 0 10px rgba(30, 144, 255, 0.3);
-}
-
-.pie-tooltip div:first-child {
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-
-/* 饼图区域动画效果 */
-.pie-segment {
-  transition: all 0.3s ease;
-}
-
-.pie-segment:hover {
-  filter: brightness(1.2);
-}
-
-/* 脉冲动画 */
-.pulse-circle {
-  animation: pulse-ring 2s infinite;
-}
-
-@keyframes pulse-ring {
-  0% {
-    opacity: 0.8;
-    stroke-width: 1;
-  }
-
-  50% {
-    opacity: 0.3;
-    stroke-width: 2;
-  }
-
-  100% {
-    opacity: 0.8;
-    stroke-width: 1;
-  }
-}
-
 .top-bar {
   display: flex;
   justify-content: space-between;
@@ -5572,4 +5374,445 @@ export default {
   display: flex;
   flex-direction: column;
 }
+
+.alarm-total-section {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.digital-alarm-counter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.counter-value {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.counter-trend {
+  display: flex;
+  align-items: center;
+}
+
+.trend-up {
+  color: #28a745;
+  margin-left: 5px;
+}
+
+.trend-down {
+  color: #dc3545;
+  margin-left: 5px;
+}
+
+.alarm-chart-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.alarm-chart {
+  width: 100%;
+  height: 100px;
+  position: relative;
+}
+
+.half-ring-chart-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.half-ring-chart {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 10px solid rgba(30, 80, 150, 0.2);
+  transform: rotate(-135deg);
+  overflow: hidden;
+}
+
+.half-ring-chart path {
+  fill: none;
+  stroke: #FF5A5A;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.half-ring-chart path:nth-child(2) {
+  stroke: #FFAA33;
+}
+
+.half-ring-chart path:nth-child(3) {
+  stroke: #3EAEF9;
+}
+
+.half-ring-chart path:nth-child(4) {
+  stroke: #29DE9C;
+}
+
+.half-ring-chart path:nth-child(5) {
+  stroke: #B980FF;
+}
+
+.half-ring-chart circle {
+  fill: rgba(0, 20, 40, 0.6);
+  stroke: none;
+  stroke-width: 1;
+}
+
+.half-ring-chart text {
+  fill: #ffffff;
+  font-size: 12px;
+  text-anchor: middle;
+}
+
+.half-ring-chart .pulse-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 10px solid rgba(58, 158, 255, 0.3);
+  transform: rotate(-135deg);
+  overflow: hidden;
+}
+
+.half-ring-chart .pulse-ring path {
+  fill: none;
+  stroke: rgba(58, 158, 255, 0.3);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.alarm-types-legend {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+  padding: 15px 5px;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  background-color: rgba(0, 20, 50, 0.2);
+  border: 1px solid rgba(30, 80, 150, 0.3);
+}
+
+/* 圆环饼图容器 */
+.donut-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+  perspective: 1000px;
+  overflow: hidden;
+}
+
+/* 圆环饼图 */
+.donut-chart {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  position: relative;
+  margin: 0 auto;
+  background: conic-gradient(
+    #4CD964 0deg calc(5% * 3.6deg), /* 人员检测 5% */
+    #447CF9 calc(5% * 3.6deg) calc((5% + 40%) * 3.6deg), /* 交通拥堵 40% */
+    #FF9500 calc((5% + 40%) * 3.6deg) calc((5% + 40% + 20%) * 3.6deg), /* 非机动车违规 20% */
+    #FF2D55 calc((5% + 40% + 20%) * 3.6deg) 360deg /* 违章停车 35% */
+  );
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+  transform: perspective(800px) rotateX(60deg);
+}
+
+/* 创建环形效果 */
+.donut-chart::before {
+  content: "";
+  position: absolute;
+  top: 20%;
+  left: 20%;
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  background-color: rgba(0, 20, 40, 0.8);
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+/* 百分比标签 */
+.percent-label {
+  position: absolute;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  z-index: 10;
+}
+
+.label-1 {
+  top: 20%;
+  right: 45%;
+}
+
+.label-2 {
+  top: 20%;
+  right: 20%;
+}
+
+.label-3 {
+  bottom: 30%;
+  right: 15%;
+}
+
+.label-4 {
+  bottom: 25%;
+  left: 30%;
+}
+
+/* 图例 */
+.chart-legends {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 15px;
+  padding: 8px 0;
+  background: transparent;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+}
+
+.legend-color {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  margin-right: 5px;
+}
+
+.type-1 {
+  background-color: #4CD964; /* 人员检测 */
+}
+
+.type-2 {
+  background-color: #447CF9; /* 交通拥堵 */
+}
+
+.type-3 {
+  background-color: #FF9500; /* 非机动车违规 */
+}
+
+.type-4 {
+  background-color: #FF2D55; /* 违章停车 */
+}
+
+.legend-name {
+  font-size: 12px;
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* 报警统计模块样式 */
+.alarm-statistics {
+  grid-column: 3;
+  grid-row: 2;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.alarm-statistics .card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 5px 10px;
+}
+
+.alarm-chart-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 圆环饼图容器 */
+.donut-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+  perspective: 1000px;
+  overflow: hidden;
+}
+
+/* 圆环饼图 */
+.donut-chart {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  position: relative;
+  margin: 0 auto;
+  background: conic-gradient(
+    #ff2b6d 0% 35%, 
+    #29DE9C 35% 40%, 
+    #3a50e7 40% 80%, 
+    #ff9900 80% 100%
+  );
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+  transform: perspective(800px) rotateX(60deg);
+}
+
+/* 全屏模式下的样式 */
+:fullscreen .algorithm-inference-platform,
+:-webkit-full-screen .algorithm-inference-platform,
+:-moz-full-screen .algorithm-inference-platform,
+:-ms-fullscreen .algorithm-inference-platform {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+  background-color: #000;
+  overflow: hidden;
+}
+
+/* 全屏模式下内容调整 */
+:fullscreen .top-bar,
+:-webkit-full-screen .top-bar,
+:-moz-full-screen .top-bar,
+:-ms-fullscreen .top-bar {
+  padding: 15px 20px;
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+/* 全屏模式下面板容器调整 */
+:fullscreen .dashboard-container,
+:-webkit-full-screen .dashboard-container,
+:-moz-full-screen .dashboard-container,
+:-ms-fullscreen .dashboard-container {
+  height: 100vh;
+  padding: 60px 10px 10px 10px;
+  box-sizing: border-box;
+}
+
+/* 全屏按钮样式 */
+.fullscreen-btn {
+  cursor: pointer;
+  margin-left: 15px;
+  font-size: 22px;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.fullscreen-btn:hover {
+  color: #3a9eff;
+  transform: scale(1.1);
+}
+
+.resource-details-container {
+  background: rgba(0, 11, 24, 0.8);
+  border-top: 1px solid rgba(30, 80, 150, 0.5);
+  padding: 10px;
+  margin-top: 15px;
+  margin-bottom: 10px;
+  max-height: 170px;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  flex-shrink: 0; /* 防止资源详情收缩 */
+}
+
+.resource-details-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+  width: 0; /* 确保滚动条宽度为0 */
+}
+
+/* 添加自定义容器确保标题正确对齐 */
+.resource-charts {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 15px;
+  padding: 0 5px;
+  position: relative;
+  flex-shrink: 0; /* 防止顶部元素收缩 */
+}
+
+/* 为实现红框中的标签对齐，添加一个额外的标签容器 */
+.resource-labels {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  padding: 5px 0;
+  margin-top: 5px;
+  position: relative;
+}
+
+.resource-label {
+  flex: 1;
+  text-align: center;
+  color: #7888a8;
+  font-size: 13px;
+}
 </style>
+
+<style>
+/* 确保各个面板的内容卡片也隐藏滚动条 */
+.dashboard-card .card-content::-webkit-scrollbar,
+.my-algorithms .card-content::-webkit-scrollbar,
+.realtime-events .card-content::-webkit-scrollbar,
+.alarm-statistics .card-content::-webkit-scrollbar,
+.device-statistics .card-content::-webkit-scrollbar,
+.alarm-info .card-content::-webkit-scrollbar,
+.report-info .card-content::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}
+
+.dashboard-card .card-content,
+.my-algorithms .card-content,
+.realtime-events .card-content,
+.alarm-statistics .card-content,
+.device-statistics .card-content,
+.alarm-info .card-content,
+.report-info .card-content {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* 修复整个页面的滚动条 */
+html, body {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+  overflow-x: hidden !important;
+}
+
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}
+</style>
+
