@@ -43,6 +43,7 @@ class CameraService:
             # 构建基本摄像头信息
             camera = {
                 "id": str(db_camera.id),
+                "camera_uuid": db_camera.camera_uuid,
                 "name": db_camera.name,
                 "location": db_camera.location,
                 "tags": tags_list,
@@ -259,7 +260,7 @@ class CameraService:
     @staticmethod
     def get_ai_camera_by_id(camera_id: int, db: Session) -> Dict[str, Any]:
         """
-        获取摄像头详细信息，包括其状态
+        根据ID获取摄像头详细信息，包括其状态
         
         Args:
             camera_id: 摄像头ID
@@ -306,6 +307,92 @@ class CameraService:
         # 构建摄像头基本信息
         result = {
             "id": str(camera.id),
+            "camera_uuid": camera.camera_uuid,
+            "name": camera.name,
+            "location": camera.location,
+            "tags": tags_list,
+            "status": camera.status,
+            "warning_level": camera.warning_level,
+            "frame_rate": camera.frame_rate,
+            "running_period": camera.running_period,
+            "electronic_fence": camera.electronic_fence,
+            "skill_ids": [str(skill.skill_id) for skill in camera.skills],
+            "camera_type": camera.camera_type,
+            "device_status": device_status
+        }
+        
+        # 添加类型特定的信息
+        if camera.meta_data:
+            try:
+                if camera.camera_type == "gb28181":
+                    if "deviceId" in meta_data:
+                        result["deviceId"] = meta_data.get("deviceId")
+                    if "gb_id" in meta_data:
+                        result["gb_id"] = meta_data.get("gb_id")
+                elif camera.camera_type == "proxy_stream":
+                    result["app"] = meta_data.get("app")
+                    result["stream"] = meta_data.get("stream")
+                    result["proxy_id"] = meta_data.get("proxy_id")
+                elif camera.camera_type == "push_stream":
+                    result["app"] = meta_data.get("app")
+                    result["stream"] = meta_data.get("stream")
+                    result["push_id"] = meta_data.get("push_id")
+            except Exception as e:
+                logger.warning(f"解析摄像头元数据时出错: {str(e)}")
+        
+        return result
+    
+    @staticmethod
+    def get_ai_camera_by_uuid(camera_uuid: str, db: Session) -> Dict[str, Any]:
+        """
+        根据UUID获取摄像头详细信息，包括其状态
+        
+        Args:
+            camera_uuid: 摄像头UUID
+            db: 数据库会话
+            
+        Returns:
+            Dict[str, Any]: 摄像头详细信息，如果找不到则返回None
+        """
+        logger.info(f"获取摄像头详情: uuid={camera_uuid}")
+        
+        # 从数据库获取摄像头基本信息
+        camera = CameraDAO.get_ai_camera_by_uuid(camera_uuid, db)
+        if not camera:
+            logger.warning(f"未找到摄像头: {camera_uuid}")
+            return None
+        
+        # 解析tags从JSON字符串
+        tags_list = json.loads(camera.tags) if camera.tags else []
+        meta_data = json.loads(camera.meta_data) if camera.meta_data else {}
+        
+        # 尝试获取设备状态
+        device_status = None
+        try:
+            # 根据摄像头类型从WVP获取状态
+            if camera.camera_type == "gb28181":
+                # 国标设备
+                deviceId = meta_data.get("deviceId")
+                if deviceId:
+                    device_status = CameraService.get_gb28181_device_by_id(deviceId)
+            elif camera.camera_type == "proxy_stream":
+                # 对于代理流设备，从数据库中获取app和stream字段
+                app = meta_data.get("app")
+                stream = meta_data.get("stream")
+                
+                if app and stream:
+                    device_status = CameraService.get_proxy_stream_device_by_id(app, stream)
+            elif camera.camera_type == "push_stream":
+                # 对于推流设备，也需要从数据库中获取app和stream字段
+                # 目前没有实现推流设备的状态获取方法，如果需要，可以添加
+                pass
+        except Exception as e:
+            logger.warning(f"获取设备状态时出错: {str(e)}")
+        
+        # 构建摄像头基本信息
+        result = {
+            "id": str(camera.id),
+            "camera_uuid": camera.camera_uuid,
             "name": camera.name,
             "location": camera.location,
             "tags": tags_list,
@@ -419,27 +506,31 @@ class CameraService:
         # 根据摄像头类型处理必要的字段
         if camera_type == "gb28181":
             # 国标设备
-            if "id" not in camera_data_copy and "deviceId" not in camera_data_copy:
-                logger.error("国标设备缺少必要字段id或deviceId")
+            if "deviceId" not in camera_data_copy:
+                logger.error("国标设备缺少必要字段deviceId")
                 return None
-            
-            # 确保deviceId存在
-            if "deviceId" not in camera_data_copy and "id" in camera_data_copy:
-                camera_data_copy["deviceId"] = camera_data_copy["id"]
                 
         elif camera_type == "proxy_stream":
-            # 代理流设备需要id, app和stream字段
-            if "id" not in camera_data_copy or "app" not in camera_data_copy or "stream" not in camera_data_copy:
-                logger.error("代理流设备缺少必要字段id、app或stream")
+            # 代理流设备需要proxy_id, app和stream字段
+            if "proxy_id" not in camera_data_copy or "app" not in camera_data_copy or "stream" not in camera_data_copy:
+                logger.error("代理流设备缺少必要字段proxy_id、app或stream")
                 return None
                 
         elif camera_type == "push_stream":
-            # 推流设备需要id, app和stream字段
-            if "id" not in camera_data_copy or "app" not in camera_data_copy or "stream" not in camera_data_copy:
-                logger.error("推流设备缺少必要字段id、app或stream")
+            # 推流设备需要push_id, app和stream字段
+            if "push_id" not in camera_data_copy or "app" not in camera_data_copy or "stream" not in camera_data_copy:
+                logger.error("推流设备缺少必要字段push_id、app或stream")
                 return None
         
-        logger.info(f"添加摄像头: camera_type={camera_type}, id={camera_data_copy.get('id')}")
+        # 根据设备类型记录适当的标识符
+        if camera_type == "gb28181":
+            logger.info(f"添加摄像头: camera_type={camera_type}, deviceId={camera_data_copy.get('deviceId')}")
+        elif camera_type == "proxy_stream":
+            logger.info(f"添加摄像头: camera_type={camera_type}, proxy_id={camera_data_copy.get('proxy_id')}")
+        elif camera_type == "push_stream":
+            logger.info(f"添加摄像头: camera_type={camera_type}, push_id={camera_data_copy.get('push_id')}")
+        else:
+            logger.info(f"添加摄像头: camera_type={camera_type}")
         
         # 使用DAO创建摄像头
         new_camera = CameraDAO.create_ai_camera(camera_data_copy, db)
@@ -453,6 +544,7 @@ class CameraService:
         # 构建基本信息
         result = {
             "id": str(new_camera.id),
+            "camera_uuid": new_camera.camera_uuid,
             "name": new_camera.name,
             "location": new_camera.location,
             "tags": tags_list,
@@ -511,6 +603,7 @@ class CameraService:
         # 构建基本信息
         result = {
             "id": str(updated_camera.id),
+            "camera_uuid": updated_camera.camera_uuid,
             "name": updated_camera.name,
             "location": updated_camera.location,
             "tags": tags_list,
@@ -569,6 +662,7 @@ class CameraService:
         # 创建示例摄像头数据
         sample_cameras = [
             CameraModel(
+                camera_uuid="cam-example-001",
                 name="示例摄像头1",
                 location="前门入口",
                 tags=json.dumps(["示例", "RTSPCamera"]),
@@ -580,6 +674,7 @@ class CameraService:
                 meta_data=json.dumps({"deviceId": "example_device_001"})
             ),
             CameraModel(
+                camera_uuid="cam-example-002",
                 name="示例摄像头2",
                 location="后门入口",
                 tags=json.dumps(["示例", "RTSPCamera"]),
@@ -591,6 +686,7 @@ class CameraService:
                 meta_data=json.dumps({"deviceId": "example_device_002"})
             ),
             CameraModel(
+                camera_uuid="cam-example-003",
                 name="示例摄像头3",
                 location="侧门入口",
                 tags=json.dumps(["示例", "RTSPCamera"]),

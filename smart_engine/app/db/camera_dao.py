@@ -41,6 +41,20 @@ class CameraDAO:
         return db.query(Camera).filter(Camera.id == camera_id).first()
     
     @staticmethod
+    def get_ai_camera_by_uuid(camera_uuid: str, db: Session) -> Optional[Camera]:
+        """
+        根据UUID获取摄像头
+        
+        Args:
+            camera_uuid: 摄像头UUID
+            db: 数据库会话
+            
+        Returns:
+            Optional[Camera]: 找到的摄像头，如果不存在返回None
+        """
+        return db.query(Camera).filter(Camera.camera_uuid == camera_uuid).first()
+    
+    @staticmethod
     def create_ai_camera(camera_data: Dict[str, Any], db: Session) -> Optional[Camera]:
         """
         创建新AI平台摄像头

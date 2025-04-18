@@ -2,11 +2,13 @@ from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 from datetime import datetime
+import uuid
 
 class Camera(Base):
     __tablename__ = "cameras"
 
     id = Column(Integer, primary_key=True, index=True)
+    camera_uuid = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
     name = Column(String(128), nullable=False)
     location = Column(String(256))
     tags = Column(JSON)

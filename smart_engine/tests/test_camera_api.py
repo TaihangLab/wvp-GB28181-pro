@@ -21,7 +21,6 @@ BASE_URL = "http://localhost:8000/api/v1"  # 根据您的配置调整
 
 # 测试数据
 TEST_CAMERA = {
-    "deviceId": "test_device_003",
     "name": "测试摄像头2",
     "location": "前门",
     "tags": ["测试", "前门"],
@@ -30,7 +29,8 @@ TEST_CAMERA = {
     "frame_rate": 1.0,
     "running_period": {"enabled": True, "periods": [{"start": "08:00", "end": "18:00"}]},
     "electronic_fence": {"enabled": False, "points": []},
-    "camera_type": "gb28181"  # 添加摄像头类型
+    "camera_type": "gb28181" , # 添加摄像头类型
+    "deviceId": "test_device_004" # 国标设备专有ID
 }
 
 def print_response(resp: requests.Response, message: str = "") -> None:
@@ -61,6 +61,8 @@ def test_create_ai_camera() -> Optional[Dict[str, Any]]:
             if all_cameras and "cameras" in all_cameras:
                 for camera in all_cameras["cameras"]:
                     if camera.get("deviceId") == TEST_CAMERA["deviceId"]:
+                        print(f"找到已存在的摄像头，ID: {camera.get('id')}")
+                        print(f"找到已存在的摄像头，deviceId: {camera.get('deviceId')}")
                         logger.info(f"找到已存在的摄像头，ID: {camera.get('id')}")
                         return camera
         
