@@ -3,7 +3,7 @@
 """
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
-from app.models.camera import Camera, CameraSkill
+from app.models.camera import Camera
 from app.services.wvp_client import wvp_client
 from app.db.camera_dao import CameraDAO
 import json

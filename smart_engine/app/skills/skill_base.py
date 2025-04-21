@@ -73,11 +73,16 @@ class BaseSkill(ABC):
     技能基类，所有具体技能实现必须继承此类
     """
     
-    # 技能类型标识，子类必须覆盖
-    SKILL_TYPE = ""
-    
-    # 技能所需模型列表，子类应该覆盖
-    REQUIRED_MODELS = []
+    # 技能默认配置，子类应该覆盖
+    DEFAULT_CONFIG = {
+        "type": "",         # 技能类型，如detection, recognition等
+        "name": "",         # 技能唯一标识符，如coco_detector
+        "name_zh": "",      # 技能中文名称
+        "description": "",  # 技能描述
+        "status": True,     # 技能状态（是否启用）
+        "required_models": [],  # 技能所需模型列表
+        "params": {}        # 技能具体参数
+    }
     
     def __init__(self, config_or_name: Union[Dict[str, Any], str] = None):
         """
@@ -88,17 +93,31 @@ class BaseSkill(ABC):
         """
         # 支持两种初始化方式：通过配置字典或者直接给名称
         if isinstance(config_or_name, dict):
-            self.config = config_or_name
+            # 合并默认配置和传入的配置
+            self.config = self.get_default_config()
+            # 如果传入的配置中有params，则合并params而不是覆盖
+            if "params" in config_or_name and "params" in self.config:
+                self.config["params"].update(config_or_name.get("params", {}))
+                config_copy = config_or_name.copy()
+                if "params" in config_copy:
+                    del config_copy["params"]
+                self.config.update(config_copy)
+            else:
+                self.config.update(config_or_name)
+                
             self.name = self.config.get("name", self.__class__.__name__)
+            self.name_zh = self.config.get("name_zh", "")
             self.description = self.config.get("description", "")
-            self.enabled = self.config.get("enabled", True)
-            self.skill_id = self.config.get("id", f"{self.SKILL_TYPE}_{id(self)}")
+            self.status = self.config.get("status", True)
+            self.skill_id = self.config.get("id", f"{self.name}_{id(self)}")
         else:
-            self.config = {}
-            self.name = config_or_name if config_or_name else self.__class__.__name__
-            self.description = ""
-            self.enabled = True
-            self.skill_id = f"{self.SKILL_TYPE}_{id(self)}"
+            # 使用默认配置
+            self.config = self.get_default_config()
+            self.name = config_or_name if config_or_name else self.config.get("name", self.__class__.__name__)
+            self.name_zh = self.config.get("name_zh", "")
+            self.description = self.config.get("description", "")
+            self.status = self.config.get("status", True)
+            self.skill_id = f"{self.name}_{id(self)}"
         
         # 初始化技能
         self._initialize()
@@ -108,7 +127,7 @@ class BaseSkill(ABC):
         
     def __str__(self) -> str:
         """返回技能的字符串表示"""
-        return f"{self.name}(type={self.SKILL_TYPE}, enabled={self.enabled})"
+        return f"{self.name}({self.name_zh})(type={self.config.get('type', '')}, status={self.status})"
         
     def _initialize(self) -> None:
         """
@@ -127,10 +146,11 @@ class BaseSkill(ABC):
         if not self.config:
             return True
             
-        # 基本验证：确保技能类型匹配
-        config_type = self.config.get("type")
-        if not config_type or config_type != self.SKILL_TYPE:
-            logger.error(f"技能类型不匹配: 配置={config_type}, 预期={self.SKILL_TYPE}")
+        # 基本验证：确保技能名称匹配
+        config_name = self.config.get("name")
+        expected_name = self.DEFAULT_CONFIG.get("name")
+        if not config_name or (expected_name and config_name != expected_name):
+            logger.error(f"技能名称不匹配: 配置={config_name}, 预期={expected_name}")
             return False
             
         return True
@@ -155,15 +175,15 @@ class BaseSkill(ABC):
         Returns:
             技能是否启用
         """
-        return self.enabled
+        return self.status
         
     def enable(self) -> None:
         """启用技能"""
-        self.enabled = True
+        self.status = True
         
     def disable(self) -> None:
         """禁用技能"""
-        self.enabled = False
+        self.status = False
         
     def log(self, level: str, message: str) -> None:
         """
@@ -184,11 +204,13 @@ class BaseSkill(ABC):
             技能元数据
         """
         return {
-            "type": self.SKILL_TYPE,
             "name": self.name,
+            "name_zh": self.name_zh,
+            "type": self.config.get("type", ""),
             "description": self.description,
-            "enabled": self.enabled,
-            "id": self.skill_id
+            "status": self.status,
+            "id": self.skill_id,
+            "required_models": self.get_required_models()
         }
     
     def to_dict(self) -> Dict[str, Any]:
@@ -203,7 +225,68 @@ class BaseSkill(ABC):
             "config": self.config
         }
         
-    @classmethod
+    def get_required_models(self) -> List[str]:
+        """
+        获取技能所需的模型列表
+        
+        Returns:
+            模型名称列表
+        """
+        # 从配置中获取所需模型列表
+        if self.config and "required_models" in self.config:
+            return self.config["required_models"]
+        return []
+        
+    def check_model_readiness(self) -> Tuple[bool, Optional[str]]:
+        """
+        检查所需模型和Triton服务器是否就绪
+        
+        Returns:
+            (bool, str): 是否就绪，如果不就绪返回错误信息
+        """
+        from app.services.triton_client import triton_client
+        
+        # 检查Triton服务器是否就绪
+        if not triton_client.is_server_ready():
+            return False, "Triton服务器未就绪"
+        
+        # 获取所需模型
+        required_models = self.get_required_models()
+        
+        # 检查所有模型是否就绪
+        for model_name in required_models:
+            if model_name and not triton_client.is_model_ready(model_name):
+                return False, f"模型 {model_name} 未就绪"
+                
+        return True, None
+
+    def _register_model_relations(self) -> None:
+        """
+        注册技能和模型的关系到Redis
+        """
+        try:
+            from app.services.redis_service import register_skill_model_relation
+            
+            # 获取所需模型
+            required_models = self.get_required_models()
+            
+            # 注册关系
+            if required_models:
+                register_skill_model_relation(self.skill_id, required_models)
+                self.log("debug", f"已注册技能 '{self.name}' 与模型 {required_models} 的关系")
+        except Exception as e:
+            self.log("error", f"注册模型关系失败: {str(e)}")
+
+    def get_default_config(self) -> Dict[str, Any]:
+        """
+        获取完整默认配置
+        
+        Returns:
+            Dict[str, Any]: 完整默认配置
+        """
+        # 复制默认配置
+        return self.DEFAULT_CONFIG.copy()
+
     def get_required_config_fields(cls) -> List[str]:
         """
         获取必须的配置字段列表
@@ -211,7 +294,7 @@ class BaseSkill(ABC):
         Returns:
             必须的配置字段列表
         """
-        return ["type"]
+        return ["name"]
         
     def get_required_models(self) -> List[str]:
         """
@@ -220,10 +303,11 @@ class BaseSkill(ABC):
         Returns:
             模型名称列表
         """
-        # 默认使用类的REQUIRED_MODELS
-        # 子类可以覆盖此方法提供动态的模型列表
-        return self.REQUIRED_MODELS
-        
+        # 从配置中获取所需模型列表
+        if self.config and "required_models" in self.config:
+            return self.config["required_models"]
+        return []
+
     def check_model_readiness(self) -> Tuple[bool, Optional[str]]:
         """
         检查所需模型和Triton服务器是否就绪

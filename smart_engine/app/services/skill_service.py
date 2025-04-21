@@ -4,7 +4,8 @@
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
 from app.db.skill_dao import SkillDAO
-from app.skills.skill_factory import create_skill_instance, get_available_skill_types
+from app.models.skill import Skill
+from app.skills.skill_factory import create_skill_instance
 from app.services.redis_service import register_skill_model_relation
 import logging
 
@@ -36,11 +37,11 @@ class SkillService:
             skill_data = {
                 "id": db_skill.id,
                 "name": db_skill.name,
+                "name_zh": db_skill.name_zh,
                 "type": db_skill.type,
                 "description": db_skill.description,
-                "parameters": db_skill.parameters,
                 "config": db_skill.config,
-                "enabled": db_skill.enabled,
+                "status": db_skill.status,
                 "created_at": db_skill.created_at.isoformat() if db_skill.created_at else None,
                 "updated_at": db_skill.updated_at.isoformat() if db_skill.updated_at else None,
                 "model_ids": model_ids
@@ -72,11 +73,11 @@ class SkillService:
         skill_data = {
             "id": skill.id,
             "name": skill.name,
+            "name_zh": skill.name_zh,
             "type": skill.type,
             "description": skill.description,
-            "parameters": skill.parameters,
             "config": skill.config,
-            "enabled": skill.enabled,
+            "status": skill.status,
             "created_at": skill.created_at.isoformat() if skill.created_at else None,
             "updated_at": skill.updated_at.isoformat() if skill.updated_at else None,
             "model_ids": model_ids
@@ -98,11 +99,11 @@ class SkillService:
         """
         logger.info(f"创建技能: name={skill_data.get('name')}, type={skill_data.get('type')}")
         
-        # 验证技能类型
+        # 验证技能类型是否已存在于数据库中
         skill_type = skill_data.get('type')
-        available_types = get_available_skill_types()
-        if skill_type not in available_types:
-            logger.error(f"无效的技能类型: {skill_type}, 可用类型: {available_types}")
+        available_types = SkillService.get_skill_types_from_db(db)
+        if skill_type not in [t["type"] for t in available_types]:
+            logger.error(f"无效的技能类型: {skill_type}, 可用类型: {[t['type'] for t in available_types]}")
             return None
         
         # 使用DAO创建技能
@@ -119,11 +120,11 @@ class SkillService:
         skill_data = {
             "id": new_skill.id,
             "name": new_skill.name,
+            "name_zh": new_skill.name_zh,
             "type": new_skill.type,
             "description": new_skill.description,
-            "parameters": new_skill.parameters,
             "config": new_skill.config,
-            "enabled": new_skill.enabled,
+            "status": new_skill.status,
             "created_at": new_skill.created_at.isoformat() if new_skill.created_at else None,
             "updated_at": new_skill.updated_at.isoformat() if new_skill.updated_at else None,
             "model_ids": model_ids
@@ -149,9 +150,9 @@ class SkillService:
         # 如果更新技能类型，验证新类型是否有效
         if 'type' in skill_data:
             skill_type = skill_data.get('type')
-            available_types = get_available_skill_types()
-            if skill_type not in available_types:
-                logger.error(f"无效的技能类型: {skill_type}, 可用类型: {available_types}")
+            available_types = SkillService.get_skill_types_from_db(db)
+            if skill_type not in [t["type"] for t in available_types]:
+                logger.error(f"无效的技能类型: {skill_type}, 可用类型: {[t['type'] for t in available_types]}")
                 return None
         
         # 使用DAO更新技能
@@ -170,11 +171,11 @@ class SkillService:
         skill_data = {
             "id": updated_skill.id,
             "name": updated_skill.name,
+            "name_zh": updated_skill.name_zh,
             "type": updated_skill.type,
             "description": updated_skill.description,
-            "parameters": updated_skill.parameters,
             "config": updated_skill.config,
-            "enabled": updated_skill.enabled,
+            "status": updated_skill.status,
             "created_at": updated_skill.created_at.isoformat() if updated_skill.created_at else None,
             "updated_at": updated_skill.updated_at.isoformat() if updated_skill.updated_at else None,
             "model_ids": model_ids
@@ -198,25 +199,26 @@ class SkillService:
         return SkillDAO.delete_skill(skill_id, db)
     
     @staticmethod
-    def get_skill_types() -> List[Dict[str, Any]]:
+    def get_skill_types_from_db(db: Session) -> List[Dict[str, Any]]:
         """
-        获取所有可用的技能类型
+        从数据库获取所有已定义的技能类型
         
+        Args:
+            db: 数据库会话
+            
         Returns:
-            List[Dict[str, Any]]: 技能类型列表，包含类型名称和描述
+            List[Dict[str, Any]]: 技能类型列表
         """
-        # 获取所有可用的技能类型
-        available_types = get_available_skill_types()
+        # 从数据库中获取所有不同的技能类型
+        result = db.query(Skill.type).distinct().all()
+        types = [r[0] for r in result if r[0]]  # 过滤掉None值
         
         # 构建类型描述列表
         type_descriptions = []
-        for skill_type in available_types:
-            try:
-                # 尝试创建一个空实例以获取描述
-                dummy_instance = create_skill_instance(skill_type, {})
-                description = dummy_instance.__doc__ or f"{skill_type} 技能类型"
-            except:
-                description = f"{skill_type} 技能类型"
+        for skill_type in types:
+            # 查找使用该类型的第一个技能作为示例，获取其描述
+            sample_skill = db.query(Skill).filter(Skill.type == skill_type).first()
+            description = sample_skill.description if sample_skill else f"{skill_type} 技能类型"
             
             type_descriptions.append({
                 "type": skill_type,
@@ -224,6 +226,19 @@ class SkillService:
             })
         
         return type_descriptions
+    
+    @staticmethod
+    def get_skill_types(db: Session) -> List[Dict[str, Any]]:
+        """
+        获取所有可用的技能类型
+        
+        Args:
+            db: 数据库会话
+            
+        Returns:
+            List[Dict[str, Any]]: 技能类型列表，包含类型名称和描述
+        """
+        return SkillService.get_skill_types_from_db(db)
     
     @staticmethod
     def test_skill(skill_id: int, test_data: Dict[str, Any], db: Session) -> Dict[str, Any]:
@@ -246,7 +261,7 @@ class SkillService:
             return {"success": False, "message": "技能不存在"}
         
         # 检查技能是否启用
-        if not skill.enabled:
+        if not skill.status:
             return {"success": False, "message": "技能已禁用"}
         
         try:
@@ -289,11 +304,11 @@ class SkillService:
             return {"success": False, "message": "技能不存在"}
         
         # 如果技能已经启用，直接返回成功
-        if skill.enabled:
+        if skill.status:
             return {"success": True, "message": "技能已经是启用状态"}
         
         # 更新技能状态
-        update_result = SkillDAO.update_skill(skill_id, {"enabled": True}, db)
+        update_result = SkillDAO.update_skill(skill_id, {"status": True}, db)
         if not update_result:
             return {"success": False, "message": "启用技能失败"}
         
@@ -319,11 +334,11 @@ class SkillService:
             return {"success": False, "message": "技能不存在"}
         
         # 如果技能已经禁用，直接返回成功
-        if not skill.enabled:
+        if not skill.status:
             return {"success": True, "message": "技能已经是禁用状态"}
         
         # 更新技能状态
-        update_result = SkillDAO.update_skill(skill_id, {"enabled": False}, db)
+        update_result = SkillDAO.update_skill(skill_id, {"status": False}, db)
         if not update_result:
             return {"success": False, "message": "禁用技能失败"}
         

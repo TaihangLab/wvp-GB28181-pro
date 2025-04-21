@@ -8,8 +8,7 @@ from app.db.session import get_db
 from app.models.skill import Skill as SkillModel
 from app.models.model import Model
 from app.services.triton_client import triton_client
-from app.skills.skill_factory import skill_factory, register_available_skill_classes
-from app.services.skill_registry import sync_configured_skills_to_database
+from app.skills.skill_factory import skill_factory
 from app.skills.skill_manager import skill_manager
 from app.services.redis_service import (
     get_skill_models,
@@ -17,6 +16,7 @@ from app.services.redis_service import (
     unregister_skill
 )
 from app.services.skill_service import SkillService
+from app.utils.skill_scanner import sync_skill_classes_to_database
 import logging
 
 logger = logging.getLogger(__name__)
@@ -525,4 +525,41 @@ def register_skill_models(skill_id: int, model_data: Dict[str, Any], db: Session
         "skill_id": skill_id,
         "models": models,
         "message": "技能模型关系已注册"
-    } 
+    }
+
+@router.post("/refresh/scan", response_model=Dict[str, Any])
+def refresh_skills_scan(db: Session = Depends(get_db)):
+    """
+    扫描系统中的技能类并更新数据库
+    
+    此操作会检测所有技能类，将新技能添加到数据库，并更新现有技能的信息
+    
+    Returns:
+        Dict[str, Any]: 刷新结果
+    """
+    try:
+        result = sync_skill_classes_to_database(db)
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result["message"]
+            )
+        
+        return {
+            "success": True,
+            "message": result["message"],
+            "data": {
+                "created": result["created"],
+                "updated": result["updated"],
+                "count": result["count"]
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"刷新技能失败: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        ) 

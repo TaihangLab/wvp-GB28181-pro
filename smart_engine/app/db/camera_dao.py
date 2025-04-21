@@ -3,7 +3,7 @@
 """
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
-from app.models.camera import Camera, CameraSkill
+from app.models.camera import Camera
 import json
 import logging
 from datetime import datetime

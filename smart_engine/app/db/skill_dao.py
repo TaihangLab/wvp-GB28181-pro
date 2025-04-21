@@ -86,11 +86,11 @@ class SkillDAO:
             # 创建新技能
             new_skill = Skill(
                 name=skill_data.get('name'),
+                name_zh=skill_data.get('name_zh', ''),
                 type=skill_data.get('type'),
                 description=skill_data.get('description', ''),
-                parameters=skill_data.get('parameters', {}),
                 config=skill_data.get('config', {}),
-                enabled=skill_data.get('enabled', True)
+                status=skill_data.get('status', True)
             )
             
             db.add(new_skill)
@@ -141,16 +141,16 @@ class SkillDAO:
             # 更新技能基本信息
             if 'name' in skill_data:
                 skill.name = skill_data['name']
+            if 'name_zh' in skill_data:
+                skill.name_zh = skill_data['name_zh']
             if 'type' in skill_data:
                 skill.type = skill_data['type']
             if 'description' in skill_data:
                 skill.description = skill_data['description']
-            if 'parameters' in skill_data:
-                skill.parameters = skill_data['parameters']
             if 'config' in skill_data:
                 skill.config = skill_data['config']
-            if 'enabled' in skill_data:
-                skill.enabled = skill_data['enabled']
+            if 'status' in skill_data:
+                skill.status = skill_data['status']
             
             # 更新模型关联（如果提供）
             if 'model_ids' in skill_data:

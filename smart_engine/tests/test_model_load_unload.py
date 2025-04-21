@@ -6,7 +6,7 @@ import sys
 import os
 
 # 将项目根目录添加到Python路径
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # 导入Triton客户端
 from app.services.triton_client import TritonClient
@@ -28,7 +28,10 @@ def test_model_load_unload():
     
     # 获取仓库中的模型信息
     models = client.get_model_repository_index()
-    
+    # 使用json模块格式化输出模型信息
+    import json
+    logger.info("模型仓库信息:")
+    logger.info(json.dumps(models, indent=4, ensure_ascii=False))
     if not models or "models" not in models:
         logger.error("无法获取模型仓库信息")
         return
@@ -53,7 +56,14 @@ def test_model_load_unload():
         # 显示模型的完整信息
         model_config = client.get_model_config(model_name)
         if model_config:
-            logger.info(f"模型配置: {model_config}")
+            logger.info("模型配置:")
+            try:
+                # 使用json模块格式化输出模型配置
+                formatted_config = json.dumps(model_config, indent=4, ensure_ascii=False)
+                logger.info(formatted_config)
+            except Exception as e:
+                logger.error(f"格式化模型配置失败: {str(e)}")
+                logger.info(f"原始模型配置: {model_config}")
         
         # 检查模型当前状态
         initial_ready = client.is_model_ready(model_name)

@@ -19,9 +19,8 @@ from app.core.config import settings
 from app.db.session import get_db, engine, SessionLocal
 from app.db.base_class import Base
 from app.api import api_router
-from app.skills.skill_factory import skill_factory, register_available_skill_classes
-from app.services.skill_registry import sync_configured_skills_to_database
 from app.services.triton_client import triton_client
+from app.utils.skill_scanner import sync_skill_classes_to_database
 
 # 配置日志
 logging.basicConfig(
@@ -40,20 +39,21 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     logger.info("数据库表创建成功")
     
-    # 扫描并注册技能
-    registered_count = register_available_skill_classes()
-    logger.info(f"已扫描并注册技能类型: {skill_factory.get_registered_skill_types()}")
-    logger.info(f"共注册了 {registered_count} 个技能")
-    
     # 同步Triton模型到数据库
     logger.info("正在同步Triton模型到数据库...")
     result = sync_models_from_triton()
     logger.info(f"模型同步结果: {result['message']}")
     
-    # 确保技能数据同步
-    time.sleep(1)  # 等待模型同步完成
-    logger.info("正在同步技能到数据库...")
-    sync_configured_skills_to_database()
+    # 扫描并同步技能类到数据库
+    logger.info("扫描并同步技能类...")
+    db = SessionLocal()
+    try:
+        scan_result = sync_skill_classes_to_database(db)
+        logger.info(f"技能类同步结果: {scan_result['message']}")
+    except Exception as e:
+        logger.error(f"扫描技能类失败: {str(e)}", exc_info=True)
+    finally:
+        db.close()
     
     yield
     

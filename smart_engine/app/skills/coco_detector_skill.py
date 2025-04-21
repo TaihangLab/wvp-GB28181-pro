@@ -18,48 +18,58 @@ class CocoDetectorSkill(BaseSkill):
     使用YOLO模型检测COCO数据集中的80个常见对象，基于triton_client全局单例
     """
     
-    # 技能类型标识
-    SKILL_TYPE = "coco_detector"
-    
-    # 所需模型
-    REQUIRED_MODELS = ["yolo11_coco"]
+    # 默认配置
+    DEFAULT_CONFIG = {
+        "type": "detection",             # 技能类型：检测类
+        "name": "coco_detector",         # 技能唯一标识符
+        "name_zh": "COCO目标检测",        # 技能中文名称
+        "description": "使用YOLO模型检测COCO数据集中的80个常见对象",  # 技能描述
+        "status": True,                  # 技能状态（是否启用）
+        "required_models": ["yolo11_coco"],  # 所需模型
+        "params": {
+            "classes": [
+                "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
+                "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
+                "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
+                "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", 
+                "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", 
+                "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", 
+                "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
+                "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
+                "hair drier", "toothbrush"
+            ],
+            "conf_thres": 0.5,
+            "iou_thres": 0.45,
+            "max_det": 300,
+            "input_size": [640, 640]
+        }
+    }
     
     def _initialize(self) -> None:
         """初始化技能"""
         # 获取配置参数
-        params = self.config.get("params", {})
+        params = self.config.get("params")
         
-        # COCO数据集的默认类别列表
-        default_classes = [
-            "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
-            "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
-            "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
-            "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", 
-            "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", 
-            "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", 
-            "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
-            "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
-            "hair drier", "toothbrush"
-        ]
+
         
         # 从配置中获取类别列表，如果配置中没有则使用默认列表
-        self.classes = params.get("classes", default_classes)
+        self.classes = params.get("classes")
         
         # 根据类别列表生成类别映射
         self.class_names = {i: class_name for i, class_name in enumerate(self.classes)}
         
         # 检测置信度阈值
-        self.conf_thres = params.get("conf_thres", 0.5)
+        self.conf_thres = params.get("conf_thres")
         # 非极大值抑制阈值
-        self.iou_thres = params.get("iou_thres", 0.45)
+        self.iou_thres = params.get("iou_thres")
         # 最大检测数量
-        self.max_det = params.get("max_det", 300)
+        self.max_det = params.get("max_det")
         # 获取模型列表
-        self.required_models = params.get("required_models", self.REQUIRED_MODELS)
+        self.required_models = self.config.get("required_models")
         # 模型名称
-        self.model_name = self.required_models[0] if self.required_models else "yolo11_coco"
+        self.model_name = self.required_models[0]
         # 输入尺寸
-        self.input_width, self.input_height = params.get("input_size", (640, 640))
+        self.input_width, self.input_height = params.get("input_size")
         
         self.log("info", f"初始化COCO对象检测器: model={self.model_name}")
         
