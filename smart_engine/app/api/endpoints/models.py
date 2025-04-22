@@ -12,11 +12,7 @@ from app.db.session import get_db
 from app.models.model import Model
 from app.services.triton_client import triton_client
 from app.services.model_service import sync_models_from_triton, ModelService
-from app.services.redis_service import (
-    get_model_skills,
-    get_model_status,
-    set_model_status
-)
+
 
 logger = logging.getLogger(__name__)
 
@@ -362,67 +358,23 @@ async def upload_model_files(
         )
 
 @router.get("/{model_name}/usage", response_model=Dict[str, Any])
-def get_model_usage(model_name: str):
+def get_model_usage(model_name: str, db: Session = Depends(get_db)):
     """
-    获取使用指定模型的所有技能
+    获取使用指定模型的所有技能类和技能实例
     
     Args:
         model_name: 模型名称
+        db: 数据库会话
         
     Returns:
-        Dict: 包含使用该模型的所有技能ID
+        Dict: 包含使用该模型的所有技能类和技能实例信息
     """
     try:
-        # 检查模型是否存在
-        model_status = get_model_status(model_name)
-        
-        # 获取使用此模型的所有技能
-        skill_ids = get_model_skills(model_name)
-        
-        return {
-            "model_name": model_name,
-            "skills": skill_ids,
-            "status": model_status or {"ready": "unknown"}
-        }
+        # 调用服务层获取模型使用情况
+        return ModelService.get_model_usage(model_name, db)
     except Exception as e:
-        logger.error(f"获取模型使用情况失败: {str(e)}")
+        logger.error(f"获取模型使用情况失败: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取模型使用情况失败: {str(e)}"
         )
-
-@router.post("/{model_name}/status", response_model=Dict[str, Any])
-def update_model_status(model_name: str, status_data: Dict[str, Any]):
-    """
-    更新模型状态信息
-    
-    Args:
-        model_name: 模型名称
-        status_data: 状态数据
-        
-    Returns:
-        Dict: 更新结果
-    """
-    try:
-        # 设置状态
-        success = set_model_status(model_name, status_data)
-        
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"更新模型状态失败"
-            )
-            
-        return {
-            "success": True,
-            "model_name": model_name,
-            "status": status_data
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"更新模型状态失败: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"更新模型状态失败: {str(e)}"
-        ) 

@@ -24,9 +24,11 @@ class AITask(Base):
     task_type = Column(String(32), default="detection")  # 任务类型: detection, recognition, tracking, etc.
     config = Column(JSON)  # 任务特定配置
     
-    # 一对一关系
+    # 关联关系
     camera_id = Column(Integer, ForeignKey("cameras.id"), nullable=False)
-    skill_id = Column(Integer, ForeignKey("skills.id"), nullable=False)
+    
+    # 使用技能实例而非技能类
+    skill_instance_id = Column(Integer, ForeignKey("skill_instances.id"), nullable=False)
     skill_config = Column(JSON)  # 技能在此任务中的特定配置
     
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -34,7 +36,7 @@ class AITask(Base):
     
     # 关系对象
     camera = relationship("Camera", back_populates="tasks")
-    skill = relationship("Skill", back_populates="tasks")
+    skill_instance = relationship("SkillInstance", back_populates="tasks")
 
     def __repr__(self):
         return f"<AITask(id={self.id}, name='{self.name}', type='{self.task_type}')>" 

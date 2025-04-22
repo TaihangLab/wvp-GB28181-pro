@@ -18,7 +18,7 @@ class CocoDetectorSkill(BaseSkill):
     使用YOLO模型检测COCO数据集中的80个常见对象，基于triton_client全局单例
     """
     
-    # 默认配置
+        # 默认配置
     DEFAULT_CONFIG = {
         "type": "detection",             # 技能类型：检测类
         "name": "coco_detector",         # 技能唯一标识符

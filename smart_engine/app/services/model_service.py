@@ -33,6 +33,7 @@ def sync_models_from_triton() -> Dict[str, Any]:
             return {"success": False, "message": "Triton模型仓库为空"}
         
         triton_models = model_repository.get("models", [])
+        print(f"triton_models: {triton_models}")
         logger.info(f"在Triton中发现 {len(triton_models)} 个模型")
         
         # 创建数据库会话
@@ -49,22 +50,29 @@ def sync_models_from_triton() -> Dict[str, Any]:
                 
                 # 获取模型配置和元数据
                 try:
-                    config = triton_client.get_model_config(model_name)
-                    if triton_client.is_model_ready(model_name):
+                    # 检查模型是否就绪
+                    is_ready = triton_client.is_model_ready(model_name)
+                    
+                    # 只有当模型就绪时才获取配置和元数据
+                    if is_ready:
+                        config = triton_client.get_model_config(model_name)
                         metadata = triton_client.get_model_metadata(model_name)
                     else:
+                        config = {}
                         metadata = None
+                        logger.warning(f"模型 {model_name} 未就绪，无法获取配置和元数据")
                 except Exception as e:
                     logger.error(f"获取模型 {model_name} 配置或元数据失败: {str(e)}")
                     config = {}
                     metadata = None
+                    is_ready = False
                 
                 # 构建模型数据
                 model_data = {
                     "name": model_name,
                     "version": model_info.get("version", "1"),
                     "description": f"从Triton同步的模型: {model_name}",
-                    "status": True,
+                    "status": is_ready,  # 根据模型是否就绪设置状态
                     "config": metadata or {},
                     "triton_config": config or {}
                 }
@@ -121,6 +129,15 @@ class ModelService:
             # 检查模型在Triton中的状态
             is_loaded = db_model.name in triton_models
             triton_status = triton_models.get(db_model.name, {}).get("status", "unknown")
+            
+            # 根据Triton状态判断模型是否就绪
+            is_ready = triton_status == "ready"
+            
+            # 如果数据库状态与Triton状态不一致，更新数据库
+            if db_model.status != is_ready:
+                logger.info(f"模型 {db_model.name} 状态不一致，数据库状态={db_model.status}，Triton状态={is_ready}，更新数据库状态")
+                ModelDAO.update_model(db_model.id, {"status": is_ready}, db)
+                db_model.status = is_ready
             
             model_data = {
                 "id": db_model.id,
@@ -199,6 +216,13 @@ class ModelService:
         except Exception as e:
             logger.error(f"检查模型{model.name}在Triton中的状态失败: {str(e)}")
             triton_status = "unknown"
+            is_ready = False
+            
+        # 如果数据库状态与Triton状态不一致，更新数据库
+        if model.status != is_ready:
+            logger.info(f"模型 {model.name} 状态不一致，数据库状态={model.status}，Triton状态={is_ready}，更新数据库状态")
+            ModelDAO.update_model(model_id, {"status": is_ready}, db)
+            model.status = is_ready
         
         # 获取模型元数据
         try:
@@ -208,6 +232,33 @@ class ModelService:
                 metadata = None
         except Exception as e:
             logger.error(f"获取模型{model.name}元数据失败: {str(e)}")
+            metadata = None
+
+        # 获取模型配置和元数据
+        try:
+            # 只有当模型就绪时才获取配置和元数据
+            if is_ready:
+                # 尝试获取模型配置
+                model_config = triton_client.get_model_config(model.name)
+                # 尝试获取模型元数据
+                metadata = triton_client.get_model_metadata(model.name)
+                
+                # 如果数据库中的配置与当前配置不一致，更新数据库
+                if model_config != model.triton_config:
+                    logger.info(f"更新模型 {model.name} 的Triton配置")
+                    ModelDAO.update_model(model_id, {"triton_config": model_config}, db)
+                    model.triton_config = model_config
+                    
+                # 如果数据库中的元数据与当前元数据不一致，更新数据库
+                if metadata != model.config:
+                    logger.info(f"更新模型 {model.name} 的元数据")
+                    ModelDAO.update_model(model_id, {"config": metadata}, db)
+                    model.config = metadata
+            else:
+                metadata = None
+                logger.warning(f"模型 {model.name} 未就绪，无法获取配置和元数据")
+        except Exception as e:
+            logger.error(f"获取模型 {model.name} 配置或元数据失败: {str(e)}")
             metadata = None
         
         # 构建响应数据
@@ -222,7 +273,7 @@ class ModelService:
             "created_at": model.created_at.isoformat() if model.created_at else None,
             "updated_at": model.updated_at.isoformat() if model.updated_at else None,
             "triton_status": {
-                "is_ready": is_ready if 'is_ready' in locals() else False,
+                "is_ready": is_ready,
                 "status": triton_status,
                 "metadata": metadata
             }
@@ -421,4 +472,75 @@ class ModelService:
         # 获取技能名称
         skill_names = [skill.name for skill in skills]
         
-        return len(skills) > 0, skill_names 
+        return len(skills) > 0, skill_names
+    
+    @staticmethod
+    def get_model_usage(model_name: str, db: Session) -> Dict[str, Any]:
+        """
+        获取使用指定模型的所有技能类和技能实例
+        
+        Args:
+            model_name: 模型名称
+            db: 数据库会话
+            
+        Returns:
+            Dict[str, Any]: 包含使用该模型的所有技能类和技能实例信息
+        """
+        from app.models.model import Model
+        from app.models.skill import SkillClass, SkillClassModel, SkillInstance
+        from app.services.triton_client import triton_client
+        
+        # 首先查找模型
+        model = db.query(Model).filter(Model.name == model_name).first()
+        if not model:
+            # 如果找不到模型，返回空结果
+            return {
+                "model_name": model_name,
+                "skill_classes": [],
+                "skill_instances": [],
+                "status": {"ready": triton_client.is_model_ready(model_name)}
+            }
+        
+        # 查找使用此模型的所有技能类
+        skill_classes = db.query(SkillClass).join(
+            SkillClassModel, 
+            SkillClassModel.skill_class_id == SkillClass.id
+        ).filter(
+            SkillClassModel.model_id == model.id
+        ).all()
+        
+        # 查找基于这些技能类的所有技能实例
+        skill_class_ids = [sc.id for sc in skill_classes]
+        skill_instances = []
+        if skill_class_ids:
+            skill_instances = db.query(SkillInstance).filter(
+                SkillInstance.skill_class_id.in_(skill_class_ids)
+            ).all()
+        
+        # 构造返回数据
+        skill_class_data = [{
+            "id": sc.id,
+            "name": sc.name,
+            "name_zh": sc.name_zh,
+            "type": sc.type,
+            "description": sc.description
+        } for sc in skill_classes]
+        
+        skill_instance_data = [{
+            "id": si.id,
+            "name": si.name,
+            "skill_class_id": si.skill_class_id,
+            "skill_class_name": next((sc.name for sc in skill_classes if sc.id == si.skill_class_id), None),
+            "status": si.status,
+            "description": si.description
+        } for si in skill_instances]
+        
+        return {
+            "model_name": model_name,
+            "model_id": model.id,
+            "skill_classes": skill_class_data,
+            "skill_instances": skill_instance_data,
+            "skill_class_count": len(skill_class_data),
+            "skill_instance_count": len(skill_instance_data),
+            "status": {"ready": triton_client.is_model_ready(model_name)}
+        } 

@@ -9,7 +9,6 @@ from app.db.camera_dao import CameraDAO
 import json
 import logging
 from fastapi import HTTPException
-import app.schemas as schemas
 from app.models import Camera as CameraModel
 
 logger = logging.getLogger(__name__)
@@ -48,13 +47,40 @@ class CameraService:
                 "location": db_camera.location,
                 "tags": tags_list,
                 "status": db_camera.status,
-                "warning_level": db_camera.warning_level,
-                "frame_rate": db_camera.frame_rate,
-                "running_period": db_camera.running_period,
-                "electronic_fence": db_camera.electronic_fence,
-                "skill_ids": [str(skill.skill_id) for skill in db_camera.skills],
                 "camera_type": db_camera.camera_type
             }
+            
+            # 获取摄像头关联的AI任务，从中提取技能IDs和AI任务相关属性
+            try:
+                from app.db.ai_task_dao import AITaskDAO
+                tasks = AITaskDAO.get_tasks_by_camera_id(db_camera.id, db)
+                
+                # 初始化默认值
+                camera["skill_ids"] = []
+                camera["warning_level"] = 0  # 从AI任务获取
+                camera["frame_rate"] = 1.0   # 从AI任务获取
+                camera["running_period"] = "{}"  # 从AI任务获取
+                camera["electronic_fence"] = "{}"  # 从AI任务获取
+                
+                # 如果有关联任务，获取相关属性和技能IDs
+                if tasks:
+                    camera["skill_ids"] = [str(task.skill_instance_id) for task in tasks]
+                    
+                    # 获取第一个任务的属性作为摄像头属性(便于前端展示)
+                    if len(tasks) > 0:
+                        first_task = tasks[0]
+                        camera["warning_level"] = first_task.warning_level
+                        camera["frame_rate"] = first_task.frame_rate
+                        camera["running_period"] = first_task.running_period
+                        camera["electronic_fence"] = first_task.electronic_fence
+            except Exception as e:
+                logger.warning(f"获取摄像头关联任务失败: {str(e)}")
+                # 设置默认值
+                camera["skill_ids"] = []
+                camera["warning_level"] = 0
+                camera["frame_rate"] = 1.0
+                camera["running_period"] = "{}"
+                camera["electronic_fence"] = "{}"
             
             # 根据摄像头类型添加特定字段
             if db_camera.meta_data:
@@ -315,14 +341,41 @@ class CameraService:
             "location": camera.location,
             "tags": tags_list,
             "status": camera.status,
-            "warning_level": camera.warning_level,
-            "frame_rate": camera.frame_rate,
-            "running_period": camera.running_period,
-            "electronic_fence": camera.electronic_fence,
-            "skill_ids": [str(skill.skill_id) for skill in camera.skills],
             "camera_type": camera.camera_type,
             "device_status": device_status
         }
+        
+        # 获取摄像头关联的AI任务，从中提取技能IDs和AI任务相关属性
+        try:
+            from app.db.ai_task_dao import AITaskDAO
+            tasks = AITaskDAO.get_tasks_by_camera_id(camera.id, db)
+            
+            # 初始化默认值
+            result["skill_ids"] = []
+            result["warning_level"] = 0  # 从AI任务获取
+            result["frame_rate"] = 1.0   # 从AI任务获取
+            result["running_period"] = "{}"  # 从AI任务获取
+            result["electronic_fence"] = "{}"  # 从AI任务获取
+            
+            # 如果有关联任务，获取相关属性和技能IDs
+            if tasks:
+                result["skill_ids"] = [str(task.skill_instance_id) for task in tasks]
+                
+                # 获取第一个任务的属性作为摄像头属性(便于前端展示)
+                if len(tasks) > 0:
+                    first_task = tasks[0]
+                    result["warning_level"] = first_task.warning_level
+                    result["frame_rate"] = first_task.frame_rate
+                    result["running_period"] = first_task.running_period
+                    result["electronic_fence"] = first_task.electronic_fence
+        except Exception as e:
+            logger.warning(f"获取摄像头关联任务失败: {str(e)}")
+            # 设置默认值
+            result["skill_ids"] = []
+            result["warning_level"] = 0
+            result["frame_rate"] = 1.0
+            result["running_period"] = "{}"
+            result["electronic_fence"] = "{}"
         
         # 添加类型特定的信息
         if camera.meta_data:
@@ -407,10 +460,19 @@ class CameraService:
             "frame_rate": camera.frame_rate,
             "running_period": camera.running_period,
             "electronic_fence": camera.electronic_fence,
-            "skill_ids": [str(skill.skill_id) for skill in camera.skills],
+            "skill_ids": [], # 不再直接访问db_camera.skills
             "camera_type": camera.camera_type,
             "device_status": device_status
         }
+        
+        # 获取摄像头关联的AI任务，从中提取技能IDs
+        try:
+            from app.db.ai_task_dao import AITaskDAO
+            tasks = AITaskDAO.get_tasks_by_camera_id(camera.id, db)
+            if tasks:
+                result["skill_ids"] = [str(task.skill_instance_id) for task in tasks]
+        except Exception as e:
+            logger.warning(f"获取摄像头关联任务失败: {str(e)}")
         
         # 添加类型特定的信息
         if camera.meta_data:
@@ -613,13 +675,40 @@ class CameraService:
             "location": new_camera.location,
             "tags": tags_list,
             "status": new_camera.status,
-            "warning_level": new_camera.warning_level,
-            "frame_rate": new_camera.frame_rate,
-            "running_period": new_camera.running_period,
-            "electronic_fence": new_camera.electronic_fence,
-            "skill_ids": [str(skill.skill_id) for skill in new_camera.skills],
             "camera_type": new_camera.camera_type
         }
+        
+        # 获取摄像头关联的AI任务，从中提取技能IDs和AI任务相关属性
+        try:
+            from app.db.ai_task_dao import AITaskDAO
+            tasks = AITaskDAO.get_tasks_by_camera_id(new_camera.id, db)
+            
+            # 初始化默认值
+            result["skill_ids"] = []
+            result["warning_level"] = camera_data.get("warning_level", 0)  # 使用传入数据的值或默认值
+            result["frame_rate"] = camera_data.get("frame_rate", 1.0)      # 使用传入数据的值或默认值
+            result["running_period"] = camera_data.get("running_period", "{}")  # 使用传入数据的值或默认值
+            result["electronic_fence"] = camera_data.get("electronic_fence", "{}")  # 使用传入数据的值或默认值
+            
+            # 如果有关联任务，获取相关属性和技能IDs
+            if tasks:
+                result["skill_ids"] = [str(task.skill_instance_id) for task in tasks]
+                
+                # 获取第一个任务的属性作为摄像头属性(便于前端展示)
+                if len(tasks) > 0:
+                    first_task = tasks[0]
+                    result["warning_level"] = first_task.warning_level
+                    result["frame_rate"] = first_task.frame_rate
+                    result["running_period"] = first_task.running_period
+                    result["electronic_fence"] = first_task.electronic_fence
+        except Exception as e:
+            logger.warning(f"获取摄像头关联任务失败: {str(e)}")
+            # 设置从传入数据获取的值或默认值
+            result["skill_ids"] = []
+            result["warning_level"] = camera_data.get("warning_level", 0)
+            result["frame_rate"] = camera_data.get("frame_rate", 1.0)
+            result["running_period"] = camera_data.get("running_period", "{}")
+            result["electronic_fence"] = camera_data.get("electronic_fence", "{}")
         
         # 根据摄像头类型添加特定字段
         if camera_type == "gb28181" and "deviceId" in meta_data:
@@ -672,12 +761,40 @@ class CameraService:
             "location": updated_camera.location,
             "tags": tags_list,
             "status": updated_camera.status,
-            "warning_level": updated_camera.warning_level,
-            "frame_rate": updated_camera.frame_rate,
-            "running_period": updated_camera.running_period,
-            "electronic_fence": updated_camera.electronic_fence,
-            "skill_ids": [str(skill.skill_id) for skill in updated_camera.skills]
+            "camera_type": updated_camera.camera_type
         }
+        
+        # 获取摄像头关联的AI任务，从中提取技能IDs和AI任务相关属性
+        try:
+            from app.db.ai_task_dao import AITaskDAO
+            tasks = AITaskDAO.get_tasks_by_camera_id(updated_camera.id, db)
+            
+            # 初始化默认值
+            result["skill_ids"] = []
+            result["warning_level"] = camera_data.get("warning_level", 0)  # 使用传入数据的值或默认值
+            result["frame_rate"] = camera_data.get("frame_rate", 1.0)      # 使用传入数据的值或默认值
+            result["running_period"] = camera_data.get("running_period", "{}")  # 使用传入数据的值或默认值
+            result["electronic_fence"] = camera_data.get("electronic_fence", "{}")  # 使用传入数据的值或默认值
+            
+            # 如果有关联任务，获取相关属性和技能IDs
+            if tasks:
+                result["skill_ids"] = [str(task.skill_instance_id) for task in tasks]
+                
+                # 获取第一个任务的属性作为摄像头属性(便于前端展示)
+                if len(tasks) > 0:
+                    first_task = tasks[0]
+                    result["warning_level"] = first_task.warning_level
+                    result["frame_rate"] = first_task.frame_rate
+                    result["running_period"] = first_task.running_period
+                    result["electronic_fence"] = first_task.electronic_fence
+        except Exception as e:
+            logger.warning(f"获取摄像头关联任务失败: {str(e)}")
+            # 设置从传入数据获取的值或默认值
+            result["skill_ids"] = []
+            result["warning_level"] = camera_data.get("warning_level", 0)
+            result["frame_rate"] = camera_data.get("frame_rate", 1.0)
+            result["running_period"] = camera_data.get("running_period", "{}")
+            result["electronic_fence"] = camera_data.get("electronic_fence", "{}")
         
         # 根据摄像头类型添加特定字段
         if updated_camera.camera_type == "gb28181":
@@ -712,18 +829,21 @@ class CameraService:
         return CameraDAO.delete_ai_camera(camera_id, db)
     
     @classmethod
-    def init_ai_camera_db(cls, db: Session) -> schemas.Message:
+    def init_ai_camera_db(cls, db: Session) -> Dict[str, Any]:
         """
         初始化AI平台摄像头数据库表
         检查数据库中是否有摄像头数据，如果没有，则创建一些示例摄像头
+        
+        Returns:
+            Dict[str, Any]: 初始化结果消息
         """
         # 检查数据库中是否已有摄像头数据
         camera_count = db.query(CameraModel).count()
         
         if camera_count > 0:
-            return schemas.Message(success=True, message="摄像头数据库已经存在数据，无需初始化")
+            return {"success": True, "message": "摄像头数据库已经存在数据，无需初始化", "data": None}
         
-        # 创建示例摄像头数据
+        # 创建示例摄像头数据 - 注意Camera模型只有id, camera_uuid, name, location, tags, status, camera_type, meta_data字段
         sample_cameras = [
             CameraModel(
                 camera_uuid="cam-example-001",
@@ -731,10 +851,7 @@ class CameraService:
                 location="前门入口",
                 tags=json.dumps(["示例", "RTSPCamera"]),
                 status=False,
-                warning_level=0,
-                frame_rate=1.0,
-                running_period="{}",
-                electronic_fence="{}",
+                camera_type="gb28181", 
                 meta_data=json.dumps({"deviceId": "example_device_001"})
             ),
             CameraModel(
@@ -743,10 +860,7 @@ class CameraService:
                 location="后门入口",
                 tags=json.dumps(["示例", "RTSPCamera"]),
                 status=False,
-                warning_level=0,
-                frame_rate=1.0,
-                running_period="{}",
-                electronic_fence="{}",
+                camera_type="gb28181",
                 meta_data=json.dumps({"deviceId": "example_device_002"})
             ),
             CameraModel(
@@ -755,10 +869,7 @@ class CameraService:
                 location="侧门入口",
                 tags=json.dumps(["示例", "RTSPCamera"]),
                 status=False,
-                warning_level=0,
-                frame_rate=1.0,
-                running_period="{}",
-                electronic_fence="{}",
+                camera_type="gb28181",
                 meta_data=json.dumps({"deviceId": "example_device_003"})
             )
         ]
@@ -769,7 +880,7 @@ class CameraService:
         
         try:
             db.commit()
-            return schemas.Message(success=True, message=f"成功初始化摄像头数据，创建了{len(sample_cameras)}个示例摄像头")
+            return {"success": True, "message": f"成功初始化摄像头数据，创建了{len(sample_cameras)}个示例摄像头", "data": None}
         except Exception as e:
             db.rollback()
             raise HTTPException(status_code=500, detail=f"初始化摄像头数据失败: {str(e)}")
@@ -787,8 +898,8 @@ class CameraService:
         Returns:
             Dict[str, Any]: 分析结果
         """
-        from app.skills.skill_factory import create_skill_instance
-        from app.db.skill_dao import SkillDAO
+        from app.skills.skill_factory import skill_factory
+        from app.db.skill_class_dao import SkillClassDAO
         import base64
         import cv2
         import numpy as np
@@ -802,7 +913,7 @@ class CameraService:
             raise HTTPException(status_code=404, detail="Camera not found")
         
         # 2. 获取技能信息
-        skill_data = SkillDAO.get_skill_by_id(skill_id, db)
+        skill_data = SkillClassDAO.get_by_id(skill_id, db)
         if not skill_data:
             logger.error(f"技能不存在: {skill_id}")
             raise HTTPException(status_code=404, detail="Skill not found")
@@ -945,7 +1056,7 @@ class CameraService:
             try:
                 # 创建技能实例
                 skill_config = json.loads(skill_data.config) if skill_data.config else {}
-                skill_instance = create_skill_instance(skill_data.type, skill_config)
+                skill_instance = skill_factory.create_skill_instance(skill_data.name, skill_config)
                 
                 # 处理图像
                 result = skill_instance.process(frame_data)

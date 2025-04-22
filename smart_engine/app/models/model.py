@@ -17,4 +17,4 @@ class Model(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # 关联技能
-    skills = relationship("app.models.skill.SkillModel", back_populates="model") 
+    skills = relationship("app.models.skill.SkillClassModel", back_populates="model", overlaps="skill_classes") 

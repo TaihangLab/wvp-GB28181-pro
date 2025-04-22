@@ -122,9 +122,6 @@ class BaseSkill(ABC):
         # 初始化技能
         self._initialize()
         
-        # 注册模型关系
-        self._register_model_relations()
-        
     def __str__(self) -> str:
         """返回技能的字符串表示"""
         return f"{self.name}({self.name_zh})(type={self.config.get('type', '')}, status={self.status})"
@@ -260,23 +257,6 @@ class BaseSkill(ABC):
                 
         return True, None
 
-    def _register_model_relations(self) -> None:
-        """
-        注册技能和模型的关系到Redis
-        """
-        try:
-            from app.services.redis_service import register_skill_model_relation
-            
-            # 获取所需模型
-            required_models = self.get_required_models()
-            
-            # 注册关系
-            if required_models:
-                register_skill_model_relation(self.skill_id, required_models)
-                self.log("debug", f"已注册技能 '{self.name}' 与模型 {required_models} 的关系")
-        except Exception as e:
-            self.log("error", f"注册模型关系失败: {str(e)}")
-
     def get_default_config(self) -> Dict[str, Any]:
         """
         获取完整默认配置
@@ -287,63 +267,3 @@ class BaseSkill(ABC):
         # 复制默认配置
         return self.DEFAULT_CONFIG.copy()
 
-    def get_required_config_fields(cls) -> List[str]:
-        """
-        获取必须的配置字段列表
-        
-        Returns:
-            必须的配置字段列表
-        """
-        return ["name"]
-        
-    def get_required_models(self) -> List[str]:
-        """
-        获取技能所需的模型列表
-        
-        Returns:
-            模型名称列表
-        """
-        # 从配置中获取所需模型列表
-        if self.config and "required_models" in self.config:
-            return self.config["required_models"]
-        return []
-
-    def check_model_readiness(self) -> Tuple[bool, Optional[str]]:
-        """
-        检查所需模型和Triton服务器是否就绪
-        
-        Returns:
-            (bool, str): 是否就绪，如果不就绪返回错误信息
-        """
-        from app.services.triton_client import triton_client
-        
-        # 检查Triton服务器是否就绪
-        if not triton_client.is_server_ready():
-            return False, "Triton服务器未就绪"
-        
-        # 获取所需模型
-        required_models = self.get_required_models()
-        
-        # 检查所有模型是否就绪
-        for model_name in required_models:
-            if model_name and not triton_client.is_model_ready(model_name):
-                return False, f"模型 {model_name} 未就绪"
-                
-        return True, None
-
-    def _register_model_relations(self) -> None:
-        """
-        注册技能和模型的关系到Redis
-        """
-        try:
-            from app.services.redis_service import register_skill_model_relation
-            
-            # 获取所需模型
-            required_models = self.get_required_models()
-            
-            # 注册关系
-            if required_models:
-                register_skill_model_relation(self.skill_id, required_models)
-                self.log("debug", f"已注册技能 '{self.name}' 与模型 {required_models} 的关系")
-        except Exception as e:
-            self.log("error", f"注册模型关系失败: {str(e)}") 

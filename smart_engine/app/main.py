@@ -20,7 +20,7 @@ from app.db.session import get_db, engine, SessionLocal
 from app.db.base_class import Base
 from app.api import api_router
 from app.services.triton_client import triton_client
-from app.utils.skill_scanner import sync_skill_classes_to_database
+from app.skills.skill_manager import skill_manager
 
 # 配置日志
 logging.basicConfig(
@@ -44,21 +44,21 @@ async def lifespan(app: FastAPI):
     result = sync_models_from_triton()
     logger.info(f"模型同步结果: {result['message']}")
     
-    # 扫描并同步技能类到数据库
-    logger.info("扫描并同步技能类...")
+    # 初始化SkillManager并扫描技能
+    logger.info("初始化SkillManager并扫描技能...")
     db = SessionLocal()
     try:
-        scan_result = sync_skill_classes_to_database(db)
-        logger.info(f"技能类同步结果: {scan_result['message']}")
+        # 初始化技能管理器，这会自动加载技能并同步到数据库
+        skill_manager.initialize_with_db(db)
+        logger.info(f"SkillManager初始化完成，已加载 {len(skill_manager.get_all_skills())} 个技能")
     except Exception as e:
-        logger.error(f"扫描技能类失败: {str(e)}", exc_info=True)
+        logger.error(f"初始化SkillManager失败: {str(e)}", exc_info=True)
     finally:
         db.close()
     
     yield
     
     # 关闭时执行清理工作
-    from app.skills.skill_manager import skill_manager
     logger.info("清理应用资源...")
     skill_manager.cleanup_all()
 
