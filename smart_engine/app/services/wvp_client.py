@@ -33,7 +33,8 @@ class WVPClient:
             
             try:
                 data = response.json()
-                logger.info(f"Login response: {data}")
+                import json
+                logger.info(f"Login response: {json.dumps(data, indent=4, ensure_ascii=False)}")
                 
                 if data.get("code") != 0:
                     raise Exception(f"Login failed: {data.get('msg')}")

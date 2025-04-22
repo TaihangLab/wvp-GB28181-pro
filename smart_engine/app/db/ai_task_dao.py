@@ -69,18 +69,18 @@ class AITaskDAO:
         return db.query(AITask).filter(AITask.camera_id == camera_id).all()
         
     @staticmethod
-    def get_tasks_by_skill_id(skill_id: int, db: Session) -> List[AITask]:
+    def get_tasks_by_skill_instance_id(skill_instance_id: int, db: Session) -> List[AITask]:
         """
-        获取与指定技能关联的所有任务
+        获取与指定技能实例关联的所有任务
         
         Args:
-            skill_id: 技能ID
+            skill_instance_id: 技能实例ID
             db: 数据库会话
             
         Returns:
             List[AITask]: 任务列表
         """
-        return db.query(AITask).filter(AITask.skill_id == skill_id).all()
+        return db.query(AITask).filter(AITask.skill_instance_id == skill_instance_id).all()
     
     @staticmethod
     def create_task(task_data: Dict[str, Any], db: Session) -> Optional[AITask]:
@@ -116,7 +116,7 @@ class AITaskDAO:
                 task_type=task_data.get('task_type', 'detection'),
                 config=config,
                 camera_id=task_data.get('camera_id'),
-                skill_id=task_data.get('skill_id'),
+                skill_instance_id=task_data.get('skill_instance_id'),
                 skill_config=skill_config_json
             )
             
@@ -163,8 +163,8 @@ class AITaskDAO:
                 task.task_type = task_data['task_type']
             if 'camera_id' in task_data:
                 task.camera_id = task_data['camera_id']
-            if 'skill_id' in task_data:
-                task.skill_id = task_data['skill_id']
+            if 'skill_instance_id' in task_data:
+                task.skill_instance_id = task_data['skill_instance_id']
                 
             # 更新JSON字段
             if 'running_period' in task_data:

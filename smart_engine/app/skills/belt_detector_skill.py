@@ -16,7 +16,7 @@ class BeltDetectorSkill(BaseSkill):
     
     使用YOLO模型检测施工人员是否佩戴安全带，基于triton_client全局单例
     """
-    
+
     # 默认配置
     DEFAULT_CONFIG = {
         "type": "detection",  # 技能类型：检测类

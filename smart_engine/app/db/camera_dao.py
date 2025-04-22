@@ -127,15 +127,7 @@ class CameraDAO:
             db.commit()
             db.refresh(new_camera)
             
-            # 关联技能（如果有）
-            if 'skill_ids' in camera_data and camera_data['skill_ids']:
-                for skill_id in camera_data['skill_ids']:
-                    camera_skill = CameraSkill(
-                        camera_id=new_camera.id,
-                        skill_id=int(skill_id)
-                    )
-                    db.add(camera_skill)
-                db.commit()
+            # 注意：不再使用CameraSkill进行技能关联，技能关联通过AI任务实现
             
             return new_camera
         except Exception as e:
@@ -206,18 +198,7 @@ class CameraDAO:
             
             camera.meta_data = json.dumps(meta_data)
             
-            # 更新技能关联（如果提供）
-            if 'skill_ids' in camera_data:
-                # 删除现有关联
-                db.query(CameraSkill).filter(CameraSkill.camera_id == camera.id).delete()
-                
-                # 创建新关联
-                for skill_id in camera_data['skill_ids']:
-                    camera_skill = CameraSkill(
-                        camera_id=camera.id,
-                        skill_id=int(skill_id)
-                    )
-                    db.add(camera_skill)
+            # 注意：不再使用CameraSkill进行技能关联，技能关联通过AI任务实现
             
             db.commit()
             db.refresh(camera)
@@ -245,8 +226,7 @@ class CameraDAO:
             if not camera:
                 return False
             
-            # 删除关联的技能
-            db.query(CameraSkill).filter(CameraSkill.camera_id == camera.id).delete()
+            # 注意：不再需要删除CameraSkill关联，相关的AI任务会在其他地方处理
             
             # 删除摄像头
             db.delete(camera)

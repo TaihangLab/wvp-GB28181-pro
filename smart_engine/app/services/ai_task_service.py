@@ -52,7 +52,7 @@ class AITaskService:
                 "created_at": db_task.created_at.isoformat() if db_task.created_at else None,
                 "updated_at": db_task.updated_at.isoformat() if db_task.updated_at else None,
                 "camera_id": db_task.camera_id,
-                "skill_id": db_task.skill_id,
+                "skill_instance_id": db_task.skill_instance_id,
                 "skill_config": skill_config
             }
             tasks.append(task_data)
@@ -84,7 +84,7 @@ class AITaskService:
         
         # 获取关联的摄像头和技能名称（如果有）
         camera_name = db_task.camera.name if db_task.camera else None
-        skill_name = db_task.skill.name if db_task.skill else None
+        skill_instance_name = db_task.skill_instance.name if db_task.skill_instance else None
         
         task_data = {
             "id": db_task.id,
@@ -102,8 +102,8 @@ class AITaskService:
             "updated_at": db_task.updated_at.isoformat() if db_task.updated_at else None,
             "camera_id": db_task.camera_id,
             "camera_name": camera_name,
-            "skill_id": db_task.skill_id,
-            "skill_name": skill_name,
+            "skill_instance_id": db_task.skill_instance_id,
+            "skill_instance_name": skill_instance_name,
             "skill_config": skill_config
         }
         
@@ -128,8 +128,8 @@ class AITaskService:
             logger.error("缺少摄像头ID (camera_id)")
             return None
             
-        if not task_data.get('skill_id'):
-            logger.error("缺少技能ID (skill_id)")
+        if not task_data.get('skill_instance_id'):
+            logger.error("缺少技能实例ID (skill_instance_id)")
             return None
         
         # 使用DAO创建任务
@@ -203,19 +203,19 @@ class AITaskService:
         return {"tasks": tasks, "total": len(tasks)}
     
     @staticmethod
-    def get_tasks_by_skill(skill_id: int, db: Session) -> Dict[str, Any]:
+    def get_tasks_by_skill_instance(skill_instance_id: int, db: Session) -> Dict[str, Any]:
         """
-        获取与指定技能关联的所有任务
+        获取与指定技能实例关联的所有任务
         
         Args:
-            skill_id: 技能ID
+            skill_instance_id: 技能实例ID
             db: 数据库会话
             
         Returns:
             Dict[str, Any]: 任务列表及总数
         """
-        logger.info(f"获取技能相关任务: skill_id={skill_id}")
-        db_tasks = AITaskDAO.get_tasks_by_skill_id(skill_id, db)
+        logger.info(f"获取技能实例相关任务: skill_instance_id={skill_instance_id}")
+        db_tasks = AITaskDAO.get_tasks_by_skill_instance_id(skill_instance_id, db)
         
         # 转换为响应格式
         tasks = []

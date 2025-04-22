@@ -8,7 +8,6 @@ from app.db.session import get_db
 from app.services.camera_service import CameraService
 from app.db.camera_dao import CameraDAO
 import logging
-from app.schemas import Message
 import json
 
 logger = logging.getLogger(__name__)
@@ -281,7 +280,7 @@ def update_ai_camera(camera_id: int, camera_data: Dict[str, Any], db: Session = 
             detail=str(e)
         )
 
-@router.delete("/{camera_id}", response_model=Message)
+@router.delete("/{camera_id}", response_model=Dict[str, Any])
 def delete_ai_camera(
     camera_id: int = Path(..., title="Camera ID", description="The ID of the camera to delete"),
     db: Session = Depends(get_db)
@@ -293,7 +292,7 @@ def delete_ai_camera(
         camera_id: 摄像头ID
         
     Returns:
-        Message: 成功或失败消息
+        Dict[str, Any]: 成功或失败消息
     """
     try:
         # 调用服务层删除摄像头
@@ -305,7 +304,7 @@ def delete_ai_camera(
                 detail="Camera not found"
             )
         
-        return Message(success=True, message=f"Successfully deleted camera {camera_id}")
+        return {"success": True, "message": f"Successfully deleted camera {camera_id}"}
     except HTTPException:
         raise
     except Exception as e:
@@ -329,12 +328,17 @@ def analyze_ai_camera_stream(
     """
     return CameraService.analyze_ai_camera_stream(camera_id, skill_id, db)
 
-@router.post("/init", response_model=Message)
+@router.post("/init", response_model=Dict[str, Any])
 def init_ai_camera_db(db: Session = Depends(get_db)):
     """
     初始化AI平台摄像头数据库
+    
+    Returns:
+        Dict[str, Any]: 初始化结果消息
     """
-    return CameraService.init_ai_camera_db(db)
+    response = CameraService.init_ai_camera_db(db)
+    # 转换Message响应为Dict[str, Any]
+    return {"success": response.success, "message": response.message, "data": response.data}
 
 # 添加新的API端点用于获取单个国标设备
 @router.get("/wvp/gb28181/{deviceId}", response_model=Dict[str, Any])
