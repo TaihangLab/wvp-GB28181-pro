@@ -4,44 +4,82 @@
     <div class="device-list">
       <div class="list-header">设备列表</div>
       <div class="search-bar">
-        <input type="text" placeholder="输入关键字搜索" />
+        <input 
+          type="text" 
+          placeholder="输入关键字搜索" 
+          v-model="searchKeyword"
+          @input="handleSearch"
+        />
+        <span v-if="searchKeyword" class="search-clear" @click="clearSearch">
+          <i class="el-icon-close"></i>
+        </span>
       </div>
       <div class="list-content">
-        <!-- 电力行业设备组 -->
-        <div class="industry-group">
-          <div class="industry-header" @click="toggleIndustry('power')">
-            <i class="el-icon-arrow-down" :class="{ 'is-open': industryStatus.power }"></i>
-            电力行业
-          </div>
-          <div class="industry-devices" v-show="industryStatus.power">
-            <div class="device-item">
-              <span>监控设备1</span>
-              <span class="status-tag online">在线</span>
-            </div>
-            <div class="device-item">
-              <span>监控设备2</span>
-              <span class="status-tag offline">离线</span>
-            </div>
-          </div>
+        <!-- 搜索结果提示 -->
+        <div v-if="searchKeyword && filteredDevices.length > 0" class="search-result-info">
+          找到 {{ filteredDevices.length }} 个匹配结果
+        </div>
+        <div v-if="searchKeyword && filteredDevices.length === 0" class="search-result-empty">
+          未找到匹配的设备
         </div>
         
-        <!-- 油气行业设备组 -->
-        <div class="industry-group">
-          <div class="industry-header" @click="toggleIndustry('oil')">
-            <i class="el-icon-arrow-down" :class="{ 'is-open': industryStatus.oil }"></i>
-            油气行业
+        <!-- 搜索结果显示 -->
+        <template v-if="searchKeyword">
+          <div class="device-item" 
+               v-for="device in filteredDevices" 
+               :key="device.id"
+               @click="selectSearchedDevice(device)">
+            <span>{{ device.name }}</span>
+            <span class="status-tag" :class="device.status">
+              {{ device.status === 'online' ? '在线' : '离线' }}
+            </span>
           </div>
-          <div class="industry-devices" v-show="industryStatus.oil">
-            <div class="device-item">
-              <span>摄像头01</span>
-              <span class="status-tag online">在线</span>
+        </template>
+        
+        <!-- 默认分组显示 -->
+        <template v-else>
+          <!-- 电力行业设备组 -->
+          <div class="industry-group">
+            <div class="industry-header" @click="toggleIndustry('power')">
+              <i class="el-icon-arrow-down" :class="{ 'is-open': industryStatus.power }"></i>
+              电力行业
             </div>
-            <div class="device-item">
-              <span>消防设备</span>
-              <span class="status-tag offline">离线</span>
+            <div class="industry-devices" v-show="industryStatus.power">
+              <div 
+                class="device-item"
+                v-for="device in getIndustryDevices('power')"
+                :key="device.id"
+                @click="selectDevice(device)"
+              >
+                <span>{{ device.name }}</span>
+                <span class="status-tag" :class="device.status">
+                  {{ device.status === 'online' ? '在线' : '离线' }}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+          
+          <!-- 油气行业设备组 -->
+          <div class="industry-group">
+            <div class="industry-header" @click="toggleIndustry('oil')">
+              <i class="el-icon-arrow-down" :class="{ 'is-open': industryStatus.oil }"></i>
+              油气行业
+            </div>
+            <div class="industry-devices" v-show="industryStatus.oil">
+              <div 
+                class="device-item"
+                v-for="device in getIndustryDevices('oil')"
+                :key="device.id"
+                @click="selectDevice(device)"
+              >
+                <span>{{ device.name }}</span>
+                <span class="status-tag" :class="device.status">
+                  {{ device.status === 'online' ? '在线' : '离线' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -77,6 +115,7 @@
       <div 
         class="video-grid" 
         :class="[viewMode, { fullscreen: isFullscreen }]"
+        ref="videoGrid"
       >
         <template v-if="!isFullscreen">
           <div 
@@ -154,11 +193,18 @@ export default {
       timer: null,
       // 设备列表数据
       deviceList: [
-        { id: 1, name: '摄像头01', status: 'online' },
-        { id: 2, name: '摄像头02', status: 'offline' },
-        { id: 3, name: '摄像头03', status: 'online' },
-        { id: 4, name: '摄像头04', status: 'online' },
+        { id: 1, name: '摄像头01', status: 'online', industry: 'oil' },
+        { id: 2, name: '摄像头02', status: 'offline', industry: 'oil' },
+        { id: 3, name: '摄像头03', status: 'online', industry: 'power' },
+        { id: 4, name: '摄像头04', status: 'online', industry: 'power' },
+        { id: 5, name: '监控设备1', status: 'online', industry: 'power' },
+        { id: 6, name: '监控设备2', status: 'offline', industry: 'power' },
+        { id: 7, name: '消防设备', status: 'offline', industry: 'oil' }
       ],
+      // 搜索关键字
+      searchKeyword: '',
+      // 搜索结果
+      filteredDevices: [],
       // 预警列表数据
       warningList: [
         { id: 1, time: '10:30:25', device: '摄像头01', type: '未戴安全帽', level: 'high' },
@@ -168,18 +214,37 @@ export default {
       industryStatus: {
         power: true,
         oil: true
-      }
+      },
+      // 保存原始全屏状态的元素
+      originalFullscreenElement: null
     }
   },
   mounted() {
     // 启动时间更新定时器
     this.updateDateTime();
     this.timer = setInterval(this.updateDateTime, 1000);
+    
+    // 添加键盘事件监听器，用于ESC键退出全屏
+    document.addEventListener('keydown', this.handleKeyDown);
+    
+    // 添加全屏变化事件监听器
+    document.addEventListener('fullscreenchange', this.handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', this.handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', this.handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', this.handleFullscreenChange);
   },
   beforeDestroy() {
     // 组件销毁时清理
+    this.exitFullscreen();
     document.body.classList.remove('camera-fullscreen-mode');
     clearInterval(this.timer);
+    
+    // 移除事件监听器
+    document.removeEventListener('keydown', this.handleKeyDown);
+    document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
+    document.removeEventListener('webkitfullscreenchange', this.handleFullscreenChange);
+    document.removeEventListener('mozfullscreenchange', this.handleFullscreenChange);
+    document.removeEventListener('MSFullscreenChange', this.handleFullscreenChange);
   },
   methods: {
     // 生成测试数据
@@ -191,26 +256,139 @@ export default {
     // 切换视图模式
     switchViewMode(mode) {
       this.viewMode = mode
-      this.isFullscreen = false // 切换视图模式时退出全屏
+      if (this.isFullscreen) {
+        this.exitFullscreen(); // 切换视图模式时退出全屏
+      }
       this.selectedCamera = null
-      // 确保退出全屏模式
-      document.body.classList.remove('camera-fullscreen-mode')
     },
     // 选择摄像头
     selectCamera(index) {
       this.selectedCamera = this.selectedCamera === index ? null : index
     },
+    // 处理搜索输入
+    handleSearch() {
+      if (!this.searchKeyword) {
+        this.filteredDevices = [];
+        return;
+      }
+      
+      const keyword = this.searchKeyword.toLowerCase().trim();
+      this.filteredDevices = this.deviceList.filter(device => 
+        device.name.toLowerCase().includes(keyword) || 
+        (device.status === 'online' && '在线'.includes(keyword)) ||
+        (device.status === 'offline' && '离线'.includes(keyword))
+      );
+    },
+    // 清除搜索
+    clearSearch() {
+      this.searchKeyword = '';
+      this.filteredDevices = [];
+    },
+    // 选择搜索结果中的设备
+    selectSearchedDevice(device) {
+      // 根据设备ID查找对应的摄像头索引
+      const cameraIndex = parseInt(device.id);
+      if (!isNaN(cameraIndex) && cameraIndex > 0 && cameraIndex <= 9) {
+        this.selectCamera(cameraIndex);
+      }
+    },
+    // 选择设备
+    selectDevice(device) {
+      // 根据设备ID查找对应的摄像头索引
+      const cameraIndex = parseInt(device.id);
+      if (!isNaN(cameraIndex) && cameraIndex > 0 && cameraIndex <= 9) {
+        this.selectCamera(cameraIndex);
+      }
+    },
+    // 获取指定行业的设备
+    getIndustryDevices(industry) {
+      return this.deviceList.filter(device => device.industry === industry);
+    },
     // 切换全屏显示
     toggleFullscreen() {
       if (this.selectedCamera !== null) {
-        this.isFullscreen = !this.isFullscreen
-        
-        // 通过添加body类控制全屏样式
-        if (this.isFullscreen) {
-          document.body.classList.add('camera-fullscreen-mode')
+        if (!this.isFullscreen) {
+          this.enterFullscreen();
         } else {
-          document.body.classList.remove('camera-fullscreen-mode')
+          this.exitFullscreen();
         }
+      }
+    },
+    // 进入全屏模式
+    enterFullscreen() {
+      // 先加上样式类以便切换后立即显示全屏效果
+      document.body.classList.add('camera-fullscreen-mode');
+      
+      this.isFullscreen = true;
+      
+      // 获取视频网格元素
+      const element = this.$refs.videoGrid;
+      
+      try {
+        // 请求全屏
+        if (element.requestFullscreen) {
+          element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) { /* Safari */
+          element.webkitRequestFullscreen();
+        } else if (element.msRequestFullscreen) { /* IE11 */
+          element.msRequestFullscreen();
+        } else if (element.mozRequestFullScreen) { /* Firefox */
+          element.mozRequestFullScreen();
+        }
+        
+        // 保存当前进入全屏的元素
+        this.originalFullscreenElement = element;
+      } catch (err) {
+        console.error('无法进入全屏模式:', err);
+        // 如果无法进入全屏模式，仍然保持样式效果
+      }
+    },
+    // 退出全屏模式
+    exitFullscreen() {
+      // 移除样式类
+      document.body.classList.remove('camera-fullscreen-mode');
+      this.isFullscreen = false;
+      
+      try {
+        // 判断当前是否在全屏模式
+        if (
+          document.fullscreenElement || 
+          document.webkitFullscreenElement || 
+          document.mozFullScreenElement ||
+          document.msFullscreenElement
+        ) {
+          // 退出全屏
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) { /* Safari */
+            document.webkitExitFullscreen();
+          } else if (document.msExitFullscreen) { /* IE11 */
+            document.msExitFullscreen();
+          } else if (document.mozCancelFullScreen) { /* Firefox */
+            document.mozCancelFullScreen();
+          }
+        }
+      } catch (err) {
+        console.error('退出全屏模式时出错:', err);
+      }
+    },
+    // 处理键盘事件
+    handleKeyDown(event) {
+      if (event.key === 'Escape' && this.isFullscreen) {
+        this.exitFullscreen();
+      }
+    },
+    // 处理全屏状态变化事件
+    handleFullscreenChange() {
+      const fullscreenElement = 
+        document.fullscreenElement || 
+        document.webkitFullscreenElement || 
+        document.mozFullScreenElement ||
+        document.msFullscreenElement;
+        
+      // 如果没有全屏元素但我们的状态是全屏，那么退出全屏
+      if (!fullscreenElement && this.isFullscreen) {
+        this.exitFullscreen();
       }
     },
     // 更新当前日期时间戳
@@ -281,6 +459,7 @@ export default {
   border-bottom: 1px solid #ebeef5;
   display: flex;
   justify-content: center;
+  position: relative;
 }
 
 .device-list .search-bar input {
@@ -291,16 +470,67 @@ export default {
   font-size: 13px;
   color: #606266;
   background-color: #f5f7fa;
+  padding-right: 28px;
+  transition: all 0.3s;
+}
+
+.device-list .search-bar input:focus {
+  border-color: #409eff;
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
 .device-list .search-bar input::placeholder {
   color: #a0a9b8;
 }
 
+/* 搜索框清除按钮 */
+.device-list .search-bar .search-clear {
+  position: absolute;
+  right: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  cursor: pointer;
+  background: #e4e7ed;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+.device-list .search-bar .search-clear:hover {
+  color: #606266;
+  background: #d3d7de;
+}
+
 .device-list .list-content {
   flex: 1;
   padding: 8px;
   overflow-y: auto;
+}
+
+/* 搜索结果提示 */
+.device-list .list-content .search-result-info {
+  padding: 8px 12px;
+  color: #409eff;
+  font-size: 13px;
+  background: #ecf5ff;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.device-list .list-content .search-result-empty {
+  padding: 16px 12px;
+  color: #909399;
+  font-size: 13px;
+  text-align: center;
+  background: #f8f8f8;
+  border-radius: 4px;
+  margin-bottom: 8px;
 }
 
 .device-list .list-content .industry-group {
@@ -342,10 +572,17 @@ export default {
   border-radius: 0;
   margin-bottom: 0;
   border-bottom: 1px solid #f2f6fc;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .device-list .list-content .device-item:last-child {
   border-bottom: none;
+}
+
+.device-list .list-content .device-item:hover {
+  background-color: #f5f7fa;
+  color: #409eff;
 }
 
 .device-list .list-content .device-item .status-tag {
@@ -362,6 +599,19 @@ export default {
 .device-list .list-content .device-item .status-tag.offline {
   background: #fff0f1;
   color: #f56c6c;
+}
+
+/* 当存在搜索关键字时的设备项样式 */
+.device-list .list-content > .device-item {
+  margin: 4px 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.device-list .list-content > .device-item:hover {
+  border-color: #e6f1fc;
+  background-color: #f5f9ff;
 }
 
 /* 中间监控区域样式 */
@@ -802,11 +1052,13 @@ body.camera-fullscreen-mode .monitoring-container {
   width: 100% !important;
   padding: 16px !important;
   height: 100vh !important;
+  max-height: 100vh !important;
 }
 
 /* 全屏状态下视频网格占满屏幕 */
 body.camera-fullscreen-mode .video-grid {
   height: calc(100vh - 70px) !important;
+  max-height: 100vh !important;
 }
 
 /* 全屏状态下工具栏样式调整 */
@@ -844,6 +1096,8 @@ body.camera-fullscreen-mode .video-cell {
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 body.camera-fullscreen-mode .video-cell .video-header {
@@ -866,12 +1120,14 @@ body.camera-fullscreen-mode .video-cell .video-content {
   right: 0 !important;
   bottom: 0 !important;
   height: 100% !important;
+  width: 100% !important;
 }
 
 body.camera-fullscreen-mode .video-cell .video-content .video-placeholder {
   background: linear-gradient(135deg, #102948, #1e3c72) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  font-size: 18px !important;
 }
 
 /* 添加监控视频常见的日期时间水印 */
@@ -898,6 +1154,52 @@ body.camera-fullscreen-mode .video-cell .video-content .video-placeholder::after
   font-size: 14px !important;
   text-shadow: 1px 1px 1px rgba(0,0,0,0.7) !important;
   z-index: 3 !important;
+}
+
+/* 全屏状态下，为监控画面增加ESC退出提示 */
+body.camera-fullscreen-mode .video-cell .video-content .video-placeholder::before {
+  content: attr(data-timestamp) " (按ESC退出全屏)" !important;
+}
+
+/* 原生全屏模式适配 */
+.video-grid:fullscreen {
+  background: linear-gradient(135deg, #0a1526, #1e3a70) !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.video-grid:-webkit-full-screen {
+  background: linear-gradient(135deg, #0a1526, #1e3a70) !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.video-grid:-moz-full-screen {
+  background: linear-gradient(135deg, #0a1526, #1e3a70) !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.video-grid:-ms-fullscreen {
+  background: linear-gradient(135deg, #0a1526, #1e3a70) !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
 }
 
 /* 视频控制面板 */
