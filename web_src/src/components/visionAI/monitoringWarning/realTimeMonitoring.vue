@@ -242,7 +242,7 @@ export default {
 
 <style scoped>
 .page-container {
-  height: 100vh;
+  height: 93vh;
   margin: 0;
   padding: 16px;
   gap: 16px;

@@ -48,7 +48,15 @@
               <span>Node: 10个</span>
             </div>
           </div>
-          
+
+          <!-- 添加资源标签区域 -->
+          <div class="resource-labels">
+            <div class="resource-label">CPU使用率</div>
+            <div class="resource-label">磁盘使用率</div>
+            <div class="resource-label">内存使用率</div>
+            <div class="resource-label">显存使用率</div>
+          </div>
+
           <div class="resource-charts">
             <div class="chart-item">
               <div class="chart-container">
@@ -103,7 +111,7 @@
               <div class="chart-title">显存</div>
             </div>
           </div>
-          
+
           <div class="resource-details-container">
             <div class="expanded-header">
               <div class="resource-detail-title">资源详情</div>
@@ -241,14 +249,16 @@
             <!-- 圆环饼图 -->
             <div class="donut-container">
               <div class="donut-chart">
-                <!-- 百分比标签 -->
-                <div class="percent-label label-1">5%</div>
-                <div class="percent-label label-2">40%</div>
-                <div class="percent-label label-3">20%</div>
-                <div class="percent-label label-4">35%</div>
+                <div class="chart-section section-1" @mouseover="showTooltip('人员检测', 5, $event)" @mouseout="hideTooltip"></div>
+                <div class="chart-section section-2" @mouseover="showTooltip('交通拥堵', 40, $event)" @mouseout="hideTooltip"></div>
+                <div class="chart-section section-3" @mouseover="showTooltip('非机动车违规', 20, $event)" @mouseout="hideTooltip"></div>
+                <div class="chart-section section-4" @mouseover="showTooltip('违章停车', 35, $event)" @mouseout="hideTooltip"></div>
+                <div class="chart-tooltip" v-if="tooltipVisible" :style="tooltipStyle">
+                  {{ tooltipText }}
+                </div>
               </div>
             </div>
-            
+
             <!-- 图例 -->
             <div class="chart-legends">
               <div class="legend-item">
@@ -604,6 +614,18 @@ export default {
       algoSphereGroup: null,
       algoAnimationId: null,
       algoControls: null,
+      tooltipVisible: false,
+      tooltipText: '',
+      tooltipStyle: {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        color: '#fff',
+        padding: '5px',
+        borderRadius: '5px',
+        zIndex: 1000
+      }
     }
   },
   mounted() {
@@ -613,7 +635,7 @@ export default {
 
     // 添加全屏变化事件监听器
     document.addEventListener('fullscreenchange', this.handleFullscreenChange);
-    
+
     this.$nextTick(() => {
       this.initCubeScene();
       this.initAlgorithmSphere(); // 添加初始化算法球体
@@ -621,7 +643,7 @@ export default {
 
       // 添加窗口大小变化监听
       window.addEventListener('resize', this.handleResize);
-      
+
       // 延迟300ms后再次初始化算法球体，确保容器大小已经正确计算
       setTimeout(() => {
         this.reinitAlgorithmSphere();
@@ -633,10 +655,10 @@ export default {
     if (this.timer) {
       clearInterval(this.timer);
     }
-    
+
     // 移除全屏变化事件监听器
     document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
-    
+
     // 清除动画循环
     if (this.cubeAnimationId) {
       cancelAnimationFrame(this.cubeAnimationId);
@@ -672,7 +694,7 @@ export default {
     },
     toggleFullScreen() {
       const navBar = document.querySelector('.el-header'); // 选择顶部导航栏元素
-      
+
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().then(() => {
           // 进入全屏后隐藏导航栏
@@ -2463,7 +2485,7 @@ export default {
           this.cubeRenderer.setSize(container.clientWidth, container.clientHeight);
         }
       }
-      
+
       // 重新初始化算法球体
       this.reinitAlgorithmSphere();
     },
@@ -2769,7 +2791,7 @@ export default {
       this.algoCamera.aspect = width / height;
       this.algoCamera.updateProjectionMatrix();
       this.algoRenderer.setSize(width, height);
-      
+
       // 调整相机位置以适应新的容器尺寸
       if (width < 300) {
         // 如果容器宽度较小，拉远相机使整个场景可见
@@ -2778,7 +2800,7 @@ export default {
         // 否则使用标准距离
         this.algoCamera.position.z = 12;
       }
-      
+
       this.algoCamera.updateProjectionMatrix();
     },
 
@@ -2813,7 +2835,7 @@ export default {
     // 处理全屏变化事件
     handleFullscreenChange() {
       const navBar = document.querySelector('.el-header');
-      
+
       if (!document.fullscreenElement) {
         // 退出全屏时显示导航栏
         if (navBar) navBar.style.display = '';
@@ -2830,10 +2852,63 @@ export default {
         cancelAnimationFrame(this.algoAnimationId);
         this.algoAnimationId = null;
       }
-      
+
       // 重新初始化
       this.initAlgorithmSphere();
     },
+    showTooltip(text, percentage, event) {
+      this.tooltipText = `${text}: ${percentage}%`;
+      this.tooltipVisible = true;
+      
+      if (event) {
+        const donutChart = event.target.closest('.donut-chart');
+        if (donutChart) {
+          const donutRect = donutChart.getBoundingClientRect();
+          const centerX = donutRect.width / 2;
+          const centerY = donutRect.height / 2;
+          
+          // 计算鼠标相对于圆心的位置
+          const mouseX = event.clientX - donutRect.left;
+          const mouseY = event.clientY - donutRect.top;
+          
+          // 计算鼠标到圆心的向量
+          const vectorX = mouseX - centerX;
+          const vectorY = mouseY - centerY;
+          
+          // 归一化向量并延长到圆环外
+          const length = Math.sqrt(vectorX * vectorX + vectorY * vectorY);
+          const normalizedX = vectorX / length;
+          const normalizedY = vectorY / length;
+          
+          // 计算tooltip位置，将其放在圆环外一定距离
+          const radius = donutRect.width / 2;
+          const tooltipX = centerX + normalizedX * (radius * 1.5);
+          const tooltipY = centerY + normalizedY * (radius * 1.5);
+          
+          // 覆盖默认样式，删除居中定位
+          this.tooltipStyle = {
+            position: 'absolute',
+            top: `${tooltipY}px`,
+            left: `${tooltipX}px`,
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(0, 20, 40, 0.9)',
+            color: '#fff',
+            padding: '8px 12px',
+            borderRadius: '4px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            whiteSpace: 'nowrap',
+            zIndex: '100',
+            border: '1px solid rgba(65, 120, 255, 0.5)',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'none'
+          };
+        }
+      }
+    },
+    hideTooltip() {
+      this.tooltipVisible = false;
+    }
   }
 }
 </script>
@@ -2847,15 +2922,19 @@ export default {
   color: #ffffff;
   font-family: "Microsoft YaHei", Arial, sans-serif;
   position: relative;
-  overflow-y: auto; /* 保留垂直滚动 */
-  overflow-x: hidden; /* 隐藏水平滚动 */
+  overflow-y: auto;
+  /* 保留垂直滚动 */
+  overflow-x: hidden;
+  /* 隐藏水平滚动 */
   background-image: url('/static/img/bg-pattern.png');
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  scrollbar-width: none; /* Firefox 隐藏滚动条 */
-  -ms-overflow-style: none; /* IE 和 Edge 隐藏滚动条 */
+  scrollbar-width: none;
+  /* Firefox 隐藏滚动条 */
+  -ms-overflow-style: none;
+  /* IE 和 Edge 隐藏滚动条 */
 }
 
 /* 为 Chrome、Safari 和 Opera 隐藏滚动条 */
@@ -2878,16 +2957,23 @@ export default {
 /* 所有卡片的内容区域隐藏滚动条但保留滚动功能 */
 .card-content {
   padding: 5px 10px;
-  height: calc(100% - 40px); /* 减去标题高度 */
-  overflow-y: auto !important; /* 启用垂直滚动 */
-  overflow-x: hidden !important; /* 隐藏水平滚动 */
-  scrollbar-width: none !important; /* Firefox 隐藏滚动条 */
-  -ms-overflow-style: none !important; /* IE and Edge 隐藏滚动条 */
+  height: calc(100% - 40px);
+  /* 减去标题高度 */
+  overflow-y: auto !important;
+  /* 启用垂直滚动 */
+  overflow-x: hidden !important;
+  /* 隐藏水平滚动 */
+  scrollbar-width: none !important;
+  /* Firefox 隐藏滚动条 */
+  -ms-overflow-style: none !important;
+  /* IE and Edge 隐藏滚动条 */
 }
 
 .card-content::-webkit-scrollbar {
-  display: none !important; /* Chrome, Safari and Opera 隐藏滚动条 */
-  width: 0 !important; /* 确保滚动条宽度为0 */
+  display: none !important;
+  /* Chrome, Safari and Opera 隐藏滚动条 */
+  width: 0 !important;
+  /* 确保滚动条宽度为0 */
 }
 
 .main-title {
@@ -3011,7 +3097,8 @@ export default {
 
 .card-content {
   padding: 5px 10px;
-  height: calc(100% - 40px); /* 减去标题高度 */
+  height: calc(100% - 40px);
+  /* 减去标题高度 */
   overflow: auto;
 }
 
@@ -3023,23 +3110,30 @@ export default {
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  height: 100%; /* 确保高度占满整个网格单元格 */
+  height: 100%;
+  /* 确保高度占满整个网格单元格 */
 }
 
 .resource-statistics .card-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto; /* 启用垂直滚动 */
+  overflow-y: auto;
+  /* 启用垂直滚动 */
   padding: 0 10px;
-  scrollbar-width: none; /* Firefox 隐藏滚动条 */
-  -ms-overflow-style: none; /* IE and Edge 隐藏滚动条 */
-  max-height: 100%; /* 确保内容不会超出卡片高度 */
+  scrollbar-width: none;
+  /* Firefox 隐藏滚动条 */
+  -ms-overflow-style: none;
+  /* IE and Edge 隐藏滚动条 */
+  max-height: 100%;
+  /* 确保内容不会超出卡片高度 */
 }
 
 .resource-statistics .card-content::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera 隐藏滚动条 */
-  width: 0; /* 确保滚动条宽度为0 */
+  display: none;
+  /* Chrome, Safari and Opera 隐藏滚动条 */
+  width: 0;
+  /* 确保滚动条宽度为0 */
 }
 
 .server-info {
@@ -3048,7 +3142,8 @@ export default {
   margin-bottom: 15px;
   margin-top: 10px;
   padding: 0 5px;
-  flex-shrink: 0; /* 防止顶部元素收缩 */
+  flex-shrink: 0;
+  /* 防止顶部元素收缩 */
 }
 
 .server-type {
@@ -3093,51 +3188,70 @@ export default {
 
 .resource-charts {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
-  margin-top: 15px;
+  margin-top: 10px;
   padding: 0 5px;
   position: relative;
-  flex-shrink: 0; /* 防止顶部元素收缩 */
-  margin-bottom: 5px;
 }
 
 .resource-charts::before {
-  content: '';
+  content: "";
   position: absolute;
-  top: -8px;
-  left: 10%;
-  right: 10%;
+  top: -5px;
+  left: 0;
+  width: 100%;
   height: 1px;
-  background: linear-gradient(to right,
-      rgba(30, 144, 255, 0),
-      rgba(30, 144, 255, 0.3),
-      rgba(30, 144, 255, 0));
+  background: linear-gradient(90deg, 
+    rgba(30, 80, 150, 0) 0%, 
+    rgba(65, 120, 255, 0.5) 20%, 
+    rgba(65, 120, 255, 0.8) 50%, 
+    rgba(65, 120, 255, 0.5) 80%, 
+    rgba(30, 80, 150, 0) 100%);
 }
 
-/* 添加资源标签样式 */
 .resource-labels {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 0 10px;
+  width: 100%;
+  padding: 0 5px;
+  margin: 15px 0 5px 0;
+  position: relative;
 }
 
 .resource-label {
-  width: 60px;
+  width: 22%;
   text-align: center;
-  font-size: 14px;
-  font-weight: bold;
   color: #7888a8;
+  font-size: 13px;
+  padding: 0 2px;
 }
 
 .chart-item {
   width: 22%;
   position: relative;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.chart-container {
+  position: relative;
+  width: 65px;
+  height: 65px;
+  margin: 0 auto;
+  padding-bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 隐藏原有的图表标题，由新添加的标签替代 */
@@ -3491,7 +3605,8 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 100%; /* 确保宽度填满容器 */
+  width: 100%;
+  /* 确保宽度填满容器 */
 }
 
 .detail-group {
@@ -4277,7 +4392,8 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: relative; /* 添加定位上下文 */
+  position: relative;
+  /* 添加定位上下文 */
 }
 
 .my-algorithms .card-content {
@@ -4286,8 +4402,10 @@ export default {
   flex-direction: column;
   overflow: hidden;
   padding: 0;
-  height: calc(100% - 40px); /* 减去标题高度 */
-  position: relative; /* 添加定位上下文 */
+  height: calc(100% - 40px);
+  /* 减去标题高度 */
+  position: relative;
+  /* 添加定位上下文 */
 }
 
 .algorithm-bubbles {
@@ -5369,7 +5487,8 @@ export default {
 }
 
 .realtime-events .card-content {
-  height: calc(100% - 40px); /* 减去头部高度 */
+  height: calc(100% - 40px);
+  /* 减去头部高度 */
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -5526,32 +5645,61 @@ export default {
 
 /* 圆环饼图 */
 .donut-chart {
-  width: 200px;
-  height: 200px;
+  width: 220px;
+  height: 220px;
   border-radius: 50%;
   position: relative;
   margin: 0 auto;
   background: conic-gradient(
-    #4CD964 0deg calc(5% * 3.6deg), /* 人员检测 5% */
-    #447CF9 calc(5% * 3.6deg) calc((5% + 40%) * 3.6deg), /* 交通拥堵 40% */
-    #FF9500 calc((5% + 40%) * 3.6deg) calc((5% + 40% + 20%) * 3.6deg), /* 非机动车违规 20% */
-    #FF2D55 calc((5% + 40% + 20%) * 3.6deg) 360deg /* 违章停车 35% */
+    #4CD964 0 5%, 
+    #447CF9 5% 45%, 
+    #FF9500 45% 65%, 
+    #FF2D55 65% 100%
   );
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
   transform: perspective(800px) rotateX(60deg);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  /* 创建真正的圆环效果 */
+  -webkit-mask: radial-gradient(transparent 35%, #fff 36%);
+  mask: radial-gradient(transparent 35%, #fff 36%);
 }
 
-/* 创建环形效果 */
+/* 环内部阴影效果 */
+.donut-chart::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(130deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.4) 45%, 
+    rgba(255, 255, 255, 0.7) 50%, 
+    rgba(255, 255, 255, 0.4) 55%, 
+    rgba(255, 255, 255, 0) 100%
+  );
+  border-radius: 50%;
+  transform: rotate(0deg) translateX(-150%) skewX(-45deg);
+  animation: lightSweep 8s ease-in-out infinite;
+  z-index: 10;
+  pointer-events: none;
+  -webkit-mask: radial-gradient(transparent 35%, #fff 36%);
+  mask: radial-gradient(transparent 35%, #fff 36%);
+}
+
+/* 底部阴影增强立体感 */
 .donut-chart::before {
   content: "";
   position: absolute;
-  top: 20%;
-  left: 20%;
-  width: 60%;
-  height: 60%;
-  border-radius: 50%;
-  background-color: rgba(0, 20, 40, 0.8);
-  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 20px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 70%);
+  bottom: -20px;
+  left: 0;
+  filter: blur(5px);
+  transform: rotateX(90deg) scale(0.9, 0.2);
+  z-index: -1;
+  opacity: 0.5;
 }
 
 /* 百分比标签 */
@@ -5607,19 +5755,23 @@ export default {
 }
 
 .type-1 {
-  background-color: #4CD964; /* 人员检测 */
+  background-color: #4CD964;
+  /* 人员检测 */
 }
 
 .type-2 {
-  background-color: #447CF9; /* 交通拥堵 */
+  background-color: #447CF9;
+  /* 交通拥堵 */
 }
 
 .type-3 {
-  background-color: #FF9500; /* 非机动车违规 */
+  background-color: #FF9500;
+  /* 非机动车违规 */
 }
 
 .type-4 {
-  background-color: #FF2D55; /* 违章停车 */
+  background-color: #FF2D55;
+  /* 违章停车 */
 }
 
 .legend-name {
@@ -5667,19 +5819,19 @@ export default {
 
 /* 圆环饼图 */
 .donut-chart {
-  width: 200px;
-  height: 200px;
+  width: 220px;
+  height: 220px;
   border-radius: 50%;
   position: relative;
   margin: 0 auto;
   background: conic-gradient(
-    #ff2b6d 0% 35%, 
-    #29DE9C 35% 40%, 
-    #3a50e7 40% 80%, 
-    #ff9900 80% 100%
+    #4CD964 0 5%, 
+    #447CF9 5% 45%, 
+    #FF9500 45% 65%, 
+    #FF2D55 65% 100%
   );
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
   transform: perspective(800px) rotateX(60deg);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 /* 全屏模式下的样式 */
@@ -5741,14 +5893,19 @@ export default {
   margin-bottom: 10px;
   max-height: 170px;
   overflow-y: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-  flex-shrink: 0; /* 防止资源详情收缩 */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  flex-shrink: 0;
+  /* 防止资源详情收缩 */
 }
 
 .resource-details-container::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
-  width: 0; /* 确保滚动条宽度为0 */
+  display: none;
+  /* Chrome, Safari and Opera */
+  width: 0;
+  /* 确保滚动条宽度为0 */
 }
 
 /* 添加自定义容器确保标题正确对齐 */
@@ -5758,7 +5915,8 @@ export default {
   margin-top: 15px;
   padding: 0 5px;
   position: relative;
-  flex-shrink: 0; /* 防止顶部元素收缩 */
+  flex-shrink: 0;
+  /* 防止顶部元素收缩 */
 }
 
 /* 为实现红框中的标签对齐，添加一个额外的标签容器 */
@@ -5777,42 +5935,133 @@ export default {
   color: #7888a8;
   font-size: 13px;
 }
-</style>
 
-<style>
-/* 确保各个面板的内容卡片也隐藏滚动条 */
-.dashboard-card .card-content::-webkit-scrollbar,
-.my-algorithms .card-content::-webkit-scrollbar,
-.realtime-events .card-content::-webkit-scrollbar,
-.alarm-statistics .card-content::-webkit-scrollbar,
-.device-statistics .card-content::-webkit-scrollbar,
-.alarm-info .card-content::-webkit-scrollbar,
-.report-info .card-content::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
+.chart-tooltip {
+  position: absolute;
+  background-color: rgba(0, 20, 40, 0.9);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+  z-index: 100;
+  border: 1px solid rgba(65, 120, 255, 0.5);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
 }
 
-.dashboard-card .card-content,
-.my-algorithms .card-content,
-.realtime-events .card-content,
-.alarm-statistics .card-content,
-.device-statistics .card-content,
-.alarm-info .card-content,
-.report-info .card-content {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
+/* 百分比标签 */
+.percent-label {
+  display: none;
+}
+
+/* 添加区域样式 */
+.chart-section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  z-index: 5;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.section-1 {
+  clip-path: polygon(50% 50%, 50% 0, 59% 0, 59% 0, 50% 50%);
+}
+
+.section-2 {
+  clip-path: polygon(50% 50%, 50% 0, 0 0, 0 50%, 50% 50%);
+}
+
+.section-3 {
+  clip-path: polygon(50% 50%, 0 50%, 0 100%, 33% 100%, 50% 50%);
+}
+
+.section-4 {
+  clip-path: polygon(50% 50%, 33% 100%, 100% 100%, 100% 0, 59% 0, 50% 50%);
+}
+
+.chart-section:hover {
+  filter: brightness(1.3) contrast(1.1);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+/* 添加扫光效果增强立体感 */
+@keyframes lightSweep {
+  0% {
+    transform: rotate(0deg) translateX(-150%) skewX(-45deg);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(90deg) translateX(150%) skewX(-45deg);
+    opacity: 0;
+  }
+}
+
+.donut-chart::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(130deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.4) 45%, 
+    rgba(255, 255, 255, 0.7) 50%, 
+    rgba(255, 255, 255, 0.4) 55%, 
+    rgba(255, 255, 255, 0) 100%
+  );
+  border-radius: 50%;
+  transform: rotate(0deg) translateX(-150%) skewX(-45deg);
+  animation: lightSweep 8s ease-in-out infinite;
+  z-index: 10;
+  pointer-events: none;
+  -webkit-mask: radial-gradient(transparent 35%, #fff 36%);
+  mask: radial-gradient(transparent 35%, #fff 36%);
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 20, 40, 0.9);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+  z-index: 100;
+  border: 1px solid rgba(65, 120, 255, 0.5);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
 }
 
 /* 修复整个页面的滚动条 */
-html, body {
-  scrollbar-width: none !important; /* Firefox */
-  -ms-overflow-style: none !important; /* IE and Edge */
+html,
+body {
+  scrollbar-width: none !important;
+  /* Firefox */
+  -ms-overflow-style: none !important;
+  /* IE and Edge */
   overflow-x: hidden !important;
 }
 
-html::-webkit-scrollbar, body::-webkit-scrollbar {
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
 }
 </style>
-
