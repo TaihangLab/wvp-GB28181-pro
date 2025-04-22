@@ -294,7 +294,6 @@ class SkillFactory:
                                 # 如果提供了数据库会话，则同步技能类到数据库
                                 if db:
                                     sync_result = self._sync_skill_class_to_db(obj, db)
-                                    print(f"sync_result: {sync_result}")
                                     if sync_result["status"] == "created":
                                         result["db_created"] += 1
                                     elif sync_result["status"] == "updated":

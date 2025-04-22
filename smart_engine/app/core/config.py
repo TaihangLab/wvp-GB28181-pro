@@ -48,11 +48,11 @@ class Settings(BaseSettings):
     # 数据库URL
     SQLALCHEMY_DATABASE_URI: Optional[str] = None
     
-    # Redis配置
-    REDIS_HOST: str = os.getenv("REDIS_HOST", "192.168.1.107")
-    REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
-    REDIS_DB: int = int(os.getenv("REDIS_DB", "0"))
-    REDIS_PASSWORD: Optional[str] = os.getenv("REDIS_PASSWORD", "ruoyi123")
+    # # Redis配置
+    # REDIS_HOST: str = os.getenv("REDIS_HOST", "192.168.1.107")
+    # REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
+    # REDIS_DB: int = int(os.getenv("REDIS_DB", "0"))
+    # REDIS_PASSWORD: Optional[str] = os.getenv("REDIS_PASSWORD", "ruoyi123")
     
     class Config:
         env_file = ".env"
