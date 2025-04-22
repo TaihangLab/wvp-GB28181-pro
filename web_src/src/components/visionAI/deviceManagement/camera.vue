@@ -51,7 +51,7 @@
           <el-table-column label="设备标签" align="center">
             <template slot-scope="{ row }">
               <el-tag v-for="(tag, index) in row.tags" :key="index" :color="getTagColor(tag)" effect="plain" size="mini"
-                style="margin: 2px; color: #fff;">
+                style="margin: 2px; color: #fff; border-color: transparent;">
                 {{ tag }}
               </el-tag>
               <span v-if="!row.tags || row.tags.length === 0">-</span>
@@ -110,7 +110,7 @@
             </div>
             <div class="device-tags" v-if="deviceForm.tags && deviceForm.tags.length > 0">
               <el-tag v-for="(tag, index) in deviceForm.tags" :key="index" :color="getTagColor(tag)" effect="plain"
-                closable @close="removeTag(index)" style="margin: 5px 5px 0 0; color: #fff;">
+                closable @close="removeTag(index)" style="margin: 5px 5px 0 0; color: #fff; border-color: transparent;">
                 {{ tag }}
               </el-tag>
             </div>
