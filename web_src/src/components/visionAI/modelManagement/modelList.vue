@@ -202,23 +202,21 @@
               <span class="info-value model-id">{{ detailForm.id }}</span>
             </div>
             <div class="info-row">
-              <div class="info-item half-width">
+              <div class="info-item status-item">
+                <span class="info-label">版本：</span>
+                <span class="info-value">v{{ detailForm.version }}</span>
+              </div>
+              <div class="info-item status-item">
                 <span class="info-label">使用状态：</span>
                 <el-tag :type="detailForm.status === 'using' ? 'success' : 'info'" size="small">
                   {{ detailForm.status === 'using' ? '使用中' : '未使用' }}
                 </el-tag>
               </div>
-              <div class="info-item half-width">
+              <div class="info-item status-item">
                 <span class="info-label">加载状态：</span>
                 <el-tag :type="detailForm.loadStatus === 'loaded' ? 'primary' : 'warning'" size="small">
                   {{ detailForm.loadStatus === 'loaded' ? '已加载' : '未加载' }}
                 </el-tag>
-              </div>
-            </div>
-            <div class="info-row">
-              <div class="info-item half-width">
-                <span class="info-label">版本：</span>
-                <span class="info-value">v{{ detailForm.version }}</span>
               </div>
             </div>
             <div class="info-row">
@@ -1238,6 +1236,11 @@ export default {
 
 .half-width {
   width: 50%;
+  padding-right: 10px;
+}
+
+.status-item {
+  width: 33.33%;
   padding-right: 10px;
 }
 
