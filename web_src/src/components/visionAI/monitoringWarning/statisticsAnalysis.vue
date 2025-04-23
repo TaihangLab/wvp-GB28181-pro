@@ -16,6 +16,7 @@ export default {
       // 时间筛选相关
       timeRange: 'today',
       customDateRange: [],
+      datePickerDialogVisible: false,
       
       // 导出对话框
       exportDialogVisible: false,
@@ -241,12 +242,47 @@ export default {
             yData: Array.from({ length: 12 }, () => Math.floor(Math.random() * 50))
           };
           
+        case 'custom':
+          // 如果是自定义范围，使用自定义日期范围的数据
+          if (this.customDateRange && this.customDateRange.length === 2) {
+            return this.generateCustomDateData();
+          }
+          // 自定义日期范围无效时返回空数据
+          return {
+            xData: [],
+            yData: []
+          };
+          
         default:
           return {
             xData: [],
             yData: []
           };
       }
+    },
+    
+    // 生成自定义日期范围的数据
+    generateCustomDateData() {
+      if (!this.customDateRange || this.customDateRange.length !== 2) {
+        return { xData: [], yData: [] };
+      }
+      
+      const startDate = new Date(this.customDateRange[0]);
+      const endDate = new Date(this.customDateRange[1]);
+      const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // 生成日期范围内的每一天
+      const xData = [];
+      const yData = [];
+      
+      for (let i = 0; i < daysDiff; i++) {
+        const currentDate = new Date(startDate);
+        currentDate.setDate(startDate.getDate() + i);
+        xData.push(`${currentDate.getMonth() + 1}/${currentDate.getDate()}`);
+        yData.push(Math.floor(Math.random() * 50));
+      }
+      
+      return { xData, yData };
     },
     
     // 初始化预警状态图表
@@ -454,7 +490,13 @@ export default {
       const { xData, yData } = this.generateTimeData(timeType);
       
       const option = {
-        xAxis: { data: xData },
+        xAxis: { 
+          data: xData,
+          axisLabel: {
+            rotate: (timeType === 'month' || (timeType === 'custom' && xData.length > 10)) ? 45 : 0,
+            interval: (timeType === 'month' || (timeType === 'custom' && xData.length > 15)) ? 'auto' : 0
+          }
+        },
         series: [{ data: yData }]
       };
       
@@ -464,9 +506,29 @@ export default {
     // 处理时间范围变化
     handleTimeRangeChange(value) {
       this.timeRange = value;
-      if (value !== 'custom') {
+      if (value === 'custom') {
+        this.datePickerDialogVisible = true;
+      } else {
         this.updateTrendChart(value);
         this.refreshData();
+      }
+    },
+    
+    // 处理自定义日期范围变化
+    handleCustomDateChange() {
+      if (this.customDateRange && this.customDateRange.length === 2) {
+        this.datePickerDialogVisible = false;
+        this.updateTrendChart('custom');
+        this.refreshData();
+      }
+    },
+    
+    // 取消日期选择
+    cancelDatePicker() {
+      this.datePickerDialogVisible = false;
+      // 如果没有选择过自定义日期，则回到之前的选择
+      if (!this.customDateRange || this.customDateRange.length !== 2) {
+        this.timeRange = 'today';
       }
     },
     
@@ -595,6 +657,38 @@ export default {
         <el-button size="small" icon="el-icon-refresh" @click="refreshData">刷新</el-button>
       </div>
     </div>
+    
+    <!-- 自定义日期选择弹框 -->
+    <el-dialog
+      title="选择日期范围"
+      :visible.sync="datePickerDialogVisible"
+      width="420px"
+      custom-class="custom-dialog"
+      :append-to-body="true"
+      :close-on-click-modal="false"
+      :modal-append-to-body="false"
+    >
+      <el-date-picker
+        v-model="customDateRange"
+        type="daterange"
+        value-format="yyyy-MM-dd"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        style="width: 100%"
+        :picker-options="{
+          disabledDate(time) {
+            return time.getTime() > Date.now();
+          }
+        }"
+        popper-class="date-picker-dropdown"
+      >
+      </el-date-picker>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="cancelDatePicker" size="small">取 消</el-button>
+        <el-button type="primary" @click="handleCustomDateChange" size="small">确 定</el-button>
+      </span>
+    </el-dialog>
     
     <!-- 顶部统计数据卡片 -->
     <div class="statistics-header">
@@ -776,6 +870,7 @@ export default {
   display: flex;
   justify-content: flex-start;
   width: 330px;
+  align-items: center;
 }
 
 .action-buttons {
@@ -812,6 +907,180 @@ export default {
 
 .action-buttons >>> .el-button:hover {
   background-color: rgba(0, 255, 255, 0.1) !important;
+  border-color: #00FFFF !important;
+  color: #00FFFF !important;
+}
+
+/* 自定义对话框样式 */
+.visual-statistics >>> .custom-dialog {
+  background: linear-gradient(180deg, rgba(6, 30, 93, 0.95) 0%, rgba(4, 20, 63, 0.98) 100%);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+}
+
+.visual-statistics >>> .custom-dialog .el-dialog__header {
+  background: rgba(6, 30, 93, 0.9);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  padding: 12px 20px;
+}
+
+.visual-statistics >>> .custom-dialog .el-dialog__title {
+  color: #00FFFF;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.visual-statistics >>> .custom-dialog .el-dialog__headerbtn .el-dialog__close {
+  color: #7EAEE5;
+}
+
+.visual-statistics >>> .custom-dialog .el-dialog__headerbtn:hover .el-dialog__close {
+  color: #00FFFF;
+}
+
+.visual-statistics >>> .custom-dialog .el-dialog__body {
+  background: transparent;
+  padding: 20px;
+  color: #7EAEE5;
+}
+
+.visual-statistics >>> .custom-dialog .el-dialog__footer {
+  background: rgba(6, 30, 93, 0.9);
+  border-top: 1px solid rgba(0, 255, 255, 0.2);
+  padding: 10px 20px;
+}
+
+/* 日期选择器组件样式 */
+.visual-statistics >>> .el-range-editor.el-input__inner {
+  background-color: rgba(0, 30, 60, 0.3) !important;
+  border: 1px solid rgba(0, 255, 255, 0.3) !important;
+  color: #7EAEE5 !important;
+}
+
+.visual-statistics >>> .el-range-editor.el-input__inner:hover,
+.visual-statistics >>> .el-range-editor.el-input__inner:focus {
+  border-color: #00FFFF !important;
+}
+
+.visual-statistics >>> .el-range-editor .el-range-input {
+  background-color: transparent !important;
+  color: #7EAEE5 !important;
+}
+
+.visual-statistics >>> .el-range-editor .el-range-separator {
+  color: #7EAEE5 !important;
+}
+
+.visual-statistics >>> .el-range-editor .el-range__icon,
+.visual-statistics >>> .el-range-editor .el-range__close-icon {
+  color: #00FFFF !important;
+}
+
+/* 日期选择面板样式 */
+.visual-statistics >>> .date-picker-dropdown.el-picker-panel {
+  background: linear-gradient(180deg, rgba(6, 30, 93, 0.98) 0%, rgba(4, 20, 63, 0.98) 100%) !important;
+  border: 1px solid rgba(0, 255, 255, 0.4) !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8) !important;
+  border-radius: 4px !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-picker__header {
+  margin: 8px 12px !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-picker__header-label {
+  color: #00FFFF !important;
+  font-weight: bold !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-picker-panel__icon-btn {
+  color: #7EAEE5 !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-picker-panel__icon-btn:hover {
+  color: #00FFFF !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table {
+  margin: 5px 0 !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table th {
+  color: #00FFFF !important;
+  font-weight: 600 !important;
+  border-bottom-color: rgba(0, 255, 255, 0.2) !important;
+  padding: 5px 0 !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td {
+  padding: 2px 0 !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td div {
+  padding: 0 !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td span {
+  width: 28px !important;
+  height: 28px !important;
+  line-height: 28px !important;
+  border-radius: 50% !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td.available span {
+  color: #7EAEE5 !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td.available:hover span {
+  background-color: rgba(0, 255, 255, 0.15) !important;
+  color: #fff !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td.today span {
+  color: #00FFFF !important;
+  border: 1px solid rgba(0, 255, 255, 0.5) !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td.current:not(.disabled) span {
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.3) 0%, rgba(0, 127, 255, 0.4) 100%) !important;
+  color: #FFFFFF !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-range-picker__header {
+  margin-bottom: 8px !important;
+  color: #00FFFF !important;
+  font-weight: bold !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-range-picker__content {
+  padding: 5px 0 !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-range-picker__content.is-left {
+  border-right: 1px solid rgba(0, 255, 255, 0.2) !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-picker-panel__footer {
+  background-color: rgba(6, 30, 93, 0.9) !important;
+  border-top: 1px solid rgba(0, 255, 255, 0.2) !important;
+  padding: 8px 15px !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-picker-panel__footer .el-button--default {
+  background-color: rgba(6, 30, 93, 0.5) !important;
+  border-color: rgba(0, 255, 255, 0.3) !important;
+  color: #7EAEE5 !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-picker-panel__footer .el-button--default:hover {
+  background-color: rgba(0, 255, 255, 0.1) !important;
+  border-color: #00FFFF !important;
+  color: #00FFFF !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-picker-panel__footer .el-button--primary {
+  background-color: rgba(0, 255, 255, 0.2) !important;
   border-color: #00FFFF !important;
   color: #00FFFF !important;
 }
@@ -1073,6 +1342,10 @@ export default {
     justify-content: center;
   }
   
+  .time-filter {
+    flex-wrap: wrap;
+  }
+  
   .statistics-header {
     flex-wrap: wrap;
   }
@@ -1120,5 +1393,64 @@ export default {
     max-width: 100%;
     box-sizing: border-box;
   }
+}
+
+/* 自定义对话框按钮样式 */
+.visual-statistics >>> .custom-dialog .el-button--primary {
+  background-color: rgba(0, 255, 255, 0.2) !important;
+  border-color: #00FFFF !important;
+  color: #00FFFF !important;
+}
+
+.visual-statistics >>> .custom-dialog .el-button {
+  background-color: rgba(6, 30, 93, 0.5) !important;
+  border-color: rgba(0, 255, 255, 0.3) !important;
+  color: #7EAEE5 !important;
+}
+
+.visual-statistics >>> .custom-dialog .el-button:hover {
+  background-color: rgba(0, 255, 255, 0.1) !important;
+  border-color: #00FFFF !important;
+  color: #00FFFF !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td.next-month span,
+.visual-statistics >>> .date-picker-dropdown .el-date-table td.prev-month span {
+  color: rgba(126, 174, 229, 0.2) !important;
+  background: transparent !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td.in-range div {
+  background: linear-gradient(90deg, rgba(0, 255, 255, 0.05) 0%, rgba(0, 127, 255, 0.1) 100%) !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td.start-date span,
+.visual-statistics >>> .date-picker-dropdown .el-date-table td.end-date span {
+  background: linear-gradient(90deg, rgba(0, 255, 255, 0.3) 0%, rgba(0, 127, 255, 0.5) 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: bold !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-date-table td.disabled div span {
+  color: rgba(126, 174, 229, 0.2) !important;
+  background: transparent !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-month-table td .cell {
+  color: #7EAEE5 !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-month-table td.current .cell {
+  color: #00FFFF !important;
+  background-color: rgba(0, 255, 255, 0.2) !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-year-table td .cell {
+  color: #7EAEE5 !important;
+}
+
+.visual-statistics >>> .date-picker-dropdown .el-year-table td.current .cell {
+  color: #00FFFF !important;
+  background-color: rgba(0, 255, 255, 0.2) !important;
 }
 </style>
