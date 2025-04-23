@@ -7,7 +7,7 @@ export default {
     return {
       // 页面数据
       statisticsData: {
-        totalCount: 1,
+        totalCount: 10,
         successRate: 81.36,
         warningCount: 13,
         processedCount: 8

@@ -888,7 +888,6 @@ export default {
 }
 
 .warning-card:hover {
-  transform: translateY(-4px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
@@ -1142,7 +1141,6 @@ export default {
 /* 添加卡片选中样式 */
 .warning-card.selected {
   box-shadow: 0 0 0 2px #409eff, 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-4px);
 }
 
 .select-mark {
