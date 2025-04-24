@@ -18,7 +18,7 @@
           <dv-decoration-8 style="width:300px;height:50px;" :reverse="true" />
           <div class="title-wrapper">
             <dv-decoration-6 style="width:200px;height:50px;" />
-            <div class="title-text">施工养护综合数据</div>
+            <div class="title-text">园区封闭管理平台</div>
             <dv-decoration-6 style="width:200px;height:50px;" :reverse="true" />
           </div>
           <dv-decoration-8 style="width:300px;height:50px;" />
@@ -581,6 +581,7 @@ export default {
       this.isFullScreen = !this.isFullScreen;
       
       const navBar = document.querySelector('.el-header');
+      const parkManagement = document.querySelector('.park-management');
       
       if (this.isFullScreen) {
         // 请求全屏
@@ -590,6 +591,9 @@ export default {
         
         // 隐藏导航栏
         if (navBar) navBar.style.display = 'none';
+        
+        // 添加全屏模式样式类
+        if (parkManagement) parkManagement.classList.add('fullscreen-mode');
       } else {
         // 退出全屏
         if (document.exitFullscreen) {
@@ -598,6 +602,9 @@ export default {
         
         // 显示导航栏
         if (navBar) navBar.style.display = '';
+        
+        // 移除全屏模式样式类
+        if (parkManagement) parkManagement.classList.remove('fullscreen-mode');
       }
     }
   },
@@ -742,13 +749,11 @@ export default {
 }
 
 .device-panel {
-  flex: 1.1;
-  min-height: 302px;
+  flex: 3;
 }
 
 .cpu-panel, .storage-panel {
-  flex: 0.95;
-  min-height: 253px;
+  flex: 2;
 }
 
 .device-panel, .cpu-panel, .storage-panel {
@@ -867,7 +872,6 @@ export default {
 
 .alert-panel {
   height: 100%;
-  min-height: 832px;
   position: relative;
   overflow: visible;
 }
@@ -1101,60 +1105,17 @@ export default {
   .main-content {
     height: calc(100vh - 270px);
   }
-  
-  .device-panel {
-    min-height: 180px;
-  }
-  
-  .cpu-panel, .storage-panel {
-    min-height: 130px;
-  }
-  
-  .video-grid {
-    min-height: 360px;
-  }
-  
-  .alert-panel {
-    min-height: 550px;
-  }
-  
-  .bottom-container {
-    height: 170px;
-  }
 }
 
 @media screen and (max-height: 750px) {
   .main-content {
     height: calc(100vh - 250px);
   }
-  
-  .device-panel {
-    min-height: 160px;
-  }
-  
-  .cpu-panel, .storage-panel {
-    min-height: 120px;
-  }
-  
-  .video-grid {
-    min-height: 320px;
-  }
-  
-  .alert-panel {
-    min-height: 500px;
-  }
-  
-  .alert-item {
-    margin-bottom: 0;
-  }
-  
-  .alert-image-container {
-    height: 150px;
-  }
-  
-  .bottom-container {
-    height: 150px;
-  }
+}
+
+/* 全屏模式下的调整 */
+.park-management.fullscreen-mode .main-content {
+  height: calc(100vh - 130px);
 }
 
 .modal-overlay {
@@ -1313,5 +1274,28 @@ export default {
   background: rgba(27, 150, 255, 0.2);
   color: #33ffff;
   transform: scale(1.05);
+}
+
+/* 全屏模式下的样式调整 */
+.park-management.fullscreen-mode {
+  --header-height: 80px;
+  --footer-height: 150px;
+  --main-height: calc(100vh - var(--header-height) - var(--footer-height) - 20px);
+}
+
+.park-management.fullscreen-mode .device-panel {
+  min-height: calc(var(--main-height) * var(--device-panel-ratio) / var(--total-left-ratio));
+}
+
+.park-management.fullscreen-mode .cpu-panel {
+  min-height: calc(var(--main-height) * var(--cpu-panel-ratio) / var(--total-left-ratio));
+}
+
+.park-management.fullscreen-mode .storage-panel {
+  min-height: calc(var(--main-height) * var(--storage-panel-ratio) / var(--total-left-ratio));
+}
+
+.park-management.fullscreen-mode .alert-panel {
+  min-height: var(--main-height);
 }
 </style> 
