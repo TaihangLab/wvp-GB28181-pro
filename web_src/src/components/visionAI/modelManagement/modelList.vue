@@ -21,6 +21,8 @@
           placeholder="请输入模型名称"
           class="search-input"
           @input="handleSearch"
+          clearable
+          @clear="handleSearch"
         >
           <i slot="prefix" style="align-items: center; display: flex; height: 40px;" class="el-icon-search"></i>
         </el-input>

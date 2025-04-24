@@ -124,7 +124,22 @@ visionAIAxios.interceptors.response.use(
 export const modelAPI = {
   // 获取模型列表
   getModelList(params) {
-    return visionAIAxios.get('/api/v1/models/list', { params });
+    // 转换前端参数为后端API所需格式
+    const apiParams = { ...params };
+    
+    // 处理模型名称搜索参数
+    if (params.name) {
+      apiParams.query_name = params.name;
+      delete apiParams.name;
+    }
+    
+    // 处理使用状态筛选参数
+    if (params.usage_status) {
+      apiParams.query_used = params.usage_status === 'using' ? true : false;
+      delete apiParams.usage_status;
+    }
+    
+    return visionAIAxios.get('/api/v1/models/list', { params: apiParams });
   },
   
   // 获取模型详情
