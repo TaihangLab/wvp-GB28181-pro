@@ -64,10 +64,19 @@
           </el-upload>
         </el-form-item>
         <el-form-item label="版本">
-          <el-input-number v-model="importForm.version" :min="1" />
+          <el-input 
+            v-model="importForm.version" 
+            placeholder="请输入版本号" 
+            style="width: 40%;"
+            class="version-input"
+          >
+            <template slot="prepend">
+              <span class="version-prefix">V</span>
+            </template>
+          </el-input>
         </el-form-item>
-        <el-form-item label="相关技能">
-          <el-input v-model="importForm.skill" placeholder="请输入相关技能" style="width: 100%;" />
+        <el-form-item label="描述">
+          <el-input v-model="importForm.description" placeholder="请输入模型描述" style="width: 100%;" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -82,21 +91,38 @@
       title="编辑模型"
       width="650px"
       :close-on-click-modal="false"
+      :before-close="cancelEdit"
     >
-      <el-form :model="editForm" label-width="85px" class="skill-form">
-        <el-form-item label="模型名称" required>
-          <el-input v-model="editForm.name" placeholder="请输入模型名称" style="width: 100%;" />
+      <el-form :model="editForm" label-width="85px" class="skill-form" :rules="editFormRules" ref="editForm">
+        <el-form-item label="模型名称" prop="name" required>
+          <el-input v-model="editForm.name" placeholder="请输入模型名称" style="width: 100%;" disabled />
         </el-form-item>
-        <el-form-item label="版本" style="">
-          <el-input-number v-model="editForm.version" :min="1" class="number-input" />
-        </el-form-item>
-        <el-form-item label="相关技能">
-          <el-input v-model="editForm.skill" placeholder="请输入相关技能" style="width: 100%;" />
+        <div class="form-row">
+          <el-form-item label="版本" prop="version" class="half-width-item">
+            <el-input 
+              v-model="editForm.version" 
+              placeholder="请输入版本号" 
+              style="width: 100%;" 
+              class="version-input"
+            >
+              <template slot="prepend">
+                <span class="version-prefix">V</span>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item label="使用状态" class="half-width-item status-item-readonly">
+            <el-tag :type="editForm.usage_status === 'using' ? 'success' : 'info'" size="medium">
+              {{ editForm.usage_status === 'using' ? '使用中' : '未使用' }}
+            </el-tag>
+          </el-form-item>
+        </div>
+        <el-form-item label="描述" prop="description">
+          <el-input v-model="editForm.description" placeholder="请输入模型描述" style="width: 100%;" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmEdit">确认修改</el-button>
+        <el-button @click="cancelEdit">取消</el-button>
+        <el-button type="primary" @click="confirmEdit" :loading="loading">确认修改</el-button>
       </div>
     </el-dialog>
 
@@ -108,28 +134,35 @@
     >
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column prop="name" label="模型名称" min-width="180" align="center" header-align="center" />
-      <el-table-column prop="id" label="模型ID" width="280" align="center" header-align="center" />
+      <el-table-column prop="id" label="模型ID" width="180" align="center" header-align="center" />
       <el-table-column label="使用状态" width="100" align="center" header-align="center">
         <template slot-scope="{ row }">
-          <el-tag :type="row.status === 'using' ? 'success' : 'info'">
-            {{ row.status === 'using' ? '使用中' : '未使用' }}
+          <el-tag :type="row.usage_status === 'using' ? 'success' : 'info'">
+            {{ row.usage_status === 'using' ? '使用中' : '未使用' }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="加载状态" width="100" align="center" header-align="center">
         <template slot-scope="{ row }">
-          <el-tag :type="row.loadStatus === 'loaded' ? 'primary' : 'warning'">
-            {{ row.loadStatus === 'loaded' ? '已加载' : '未加载' }}
+          <el-tag :type="row.model_status === 'loaded' ? 'primary' : 'warning'">
+            {{ row.model_status === 'loaded' ? '已加载' : '未加载' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="version" label="版本" width="80" align="center" header-align="center" />
-      <el-table-column prop="skill" label="相关技能" min-width="200" align="center" header-align="center" />
+      <el-table-column label="版本" width="100" align="center" header-align="center">
+        <template slot-scope="{ row }">
+          <div class="version-badge">
+            <i class="el-icon-odometer version-icon"></i>
+            <span class="version-text">V{{ formatVersion(row.version) }}</span>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column prop="description" label="描述" min-width="200" align="center" header-align="center" />
       <el-table-column label="操作" width="200" fixed="right" align="center" header-align="center">
         <template slot-scope="{ row }">
           <div class="operation-buttons">
             <!-- 加载/卸载按钮 -->
-            <template v-if="row.loadStatus === 'loaded'">
+            <template v-if="row.model_status === 'loaded'">
               <el-tooltip content="卸载模型" placement="top">
                 <div class="custom-icon-button unload-button" @click="handleUnload(row)" :class="{ 'is-loading': row.isLoading }">
                   <div v-if="!row.isLoading" class="icon-container">
@@ -165,8 +198,8 @@
               <el-tooltip content="删除模型" placement="top">
                 <div 
                   class="operation-btn delete-btn" 
-                  :class="{ 'disabled-btn': row.status === 'using' }"
-                  @click="row.status !== 'using' && handleDelete(row)"
+                  :class="{ 'disabled-btn': row.usage_status === 'using' }"
+                  @click="row.usage_status !== 'using' && handleDelete(row)"
                 >
                   <i class="el-icon-delete"></i>
                 </div>
@@ -197,36 +230,41 @@
               <span class="info-label">模型名称：</span>
               <span class="info-value">{{ detailForm.name }}</span>
             </div>
-            <div class="info-item">
-              <span class="info-label">模型ID：</span>
-              <span class="info-value model-id">{{ detailForm.id }}</span>
+            <div class="info-row">
+              <div class="info-item half-width">
+                <span class="info-label">模型ID：</span>
+                <span class="info-value model-id">{{ detailForm.id }}</span>
+              </div>
+              <div class="info-item half-width">
+                <span class="info-label">版本：</span>
+                <div class="version-badge detail-version">
+                  <i class="el-icon-odometer version-icon"></i>
+                  <span class="version-text">V{{ formatVersion(detailForm.version) }}</span>
+                </div>
+              </div>
             </div>
             <div class="info-row">
-              <div class="info-item status-item">
-                <span class="info-label">版本：</span>
-                <span class="info-value">v{{ detailForm.version }}</span>
-              </div>
-              <div class="info-item status-item">
+              <div class="info-item half-width">
                 <span class="info-label">使用状态：</span>
-                <el-tag :type="detailForm.status === 'using' ? 'success' : 'info'" size="small">
-                  {{ detailForm.status === 'using' ? '使用中' : '未使用' }}
+                <el-tag :type="detailForm.usage_status === 'using' ? 'success' : 'info'" size="small">
+                  {{ detailForm.usage_status === 'using' ? '使用中' : '未使用' }}
                 </el-tag>
               </div>
-              <div class="info-item status-item">
+              <div class="info-item half-width">
                 <span class="info-label">加载状态：</span>
-                <el-tag :type="detailForm.loadStatus === 'loaded' ? 'primary' : 'warning'" size="small">
-                  {{ detailForm.loadStatus === 'loaded' ? '已加载' : '未加载' }}
+                <el-tag :type="detailForm.model_status === 'loaded' ? 'primary' : 'warning'" size="small">
+                  {{ detailForm.model_status === 'loaded' ? '已加载' : '未加载' }}
                 </el-tag>
               </div>
             </div>
             <div class="info-row">
               <div class="info-item half-width">
                 <span class="info-label">创建时间：</span>
-                <span class="info-value">{{ detailForm.createTime || '2023-06-15 14:30:25' }}</span>
+                <span class="info-value">{{ detailForm.created_at || '2023-06-15 14:30:25' }}</span>
               </div>
               <div class="info-item half-width">
                 <span class="info-label">更新时间：</span>
-                <span class="info-value">{{ detailForm.updateTime || '2023-08-20 09:45:12' }}</span>
+                <span class="info-value">{{ detailForm.updated_at || '2023-08-20 09:45:12' }}</span>
               </div>
             </div>
             <div class="info-item">
@@ -286,7 +324,7 @@
         :current-page.sync="pagination.currentPage"
         :page-size.sync="pagination.pageSize"
         :page-sizes="[10, 20, 50]"
-        :total="tableData.length"
+        :total="pagination.total"
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSizeChange"
         @current-change="handlePageChange"
@@ -296,15 +334,20 @@
 </template>
 
 <script>
+import { modelAPI } from '@/components/service/VisionAIService';
+
 export default {
   name: 'ModelList',
   data() {
     return {
+      // 开发环境标志
+      isDev: process.env.NODE_ENV === 'development',
+      
       // 分页参数
       pagination: {
         currentPage: 1,
         pageSize: 10,
-        total: 20  // 设置为实际数据总数
+        total: 0  // 设置为接口返回的总数
       },
       
       // 搜索和筛选条件
@@ -330,8 +373,8 @@ export default {
       importForm: {
         name: '',
         file: null,
-        version: 1,
-        skill: ''
+        version: '1.0',
+        description: ''
       },
       
       // 编辑模型对话框
@@ -339,8 +382,10 @@ export default {
       editForm: {
         id: '',
         name: '',
-        version: 1,
-        skill: ''
+        version: '1.0',
+        description: '',
+        usage_status: '',
+        model_status: ''
       },
       
       // 详情模型对话框
@@ -349,215 +394,97 @@ export default {
         id: '',
         name: '',
         version: 1,
-        status: '',
-        loadStatus: '',
-        skill: '',
-        createTime: '',
-        updateTime: '',
-        description: ''
+        usage_status: '',
+        model_status: '',
+        description: '',
+        created_at: '',
+        updated_at: ''
       },
       // 相关技能列表
-      relatedSkills: []
+      relatedSkills: [],
+      // 编辑表单验证规则
+      editFormRules: {
+        name: [
+          { required: true, message: '请输入模型名称', trigger: 'blur' },
+          { min: 2, max: 50, message: '长度在 2 到 50 个字符之间', trigger: 'blur' }
+        ],
+        version: [
+          { required: false, message: '请输入版本号', trigger: 'blur' },
+          { 
+            validator: (rule, value, callback) => {
+              if (value === '' || value === undefined || value === null) {
+                callback();
+              } else if (!/^\d+(\.\d+)?$/.test(value.toString())) {
+                callback(new Error('请输入有效的版本号，如：1 或 1.1'));
+              } else {
+                callback();
+              }
+            }, 
+            trigger: 'blur' 
+          }
+        ],
+        description: [
+          { required: false, message: '请输入模型描述', trigger: 'blur' },
+          { max: 200, message: '长度不超过200个字符', trigger: 'blur' }
+        ]
+      }
     }
   },
   
   computed: {
     // 计算当前页的数据
     currentPageData() {
-      const start = (this.pagination.currentPage - 1) * this.pagination.pageSize
-      const end = start + this.pagination.pageSize
-      return this.tableData.slice(start, end)
+      return this.tableData
     }
   },
   
   created() {
-    this.tableData = this.initTableData()
+    // 获取模型列表数据
+    this.fetchModelList()
   },
   
   methods: {
-    // 表格数据初始化
-    initTableData() {
-      // 清除之前的数据（开发测试时使用）
-      localStorage.removeItem('modelTableData')
+    // 从后端获取模型列表数据
+    fetchModelList() {
+      this.loading = true
       
-      const savedData = localStorage.getItem('modelTableData')
-      if (savedData) {
-        const parsedData = JSON.parse(savedData)
-        return parsedData.map(item => ({
-          ...item,
-          status: item.status,
-          loadStatus: item.loadStatus || this.getRandomLoadStatus()
-        }))
+      // 构建请求参数
+      const params = {
+        page: this.pagination.currentPage,
+        limit: this.pagination.pageSize
       }
       
-      // 返回模拟数据
-      return [
-        {
-          id: '4726e1c153624df9996e5779839...',
-          name: '通道遮蔽检测',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 2,
-          skill: '输电通道压板检测 (v1)'
-        },
-        {
-          id: '14464624a0bd4a9e8d944e140f1...',
-          name: '垃圾堆积分割模型',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 1,
-          skill: 'laji_seg_851_v1_0_0_0518 (v1)'
-        },
-        {
-          id: '292637b4d54f43006e06e3eb2a5...',
-          name: '通道遮蔽检测',
-          status: 'unused',
-          loadStatus: 'unloaded',
-          version: 1,
-          skill: '-'
-        },
-        {
-          id: '362a7ee57b244ec8bee55cc2fb1...',
-          name: '烟火检测',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 1,
-          skill: 'firesmoke_v3.0.5.1 (v1)'
-        },
-        {
-          id: '20672fc4465e41fe80e656e43fb7...',
-          name: '运输车检测模型',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 3,
-          skill: 'anquandai_detect_851_v1_0_1_05...'
-        },
-        {
-          id: 'df79ed383526140338b209327b7...',
-          name: '安全带检测模型',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 2,
-          skill: 'belt_detect_v2.0.1'
-        },
-        {
-          id: 'e882a770482a4ef89d944e140f1...',
-          name: '人员聚集检测',
-          status: 'unused',
-          loadStatus: 'unloaded',
-          version: 1,
-          skill: 'crowd_detect_v1.2.0'
-        },
-        {
-          id: 'f992637b4d54f43006e06e3eb2a...',
-          name: '安全帽检测',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 2,
-          skill: 'helmet_detect_v2.1.0'
-        },
-        {
-          id: 'a462a7ee57b244ec8bee55cc2fb...',
-          name: '车辆识别模型',
-          status: 'using',
-          loadStatus: 'unloaded',
-          version: 3,
-          skill: 'vehicle_recognition_v3.0.1'
-        },
-        {
-          id: 'b20672fc4465e41fe80e656e43f...',
-          name: '人脸识别模型',
-          status: 'unused',
-          loadStatus: 'unloaded',
-          version: 1,
-          skill: 'face_recognition_v1.0.0'
-        },
-        {
-          id: 'c4726e1c153624df9996e577983...',
-          name: '行为分析模型',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 2,
-          skill: 'behavior_analysis_v2.1.0'
-        },
-        {
-          id: 'd14464624a0bd4a9e8d944e140f...',
-          name: '物品遗留检测',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 1,
-          skill: 'object_abandon_v1.0.5'
-        },
-        {
-          id: 'e292637b4d54f43006e06e3eb2a...',
-          name: '越界检测模型',
-          status: 'unused',
-          loadStatus: 'unloaded',
-          version: 1,
-          skill: 'boundary_cross_v1.1.0'
-        },
-        {
-          id: 'f362a7ee57b244ec8bee55cc2fb...',
-          name: '烟雾检测模型',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 2,
-          skill: 'smoke_detect_v2.0.3'
-        },
-        {
-          id: 'g20672fc4465e41fe80e656e43f...',
-          name: '车牌识别模型',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 3,
-          skill: 'plate_recognition_v3.1.0'
-        },
-        {
-          id: 'h4726e1c153624df9996e577983...',
-          name: '姿态估计模型',
-          status: 'unused',
-          loadStatus: 'unloaded',
-          version: 1,
-          skill: 'pose_estimation_v1.0.2'
-        },
-        {
-          id: 'i14464624a0bd4a9e8d944e140f...',
-          name: '目标跟踪模型',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 2,
-          skill: 'object_tracking_v2.1.1'
-        },
-        {
-          id: 'j292637b4d54f43006e06e3eb2a...',
-          name: '场景分类模型',
-          status: 'using',
-          loadStatus: 'unloaded',
-          version: 1,
-          skill: 'scene_classification_v1.0.0'
-        },
-        {
-          id: 'k362a7ee57b244ec8bee55cc2fb...',
-          name: '人群密度检测',
-          status: 'unused',
-          loadStatus: 'unloaded',
-          version: 1,
-          skill: 'crowd_density_v1.2.1'
-        },
-        {
-          id: 'l20672fc4465e41fe80e656e43f...',
-          name: '手势识别模型',
-          status: 'using',
-          loadStatus: 'loaded',
-          version: 2,
-          skill: 'gesture_recognition_v2.0.0'
+      // 添加关键词搜索参数
+      if (this.searchForm.keyword) {
+        params.name = this.searchForm.keyword
+      }
+      
+      // 添加状态筛选参数
+      if (this.searchForm.status !== 'all') {
+        params.usage_status = this.searchForm.status
+      }
+      
+      // 使用modelAPI服务发送请求
+      modelAPI.getModelList(params).then((res) => {
+        if (res.data && res.data.code === 0) {
+          // 更新数据
+          this.tableData = res.data.data || []
+          
+          // 更新分页信息
+          if (res.data.total !== undefined) {
+            this.pagination.total = res.data.total
+          }
+        } else {
+          this.$message.error(res.data.msg || '获取模型列表失败')
+          this.tableData = []
         }
-      ]
-    },
-    
-    // 保存数据到本地存储
-    saveTableData(data) {
-      localStorage.setItem('modelTableData', JSON.stringify(data))
+        this.loading = false
+      }).catch((error) => {
+        console.error('获取模型列表失败', error)
+        this.$message.error('获取模型列表失败: ' + (error.message || '未知错误'))
+        this.tableData = []
+        this.loading = false
+      })
     },
     
     // 处理表格选择
@@ -566,39 +493,41 @@ export default {
     },
     
     // 处理删除操作
-    async handleDelete(row) {
-      if (row.status === 'using') {
+    handleDelete(row) {
+      if (row.usage_status === 'using') {
         this.$message.warning('使用中的模型不能删除')
         return
       }
 
-      try {
-        await this.$confirm('确认删除该模型吗？此操作不可恢复', '警告', {
-          type: 'warning',
-          confirmButtonText: '确认',
-          cancelButtonText: '取消'
-        })
-        
+      this.$confirm('确认删除该模型吗？此操作不可恢复', '警告', {
+        type: 'warning',
+        confirmButtonText: '确认',
+        cancelButtonText: '取消'
+      }).then(() => {
         this.loading = true
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500))
         
-        // 从表格数据中移除并保存
-        const newData = this.tableData.filter(item => item.id !== row.id)
-        this.tableData = newData
-        this.saveTableData(newData)
-        this.$message.success('删除成功')
-      } catch (error) {
-        if (error !== 'cancel') {
-          this.$message.error('删除失败')
-        }
-      } finally {
-        this.loading = false
-      }
+        // 发送删除请求
+        modelAPI.deleteModel(row.id).then((res) => {
+          if (res.data && res.data.code === 0) {
+            // 删除成功后重新获取列表
+            this.fetchModelList()
+            this.$message.success('删除成功')
+          } else {
+            this.$message.error(res.data.msg || '删除失败')
+            this.loading = false
+          }
+        }).catch((error) => {
+          console.error('删除模型失败', error)
+          this.$message.error('删除失败: ' + (error.message || '未知错误'))
+          this.loading = false
+        })
+      }).catch(() => {
+        // 用户取消删除，不执行任何操作
+      })
     },
     
     // 处理批量删除
-    async handleBatchDelete() {
+    handleBatchDelete() {
       const selectedItems = this.multipleSelection
       if (selectedItems.length === 0) {
         this.$message.warning('请选择要删除的模型')
@@ -606,42 +535,44 @@ export default {
       }
 
       // 检查是否包含使用中的模型
-      const usingModels = selectedItems.filter(item => item.status === 'using')
+      const usingModels = selectedItems.filter(item => item.usage_status === 'using')
       if (usingModels.length > 0) {
         this.$message.warning('选中的模型中包含使用中的模型，无法删除')
         return
       }
 
-      try {
-        await this.$confirm(
-          `确认删除选中的 ${selectedItems.length} 个模型吗？此操作不可恢复`,
-          '警告',
-          {
-            type: 'warning',
-            confirmButtonText: '确认',
-            cancelButtonText: '取消'
-          }
-        )
-        
-        this.loading = true
-        // 模拟批量删除API调用
-        await new Promise(resolve => setTimeout(resolve, 800))
-        
-        // 从表格数据中移除选中项并保存
-        const selectedIds = selectedItems.map(item => item.id)
-        const newData = this.tableData.filter(
-          item => !selectedIds.includes(item.id)
-        )
-        this.tableData = newData
-        this.saveTableData(newData)
-        this.$message.success('批量删除成功')
-      } catch (error) {
-        if (error !== 'cancel') {
-          this.$message.error('批量删除失败')
+      this.$confirm(
+        `确认删除选中的 ${selectedItems.length} 个模型吗？此操作不可恢复`,
+        '警告',
+        {
+          type: 'warning',
+          confirmButtonText: '确认',
+          cancelButtonText: '取消'
         }
-      } finally {
-        this.loading = false
-      }
+      ).then(() => {
+        this.loading = true
+        
+        // 获取所有选中项的ID
+        const selectedIds = selectedItems.map(item => item.id)
+        
+        // 发送批量删除请求
+        modelAPI.batchDeleteModels(selectedIds).then((res) => {
+          if (res.data && res.data.code === 0) {
+            // 删除成功后重新获取列表
+            this.fetchModelList()
+            this.$message.success('批量删除成功')
+          } else {
+            this.$message.error(res.data.msg || '批量删除失败')
+            this.loading = false
+          }
+        }).catch((error) => {
+          console.error('批量删除模型失败', error)
+          this.$message.error('批量删除失败: ' + (error.message || '未知错误'))
+          this.loading = false
+        })
+      }).catch(() => {
+        // 用户取消删除，不执行任何操作
+      })
     },
     
     // 处理文件上传
@@ -651,370 +582,257 @@ export default {
     
     // 处理导入模型
     handleImport() {
+      // 重置导入表单
+      this.importForm = {
+        name: '',
+        file: null,
+        version: '1.0',
+        description: ''
+      }
       this.importDialogVisible = true
     },
     
     // 确认导入模型
-    async confirmImport() {
+    confirmImport() {
       if (!this.importForm.name || !this.importForm.file) {
-        this.$message.warning('请填写完整信息')
+        this.$message.warning('请填写模型名称并选择模型文件')
         return
       }
 
       this.loading = true
-      try {
-        // 模拟导入API调用
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        const newData = [{
-          id: Math.random().toString(36).substring(2),
-          name: this.importForm.name,
-          status: 'unused',
-          version: this.importForm.version,
-          skill: this.importForm.skill || '-'
-        }, ...this.tableData]
-        
-        this.tableData = newData
-        this.saveTableData(newData)
-        this.$message.success('导入成功')
-        this.importDialogVisible = false
-        // 重置表单
-        this.importForm.name = ''
-        this.importForm.file = null
-        this.importForm.version = 1
-        this.importForm.skill = ''
-      } catch (error) {
-        this.$message.error('导入失败')
-      } finally {
+      
+      // 创建FormData对象
+      const formData = new FormData()
+      formData.append('name', this.importForm.name)
+      formData.append('version', this.importForm.version.toString())
+      formData.append('description', this.importForm.description || '')
+      formData.append('file', this.importForm.file)
+      
+      // 发送导入请求
+      modelAPI.importModel(formData).then((res) => {
+        if (res.data && res.data.code === 0) {
+          // 导入成功后重新获取列表
+          this.fetchModelList()
+          this.$message.success('导入成功')
+          this.importDialogVisible = false
+        } else {
+          this.$message.error(res.data.msg || '导入失败')
+        }
         this.loading = false
-      }
+      }).catch((error) => {
+        console.error('导入模型失败', error)
+        this.$message.error('导入失败: ' + (error.message || '未知错误'))
+        this.loading = false
+      })
     },
     
     // 处理编辑操作
     handleEdit(row) {
-      this.editForm.id = row.id
-      this.editForm.name = row.name
-      this.editForm.version = row.version
-      this.editForm.skill = row.skill
+      // 深拷贝当前行数据，避免直接修改表格数据
+      this.editForm = {
+        id: row.id,
+        name: row.name,
+        version: this.formatVersion(row.version), // 确保版本格式统一
+        description: row.description || '', // 处理null或undefined的情况
+        usage_status: row.usage_status,
+        model_status: row.model_status
+      }
       this.editDialogVisible = true
+      
+      // 使用nextTick等待DOM更新后再获取表单引用
+      this.$nextTick(() => {
+        if (this.$refs.editForm) {
+          this.$refs.editForm.clearValidate()
+        }
+      })
+    },
+    
+    // 取消编辑
+    cancelEdit() {
+      this.editDialogVisible = false
+      this.$nextTick(() => {
+        if (this.$refs.editForm) {
+          this.$refs.editForm.resetFields()
+        }
+      })
     },
     
     // 确认编辑
-    async confirmEdit() {
-      if (!this.editForm.name) {
-        this.$message.warning('请填写模型名称')
-        return
-      }
-
-      this.loading = true
-      try {
-        await new Promise(resolve => setTimeout(resolve, 500))
+    confirmEdit() {
+      if (!this.$refs.editForm) return
+      
+      this.$refs.editForm.validate(valid => {
+        if (!valid) return
         
-        const index = this.tableData.findIndex(item => item.id === this.editForm.id)
-        if (index !== -1) {
-          const updatedItem = {
-            ...this.tableData[index],
-            name: this.editForm.name,
-            version: this.editForm.version,
-            skill: this.editForm.skill
-          }
-          this.tableData[index] = updatedItem
-          this.saveTableData(this.tableData)
+        this.loading = true
+        
+        // 准备更新数据
+        const updateData = {
+          description: this.editForm.description
         }
-
-        this.$message.success('编辑成功')
-        this.editDialogVisible = false
-      } catch (error) {
-        this.$message.error('编辑失败')
-      } finally {
-        this.loading = false
-      }
+        
+        // 只有当版本存在时才更新版本
+        if (this.editForm.version) {
+          // 确保版本号可以是小数形式
+          updateData.version = this.editForm.version.toString()
+        }
+        
+        // 发送更新请求
+        modelAPI.updateModel(this.editForm.id, updateData).then((res) => {
+          if (res.data && res.data.code === 0) {
+            // 更新成功后重新获取列表
+            this.fetchModelList()
+            
+            // 关闭对话框
+            this.editDialogVisible = false
+            
+            // 显示成功消息
+            this.$message({
+              message: '模型编辑成功',
+              type: 'success'
+            })
+          } else {
+            this.$message.error(res.data.msg || '编辑失败')
+          }
+          this.loading = false
+        }).catch((error) => {
+          console.error('编辑模型失败', error)
+          this.$message.error('编辑失败: ' + (error.message || '未知错误'))
+          this.loading = false
+        })
+      })
     },
     
     // 处理搜索
     handleSearch() {
-      this.loading = true
-      
-      // 过滤数据
-      const filteredData = this.initTableData().filter(item => {
-        // 名称搜索
-        const matchKeyword = !this.searchForm.keyword || 
-          item.name.toLowerCase().includes(this.searchForm.keyword.toLowerCase())
-        
-        // 状态筛选
-        const matchStatus = this.searchForm.status === 'all' || 
-          item.status === this.searchForm.status
-        
-        return matchKeyword && matchStatus
-      })
-      
-      this.tableData = filteredData
       this.pagination.currentPage = 1 // 重置到第一页
-      this.loading = false
+      this.fetchModelList() // 重新获取数据
     },
     
     // 处理分页变化
     handlePageChange(newPage) {
       this.pagination.currentPage = newPage
+      this.fetchModelList() // 获取新页的数据
     },
     
     // 处理每页数量变化
     handleSizeChange(newSize) {
       this.pagination.pageSize = newSize
       this.pagination.currentPage = 1  // 重置到第一页
+      this.fetchModelList() // 重新获取数据
     },
 
     // 处理详情操作
     handleDetail(row) {
-      this.detailForm = {
-        id: row.id,
-        name: row.name,
-        version: row.version,
-        status: row.status,
-        loadStatus: row.loadStatus,
-        skill: row.skill,
-        createTime: '2023-06-15 14:30:25', // 模拟数据
-        updateTime: '2023-08-20 09:45:12', // 模拟数据
-        description: `${row.name}模型基于深度学习技术，针对${row.name.replace('模型', '').replace('检测', '')}场景优化，支持高精度识别与检测。`
-      }
-      
-      // 获取相关技能信息
-      this.getRelatedSkills(row)
-      
-      this.detailDialogVisible = true
-    },
-    
-    // 获取相关技能信息
-    getRelatedSkills(model) {
-      // 这里模拟从后端获取数据的过程
       this.loading = true
       
-      // 模拟异步获取数据
-      setTimeout(() => {
-        if (model.status === 'using' && model.skill !== '-') {
-          // 如果模型正在使用中，则生成1-3个相关技能
-          const skillCount = Math.floor(Math.random() * 3) + 1
-          this.relatedSkills = Array(skillCount).fill(null).map((_, index) => {
-            const skillName = model.skill.split(' ')[0] || `${model.name}技能`
-            const zhName = this.getChineseName(model.name, index)
-            
-            return {
-              id: `skill_${Math.random().toString(36).substring(2, 10)}`,
-              name: `${skillName}_${index + 1}`,
-              zhName: zhName,
-              version: model.version,
-              createTime: '2023-07-18 10:25:36',
-              type: this.getSkillType(model.name),
-              description: this.getSkillDescription(zhName, model.name),
-              enabled: Math.random() > 0.3 // 随机生成启用状态，大概70%概率为已启用
-            }
-          })
-        } else {
-          // 如果模型未使用，则没有相关技能
-          this.relatedSkills = []
-        }
-        
-        this.loading = false
-      }, 500)
-    },
-    
-    // 获取技能中文名（模拟数据）
-    getChineseName(modelName, index) {
-      const baseNames = {
-        '通道遮蔽检测': '输电通道压板检测',
-        '垃圾堆积分割模型': '垃圾分类识别',
-        '烟火检测': '火灾烟雾侦测',
-        '运输车检测模型': '建筑车辆监测',
-        '安全带检测模型': '人员安全带监测',
-        '人员聚集检测': '人员聚集预警',
-        '安全帽检测': '安全帽佩戴监测',
-        '车辆识别模型': '车辆类型识别',
-        '人脸识别模型': '人脸身份识别',
-        '行为分析模型': '异常行为分析',
-        '物品遗留检测': '遗留物检测预警',
-        '越界检测模型': '区域入侵监测',
-        '烟雾检测模型': '烟雾火灾预警',
-        '车牌识别模型': '车牌号码识别',
-        '姿态估计模型': '人体姿态分析',
-        '目标跟踪模型': '运动目标追踪',
-        '场景分类模型': '场景环境识别',
-        '人群密度检测': '人群拥堵监测',
-        '手势识别模型': '手势交互识别'
-      }
-      
-      // 查找匹配的中文名
-      for (const key in baseNames) {
-        if (modelName.includes(key.replace('模型', ''))) {
-          // 如果有多个技能，在名称后添加编号
-          if (index > 0) {
-            return `${baseNames[key]}_${index + 1}`
+      // 获取模型详情
+      modelAPI.getModelDetail(row.id).then((res) => {
+        if (res.data && res.data.code === 0) {
+          // 更新详情表单
+          this.detailForm = {
+            id: res.data.data.id,
+            name: res.data.data.name,
+            version: res.data.data.version,
+            usage_status: res.data.data.usage_status,
+            model_status: res.data.data.model_status,
+            description: res.data.data.description || '',
+            created_at: res.data.data.created_at,
+            updated_at: res.data.data.updated_at
           }
-          return baseNames[key]
+          
+          // 更新相关技能列表
+          if (res.data.data.skill_classes && res.data.data.skill_classes.skill_classes) {
+            this.relatedSkills = res.data.data.skill_classes.skill_classes.map(skill => {
+              return {
+                id: skill.id,
+                zhName: skill.name_zh,
+                name: skill.name,
+                type: skill.type,
+                description: skill.description || '',
+                enabled: skill.enabled
+              };
+            });
+          } else {
+            this.relatedSkills = [];
+          }
+          
+          this.detailDialogVisible = true
+        } else {
+          this.$message.error(res.data.msg || '获取模型详情失败')
         }
-      }
-      
-      // 默认返回
-      return `${modelName.replace('模型', '')}技能${index + 1}`
+        this.loading = false
+      }).catch((error) => {
+        console.error('获取模型详情失败', error)
+        this.$message.error('获取模型详情失败: ' + (error.message || '未知错误'))
+        this.loading = false
+      })
     },
     
-    // 获取技能类型（模拟数据）
-    getSkillType(modelName) {
-      const typeMap = {
-        '检测': '目标检测',
-        '分割': '图像分割',
-        '识别': '图像识别',
-        '分类': '图像分类',
-        '跟踪': '目标跟踪',
-        '估计': '姿态估计',
-        '分析': '行为分析'
-      }
-      
-      // 根据模型名称中的关键词确定类型
-      for (const key in typeMap) {
-        if (modelName.includes(key)) {
-          return typeMap[key]
-        }
-      }
-      
-      // 默认类型
-      return '智能分析'
-    },
-    
-    // 获取技能描述（模拟数据）
-    getSkillDescription(skillName, modelName) {
-      const descriptions = [
-        `${skillName}支持实时检测场景中的目标，适用于各种光照和天气条件。`,
-        `该技能基于深度学习算法，可以精确分析${modelName.replace('模型', '')}场景，支持多种场景应用。`,
-        `${skillName}采用先进的视觉算法，具有高精度、低误报特性，适合7x24小时监控系统部署。`,
-        `该技能经过大量真实场景训练，能够适应复杂环境变化，提供稳定可靠的识别结果。`
-      ]
-      
-      // 随机返回一个描述
-      return descriptions[Math.floor(Math.random() * descriptions.length)]
-    },
-    
-    // 生成随机文件大小（模拟数据）
-    getRandomFileSize() {
-      const size = Math.floor(Math.random() * 900) + 100
-      return `${size}.${Math.floor(Math.random() * 9)}MB`
-    },
-    
-    // 生成随机框架信息（模拟数据）
-    getRandomFramework() {
-      const frameworks = [
-        'PyTorch 1.10',
-        'TensorFlow 2.6',
-        'ONNX Runtime 1.8',
-        'MindSpore 1.5',
-        'PaddlePaddle 2.2'
-      ]
-      return frameworks[Math.floor(Math.random() * frameworks.length)]
-    },
-    
-    // 生成随机应用场景（模拟数据）
-    getRandomScenario(modelName) {
-      const baseScenarios = {
-        '通道遮蔽检测': '电力巡检、输电线路监控',
-        '垃圾堆积分割': '城市环境管理、卫生监测',
-        '烟火检测': '森林防火、工业安全',
-        '运输车检测': '道路监控、物流管理',
-        '安全带检测': '交通安全、驾驶行为监控',
-        '人员聚集检测': '公共安全、人流密度监控',
-        '安全帽检测': '工地安全、施工现场监管',
-        '车辆识别': '交通管理、停车场系统',
-        '人脸识别': '门禁系统、考勤管理',
-        '行为分析': '异常行为识别、安防监控',
-        '物品遗留检测': '公共场所安全、遗失物品监测',
-        '越界检测': '周界防护、区域安全',
-        '烟雾检测': '火灾预警、工业安全',
-        '车牌识别': '交通管理、停车场系统',
-        '姿态估计': '人体行为分析、运动跟踪',
-        '目标跟踪': '视频监控、运动目标追踪',
-        '场景分类': '图像内容识别、环境感知',
-        '人群密度检测': '人流监控、公共安全',
-        '手势识别': '人机交互、行为控制'
-      }
-      
-      // 尝试匹配模型名称中的关键词
-      for (const key in baseScenarios) {
-        if (modelName.includes(key)) {
-          return baseScenarios[key]
-        }
-      }
-      
-      // 如果没有匹配到，返回默认值
-      return '安防监控、智能分析、视觉识别'
-    },
-    
-    // 获取随机加载状态（用于模拟数据）
-    getRandomLoadStatus() {
-      return Math.random() > 0.3 ? 'loaded' : 'unloaded'
-    },
-
     // 处理加载模型
-    async handleLoad(row) {
+    handleLoad(row) {
       // 设置加载中状态
       const index = this.tableData.findIndex(item => item.id === row.id)
       if (index !== -1) {
         this.$set(this.tableData[index], 'isLoading', true)
       }
       
-      try {
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        // 更新状态
-        const updatedData = [...this.tableData]
-        if (index !== -1) {
-          updatedData[index].loadStatus = 'loaded'
-          updatedData[index].isLoading = false
-          this.tableData = updatedData
-          this.saveTableData(updatedData)
+      // 发送加载请求
+      modelAPI.loadModel(row.id).then((res) => {
+        if (res.data && res.data.code === 0) {
+          // 加载成功后重新获取列表
+          this.fetchModelList()
+          this.$message.success(`${row.name} 加载成功`)
+        } else {
+          this.$message.error(res.data.msg || '加载失败')
+          // 重置加载状态
+          if (index !== -1) {
+            this.$set(this.tableData[index], 'isLoading', false)
+          }
         }
-        
-        this.$message.success(`${row.name} 加载成功`)
-      } catch (error) {
-        this.$message.error(`加载失败: ${error.message || '未知错误'}`)
+      }).catch((error) => {
+        console.error('加载模型失败', error)
+        this.$message.error('加载失败: ' + (error.message || '未知错误'))
         // 重置加载状态
         if (index !== -1) {
           this.$set(this.tableData[index], 'isLoading', false)
         }
-      }
+      })
     },
     
     // 处理卸载模型
-    async handleUnload(row) {
+    handleUnload(row) {
       // 设置加载中状态
       const index = this.tableData.findIndex(item => item.id === row.id)
       if (index !== -1) {
         this.$set(this.tableData[index], 'isLoading', true)
       }
       
-      try {
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // 更新状态
-        const updatedData = [...this.tableData]
-        if (index !== -1) {
-          updatedData[index].loadStatus = 'unloaded'
-          updatedData[index].isLoading = false
-          this.tableData = updatedData
-          this.saveTableData(updatedData)
+      // 发送卸载请求
+      modelAPI.unloadModel(row.id).then((res) => {
+        if (res.data && res.data.code === 0) {
+          // 卸载成功后重新获取列表
+          this.fetchModelList()
+          this.$message.success(`${row.name} 卸载成功`)
+        } else {
+          this.$message.error(res.data.msg || '卸载失败')
+          // 重置加载状态
+          if (index !== -1) {
+            this.$set(this.tableData[index], 'isLoading', false)
+          }
         }
-        
-        this.$message.success(`${row.name} 卸载成功`)
-      } catch (error) {
-        this.$message.error(`卸载失败: ${error.message || '未知错误'}`)
+      }).catch((error) => {
+        console.error('卸载模型失败', error)
+        this.$message.error('卸载失败: ' + (error.message || '未知错误'))
         // 重置加载状态
         if (index !== -1) {
           this.$set(this.tableData[index], 'isLoading', false)
         }
-      }
+      })
     },
 
     // 处理刷新列表
-    async handleRefresh() {
+    handleRefresh() {
       this.refreshLoading = true
       
       // 显示提示信息
@@ -1024,39 +842,35 @@ export default {
         duration: 0
       })
       
-      try {
-        // 模拟API调用延迟
-        await new Promise(resolve => setTimeout(resolve, 1200))
-        
-        // 重新获取数据（这里模拟获取新数据）
-        this.tableData = this.initTableData().map(item => ({
-          ...item,
-          // 随机更新一些状态，模拟刷新效果
-          loadStatus: Math.random() > 0.7 ? 
-            (item.status === 'using' ? 'loaded' : 'unloaded') : 
-            item.loadStatus
-        }))
-        
-        // 保存到本地存储
-        this.saveTableData(this.tableData)
-        
-        // 显示成功消息
+      // 重新获取数据
+      this.fetchModelList()
+      
+      // 定时关闭提示，避免API调用失败时提示不消失
+      setTimeout(() => {
         loadingMessage.close()
-        this.$message({
-          message: '模型列表刷新成功',
-          type: 'success'
-        })
-        
-        // 重置分页到第一页
-        this.pagination.currentPage = 1
-      } catch (error) {
-        // 显示错误消息
-        loadingMessage.close()
-        this.$message.error('列表刷新失败，请重试')
-        console.error('刷新列表错误:', error)
-      } finally {
-        this.refreshLoading = false
-      }
+        if (this.refreshLoading) {
+          this.$message({
+            message: '模型列表刷新成功',
+            type: 'success'
+          })
+          this.refreshLoading = false
+        }
+      }, 1000)
+    },
+
+    // 格式化版本号
+    formatVersion(version) {
+      // 确保版本号是字符串
+      const versionStr = String(version);
+      
+      // 如果包含小数点
+      if (versionStr.includes('.')) {
+        const parts = versionStr.split('.');
+        // 返回主版本号和一位小数
+        return parts[0] + '.' + (parts[1] || '0');
+      } 
+      // 如果是整数版本，添加.0
+      return versionStr + '.0';
     }
   }
 }
@@ -1100,6 +914,33 @@ export default {
     margin-top: 20px;
     display: flex;
     justify-content: flex-end;
+}
+
+/* 表单布局相关样式 */
+.form-row {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.half-width-item {
+  width: 50%;
+  margin-bottom: 0 !important;
+}
+
+.half-width-item:first-child {
+  padding-right: 10px;
+}
+
+.half-width-item:last-child {
+  padding-left: 10px;
+}
+
+.half-width-item >>> .el-form-item__label {
+  width: 85px !important;
+}
+
+.half-width-item >>> .el-form-item__content {
+  margin-left: 85px !important;
 }
 
 .dialog-footer {
@@ -1523,5 +1364,177 @@ export default {
   height: 12px;
   background-color: #fff;
   border-radius: 2px;
+}
+
+/* 编辑表单相关样式 */
+.status-item-readonly {
+  display: flex;
+  align-items: center;
+}
+
+.status-hint {
+  color: #909399;
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.skill-form >>> .el-form-item__error {
+  padding-top: 2px;
+}
+
+.number-input >>> .el-input-number__decrease,
+.number-input >>> .el-input-number__increase {
+  background-color: #f5f7fa;
+  border-color: #dcdfe6;
+  color: #606266;
+}
+
+.number-input >>> .el-input-number__decrease:hover:not(.is-disabled) ~ .el-input .el-input__inner:not(.is-disabled),
+.number-input >>> .el-input-number__increase:hover:not(.is-disabled) ~ .el-input .el-input__inner:not(.is-disabled) {
+  border-color: #409EFF;
+}
+
+.skill-form >>> .el-input:hover .el-input__inner {
+  border-color: #409EFF;
+}
+
+.skill-form >>> .el-form-item.is-error .el-input__inner,
+.skill-form >>> .el-form-item.is-error .el-input__inner:focus,
+.skill-form >>> .el-form-item.is-error .el-textarea__inner,
+.skill-form >>> .el-form-item.is-error .el-textarea__inner:focus {
+  border-color: #F56C6C;
+}
+
+/* 编辑对话框内按钮样式优化 */
+.dialog-footer .el-button--primary {
+  background-color: #409EFF;
+  border-color: #409EFF;
+}
+
+.dialog-footer .el-button--primary:hover,
+.dialog-footer .el-button--primary:focus {
+  background-color: #66b1ff;
+  border-color: #66b1ff;
+}
+
+/* 版本控制样式 */
+.version-control {
+  display: flex;
+  align-items: center;
+  width: 160px;
+}
+
+.version-btn {
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.version-decrease-btn {
+  background-color: #f8f9fb;
+  border-color: #dcdfe6;
+}
+
+.version-decrease-btn:not([disabled]):hover {
+  background-color: #f2f6fc;
+  border-color: #c6e2ff;
+  color: #409EFF;
+}
+
+.version-increase-btn {
+  background-color: #f8f9fb;
+  border-color: #dcdfe6;
+}
+
+.version-increase-btn:hover {
+  background-color: #f2f6fc;
+  border-color: #c6e2ff;
+  color: #409EFF;
+}
+
+.version-value {
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+  margin: 0 8px;
+  min-width: 30px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 5px 8px;
+  background-color: #fff;
+}
+
+.version-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f0f5ff, #e6f7ff);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #d9e8ff;
+  width: fit-content;
+  transition: all 0.3s;
+}
+
+.version-badge:hover {
+  background: linear-gradient(135deg, #e6f7ff, #d6f0ff);
+  box-shadow: 0 3px 6px rgba(24, 144, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.version-icon {
+  margin-right: 5px;
+  color: #1890ff;
+  font-size: 15px;
+}
+
+.version-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1890ff;
+  letter-spacing: 0.5px;
+  font-family: 'Arial', sans-serif;
+}
+
+/* 详情页中的版本号样式 */
+.detail-version {
+  display: inline-flex;
+  margin-top: 1px;
+}
+
+/* 表格中的版本号样式 */
+.el-table .version-badge {
+  margin: 0 auto;
+}
+
+/* 版本号输入框样式 */
+.version-input >>> .el-input-group__prepend {
+  background: linear-gradient(135deg, #f0f5ff, #e6f7ff);
+  border-color: #d9e8ff;
+  padding: 0 12px;
+}
+
+.version-prefix {
+  color: #1890ff;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: 'Arial', sans-serif;
+}
+
+.version-input >>> .el-input__inner {
+  border-color: #d9e8ff;
+  transition: all 0.3s;
+  font-family: 'Arial', sans-serif;
+}
+
+.version-input >>> .el-input__inner:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.version-input >>> .el-input__inner:hover {
+  border-color: #1890ff;
 }
 </style>
