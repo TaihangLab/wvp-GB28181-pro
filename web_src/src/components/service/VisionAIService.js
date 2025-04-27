@@ -29,7 +29,7 @@ visionAIAxios.interceptors.response.use(
     // 前端期望格式: { code: 0, data: [...], total: ... }
     const originalData = response.data;
     
-    // 如果是批量删除技能的响应（包含detail字段），直接返回不进行转换
+    // 如果是批量删除技能或模型的响应（包含detail字段），直接返回不进行转换
     if (originalData && originalData.detail && originalData.success !== undefined) {
       return response;
     }
@@ -174,7 +174,7 @@ export const modelAPI = {
 
   // 批量删除模型
   batchDeleteModels(ids) {
-    return visionAIAxios.delete('/api/v1/models/batch', { data: { ids } });
+    return visionAIAxios.delete('/api/v1/models/batch-delete', { data: { model_ids: ids } });
   },
 
   // 加载模型

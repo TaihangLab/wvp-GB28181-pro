@@ -559,12 +559,28 @@ export default {
         
         // 发送批量删除请求
         modelAPI.batchDeleteModels(selectedIds).then((res) => {
-          if (res.data && res.data.code === 0) {
+          if (res.data && res.data.success) {
             // 删除成功后重新获取列表
             this.fetchModelList()
-            this.$message.success('批量删除成功')
+            
+            // 显示成功消息和详细信息
+            this.$message.success(res.data.message || '批量删除成功')
+            
+            // 如果有失败的模型，显示详细信息
+            if (res.data.detail && res.data.detail.failed && res.data.detail.failed.length > 0) {
+              const failedInfo = res.data.detail.failed.map(item => {
+                return `模型ID ${item.id}: ${item.reason}`
+              }).join('\n')
+              
+              this.$notify({
+                title: '部分模型删除失败',
+                message: failedInfo,
+                type: 'warning',
+                duration: 10000
+              })
+            }
           } else {
-            this.$message.error(res.data.msg || '批量删除失败')
+            this.$message.error(res.data.message || '批量删除失败')
             this.loading = false
           }
         }).catch((error) => {
