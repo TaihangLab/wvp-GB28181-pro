@@ -52,7 +52,7 @@
           <i class="el-icon-magic-stick"></i>
           <span>技能管理</span>
         </template>
-        <el-menu-item index="/skillManage/deviceSkills">设备技能列表</el-menu-item>
+        <el-menu-item index="/skillManage/deviceSkills">技能列表</el-menu-item>
       </el-submenu>
       
       <!-- 智能管控菜单 -->

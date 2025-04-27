@@ -29,6 +29,11 @@ visionAIAxios.interceptors.response.use(
     // 前端期望格式: { code: 0, data: [...], total: ... }
     const originalData = response.data;
     
+    // 如果是批量删除技能的响应（包含detail字段），直接返回不进行转换
+    if (originalData && originalData.detail && originalData.success !== undefined) {
+      return response;
+    }
+    
     // 如果已经是期望的格式，直接返回
     if (originalData && (originalData.code !== undefined)) {
       return response;
@@ -60,6 +65,16 @@ visionAIAxios.interceptors.response.use(
       });
       transformedData.total = originalData.total || transformedData.data.length;
     } 
+    // 检查是否包含技能列表数据（技能列表接口）
+    else if (originalData && originalData.skill_classes) {
+      transformedData.data = originalData.skill_classes;
+      transformedData.total = originalData.total || transformedData.data.length;
+      
+      // 添加分页信息
+      if (originalData.page) transformedData.page = originalData.page;
+      if (originalData.limit) transformedData.limit = originalData.limit;
+      if (originalData.pages) transformedData.pages = originalData.pages;
+    }
     // 检查是否包含单个模型详情（获取模型详情接口）
     else if (originalData && originalData.model) {
       const model = originalData.model;
@@ -173,6 +188,110 @@ export const modelAPI = {
   }
 };
 
+// 添加技能服务API
+export const skillAPI = {
+  // 获取技能列表
+  getSkillList(params = {}) {
+    // 处理分页参数和查询参数
+    const apiParams = { ...params };
+    
+    // 处理技能名称搜索参数
+    if (params.name) {
+      apiParams.query_name = params.name;
+      delete apiParams.name;
+    }
+    
+    // 处理技能类型参数
+    if (params.type) {
+      apiParams.query_type = params.type;
+      delete apiParams.type;
+    }
+    
+    // 处理状态筛选参数
+    if (params.status !== undefined) {
+      // 将状态字符串转换为布尔值: 'published' -> true, 'unpublished' -> false
+      apiParams.status = params.status === 'published';
+      // 或者直接传递布尔值
+      if (typeof params.status === 'boolean') {
+        apiParams.status = params.status;
+      }
+    }
+    
+    // 处理分页参数 - 确保page和limit被正确传递
+    if (params.page) {
+      apiParams.page = params.page;
+    }
+    
+    if (params.limit) {
+      apiParams.limit = Math.min(params.limit, 100); // 限制最大为100条
+    }
+    
+    return visionAIAxios.get('/api/v1/skill-classes', { params: apiParams });
+  },
+  
+  // 获取技能详情
+  getSkillDetail(skillClassId) {
+    return visionAIAxios.get(`/api/v1/skill-classes/${skillClassId}`);
+  },
+
+  // 删除技能
+  deleteSkill(skillClassId) {
+    return visionAIAxios.delete(`/api/v1/skill-classes/${skillClassId}`);
+  },
+
+  // 批量删除技能
+  batchDeleteSkills(ids) {
+    return visionAIAxios.delete('/api/v1/skill-classes/batch-delete', { data: { skill_class_ids: ids } });
+  },
+
+  // 导入技能
+  importSkill(skillData) {
+    return visionAIAxios.post('/api/v1/skill-classes', skillData);
+  },
+
+  // 更新技能
+  updateSkill(skillClassId, skillData) {
+    return visionAIAxios.put(`/api/v1/skill-classes/${skillClassId}`, skillData);
+  },
+  
+  // 上传技能图片
+  uploadSkillImage(skillClassId, imageFile) {
+    if (!imageFile || !skillClassId) {
+      console.error('上传图片失败: 缺少必要参数', { skillClassId, imageFile: !!imageFile });
+      return Promise.reject(new Error('缺少必要参数'));
+    }
+    
+    console.log('准备上传图片到服务器:', skillClassId, imageFile.name, imageFile.type, imageFile.size);
+    
+    // 创建FormData对象
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    
+    // 设置请求头
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      // 添加上传进度事件
+      onUploadProgress: progressEvent => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        console.log('上传进度:', percentCompleted + '%');
+      }
+    };
+    
+    return visionAIAxios.post(`/api/v1/skill-classes/${skillClassId}/image`, formData, config)
+      .then(response => {
+        console.log('图片上传成功:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('图片上传请求失败:', error);
+        throw error;
+      });
+  }
+};
+
 export default {
-  modelAPI
+  modelAPI,
+  skillAPI
 }; 

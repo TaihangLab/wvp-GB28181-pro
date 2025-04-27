@@ -276,15 +276,15 @@
           </div>
         </el-card>
 
-        <!-- 相关技能信息 -->
+        <!-- 技能实例信息 -->
         <div class="related-skills-section">
           <el-card class="detail-card skills-card" shadow="never" :body-style="{padding: '0'}">
             <div slot="header" class="card-header">
-              <span>相关技能</span>
+              <span>技能实例</span>
               <el-tag type="success" size="small">{{ relatedSkills.length }}</el-tag>
             </div>
             <div v-if="relatedSkills.length === 0" class="no-skills">
-              <i class="el-icon-warning-outline"></i> 暂无相关技能
+              <i class="el-icon-warning-outline"></i> 暂无技能实例
             </div>
             <div v-else class="skills-scroll-container">
               <div v-for="(skill, index) in relatedSkills" :key="index" class="skill-card">
