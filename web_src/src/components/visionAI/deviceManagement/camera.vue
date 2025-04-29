@@ -57,7 +57,20 @@
               <span v-if="!row.tags || row.tags.length === 0">-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="skill" label="视频技能" align="center" />
+          <el-table-column prop="skill" label="视频技能" align="center">
+            <template slot-scope="{ row }">
+              <div v-if="row.skill">
+                <div v-for="(skillName, idx) in row.skill.split(',')" :key="idx" class="table-skill-item">
+                  <span class="skill-name">{{ skillName.trim() }}</span>
+                  <el-tag v-if="row.config && row.config[skillName.trim()]"
+                    :type="row.config[skillName.trim()].status ? 'success' : 'info'" size="mini" effect="plain">
+                    {{ row.config[skillName.trim()].status ? '已启用' : '已禁用' }}
+                  </el-tag>
+                </div>
+              </div>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="280" align="center">
             <template slot-scope="{ row }">
               <el-button-group>
@@ -122,41 +135,99 @@
         </span>
       </el-dialog>
 
+      <!-- 选择技能对话框 -->
+      <el-dialog title="选择技能" :visible.sync="skillSelectDialogVisible" width="40%" :close-on-click-modal="false"
+        :destroy-on-close="false" :modal-append-to-body="true" :append-to-body="true" :show-close="true"
+        :lock-scroll="true" custom-class="skill-select-dialog" center>
+        <el-form :model="skillSelectForm" label-width="85px" class="skill-form">
+          <el-form-item label="选择技能" required>
+            <el-select v-model="skillSelectForm.selectedSkills" placeholder="请选择技能" style="width: 100%" multiple
+              popper-class="skill-select">
+              <el-option v-for="item in skillOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
+
+          <!-- 已选技能展示区域 -->
+          <div class="selected-skills-container" v-if="skillSelectForm.selectedSkills.length > 0">
+            <div class="skills-header">
+              <div class="skills-title">已选技能</div>
+            </div>
+            <div class="skills-grid-wrapper">
+              <div class="skills-grid">
+                <div v-for="skill in skillSelectForm.selectedSkills" :key="skill" class="skill-square"
+                  @click="configureSkill(skill)">
+                  <div class="skill-icon">
+                    <i :class="getSkillIcon(skill)"></i>
+                  </div>
+                  <div class="skill-name">{{ skill }}</div>
+                  <div class="skill-actions">
+                    <el-button class="config-btn" type="primary" circle size="mini" @click.stop="configureSkill(skill)">
+                      <i class="el-icon-setting"></i>
+                    </el-button>
+                    <el-button class="delete-btn" type="danger" circle size="mini"
+                      @click.stop="removeSelectedSkill(skill)">
+                      <i class="el-icon-delete"></i>
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="closeSkillSelectDialog">取消</el-button>
+          <el-button type="primary" @click="confirmSkillSelect">确定</el-button>
+        </div>
+      </el-dialog>
+
       <!-- 配置技能对话框 -->
       <el-dialog title="配置技能" :visible.sync="skillDialogVisible" width="55%" :close-on-click-modal="false"
         :destroy-on-close="false" :modal-append-to-body="true" :append-to-body="true" :show-close="true"
         :lock-scroll="true" custom-class="skill-dialog" center @close="handleClose">
-        <el-form :model="skillForm" label-width="85px" :rules="rules" ref="skillForm" class="skill-form">
-          <!-- 选择技能和技能状态放在同一行 -->
-          <el-form-item label="选择技能" required prop="selectedSkill">
-            <div class="skill-status-row">
-              <div class="skill-select-container">
-                <el-select v-model="skillForm.selectedSkill" placeholder="请选择技能" style="width: 100%" size="small" multiple
-                  popper-class="skill-select">
-                  <el-option v-for="item in skillOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
-              </div>
-              <div class="status-container">
-                <span class="control-label required">技能状态</span>
-                <el-switch v-model="skillForm.status" class="status-switch" />
-                <span class="status-text">{{ skillForm.status ? '已启用' : '已停用' }}</span>
+        <div class="current-skill-header" v-if="currentSkill">
+          <div class="skill-info-wrapper">
+            <div class="skill-info-icon" :style="{ background: getSkillGradient(currentSkill) }">
+              <i :class="getSkillIcon(currentSkill)"></i>
+            </div>
+            <div class="skill-info-content">
+              <div class="skill-name-row">
+                <span class="skill-info-name">{{ currentSkill }}</span>
+                <div class="skill-status">
+                  <el-switch v-model="skillForm.status" active-color="#67C23A" inactive-color="#909399">
+                  </el-switch>
+                  <span class="status-text" :class="{ 'status-active': skillForm.status }">
+                    {{ skillForm.status ? '已启用' : '已禁用' }}
+                  </span>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+        <el-form :model="skillForm" label-width="85px" :rules="rules" ref="skillForm" class="skill-form">
+
+          <el-form-item label="预警等级" required prop="alarmLevel">
+            <el-select v-model="skillForm.alarmLevel" placeholder="请选择预警等级" style="width: 220px;">
+              <el-option v-for="item in alarmLevelOptions" :key="item.value" :label="item.label" :value="item.value">
+                <span :style="{ color: item.color }">{{ item.label }}</span>
+              </el-option>
+            </el-select>
           </el-form-item>
 
           <el-form-item label="抽帧频率" required prop="frequency">
             <div class="frequency-input">
               <span>每</span>
               <el-input-number v-model="skillForm.frequency.seconds" :min="1" :max="99" controls-position="right"
-                class="number-input" />
+                class="number-input" size="small" />
               <span>秒</span>
               <span>抽取</span>
               <el-input-number v-model="skillForm.frequency.frames" :min="1" :max="99" controls-position="right"
-                class="number-input" />
+                class="number-input" size="small" />
               <span>帧</span>
+              <span class="frequency-tip">支持设置多秒1帧1秒多帧，不支持多秒多帧设置</span>
             </div>
-            <div class="frequency-tip">支持设置多秒1帧1秒多帧，不支持多秒多帧设置</div>
           </el-form-item>
+
+
 
           <el-form-item label="运行时段" required prop="timeRanges">
             <div v-for="(timeRange, index) in skillForm.timeRanges" :key="index" class="time-range">
@@ -173,23 +244,16 @@
             </div>
           </el-form-item>
 
-
           <el-form-item label="电子围栏" required style="margin-left: 0px;margin-top: -15px;">
             <div class="electronic-fence-container">
               <div class="fence-wrapper">
                 <div class="fence-preview">
-                  <div class="video-preview" v-if="!skillForm.electronicFence.image">
-                    <div class="preview-placeholder">
-                      <i class="el-icon-video-camera"></i>
-                      <p>视频预览区域</p>
-                    </div>
-                  </div>
-                  <div class="image-editor" v-else>
+                  <div class="image-editor">
                     <img :src="skillForm.electronicFence.image" alt="围栏图片" class="fence-image"
                       @click="handleImageClick">
                     <div class="fence-polygon"
                       v-if="skillForm.electronicFence.points.length > 0 || skillForm.electronicFence.currentPolygon.length > 0">
-                      <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0;">
+                      <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
                         <!-- 所有已完成的围栏 -->
                         <g v-for="(polygon, polyIndex) in skillForm.electronicFence.points"
                           :key="`polygon-${polyIndex}`">
@@ -215,40 +279,27 @@
                         </g>
                       </svg>
                     </div>
-                    <div class="fence-controls" v-if="skillForm.electronicFence.image">
-                      <el-button-group v-if="!skillForm.electronicFence.isDrawing">
-                        <el-button size="mini" type="primary" icon="el-icon-edit"
-                          @click="startDrawFence">绘制围栏</el-button>
-                        <el-button size="mini" type="danger" icon="el-icon-delete" @click="clearFence"
-                          :disabled="skillForm.electronicFence.points.length === 0">清除围栏</el-button>
-                      </el-button-group>
-                      <el-button-group v-else>
-                        <el-button size="mini" type="success" icon="el-icon-check" @click="completeFence"
-                          :disabled="skillForm.electronicFence.currentPolygon.length < 3">完成绘制</el-button>
-                        <el-button size="mini" type="warning" icon="el-icon-close"
-                          @click="cancelDrawFence">取消绘制</el-button>
-                      </el-button-group>
-                    </div>
                   </div>
                 </div>
 
                 <div class="fence-side-panel">
-                  <div class="fence-actions">
-                    <el-upload action="#" :show-file-list="false" :before-upload="handleFenceImageUpload"
-                      accept="image/*" class="fence-upload-btn">
-                      <el-button type="primary" plain size="small" class="action-btn">
-                        <i class="el-icon-upload"></i> 上传图片
-                      </el-button>
-                    </el-upload>
-                    <el-button type="success" plain size="small" @click="captureSnapshot" class="action-btn"
-                      style="margin-top: 5px;">
-                      <i class="el-icon-camera"></i> 拍摄快照
-                    </el-button>
-                  </div>
-
                   <div class="fence-tips">
-                    <el-alert title="电子围栏使用说明" type="info"
-                      description="上传图片或拍摄快照后，可以在图片上绘制多边形区域作为电子围栏。当检测到目标在围栏内/外活动时触发报警。" :closable="false" show-icon />
+                    <el-alert title="电子围栏使用说明" type="info" description="在视频画面上绘制多边形区域作为电子围栏。当检测到目标在围栏内/外活动时触发报警。"
+                      :closable="false" show-icon />
+                  </div>
+                  <div class="fence-controls-panel">
+                    <el-button-group v-if="!skillForm.electronicFence.isDrawing">
+                      <el-button size="small" type="primary" icon="el-icon-edit"
+                        @click="startDrawFence">绘制围栏</el-button>
+                      <el-button size="small" type="danger" icon="el-icon-delete" @click="clearFence"
+                        :disabled="skillForm.electronicFence.points.length === 0">清除围栏</el-button>
+                    </el-button-group>
+                    <el-button-group v-else>
+                      <el-button size="small" type="success" icon="el-icon-check" @click="completeFence"
+                        :disabled="skillForm.electronicFence.currentPolygon.length < 3">完成绘制</el-button>
+                      <el-button size="small" type="warning" icon="el-icon-close"
+                        @click="cancelDrawFence">取消绘制</el-button>
+                    </el-button-group>
                   </div>
                 </div>
               </div>
@@ -444,7 +495,7 @@ export default {
       skillDialogVisible: false,
       skillForm: {
         selectedSkill: '',
-        alarmLevel: '',
+        alarmLevel: '二级预警', // 默认预警等级
         status: true,
         timeRanges: [{
           start: new Date(2024, 0, 1, 0, 0),
@@ -455,7 +506,7 @@ export default {
           frames: 1
         },
         electronicFence: {
-          image: '',
+          image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', // 默认空白背景图
           points: [],
           isDrawing: false,
           triggerMode: 'inside',
@@ -463,10 +514,18 @@ export default {
           tempPoints: [],
           draggedPointIndex: -1,
           isDragging: false,
-          currentPolygon: [] // 当前正在绘制的多边形
+          currentPolygon: []
         },
         images: []
       },
+
+      // 新增：预警等级选项
+      alarmLevelOptions: [
+        { value: '一级预警', label: '一级预警', color: '#F56C6C' },
+        { value: '二级预警', label: '二级预警', color: '#E6A23C' },
+        { value: '三级预警', label: '三级预警', color: '#409EFF' },
+        { value: '四级预警', label: '四级预警', color: '#67C23A' }
+      ],
 
       // 可选技能列表
       skillOptions: [
@@ -505,7 +564,16 @@ export default {
 
       // 新增：标签相关数据
       tagInputValue: '',
-      deviceTags: []
+      deviceTags: [],
+
+      // 新增：选择技能对话框
+      skillSelectDialogVisible: false,
+      skillSelectForm: {
+        selectedSkills: []
+      },
+
+      // 新增：当前选中的技能
+      currentSkill: null
     }
   },
 
@@ -708,11 +776,54 @@ export default {
       // 设置当前设备ID，用于后续保存
       this.currentDeviceId = row.id;
 
+      // 初始化技能选择表单
+      this.skillSelectForm = {
+        selectedSkills: row.skill ? row.skill.split(',').map(s => s.trim()) : []
+      };
+
+      // 打开选择技能对话框
+      this.skillSelectDialogVisible = true;
+    },
+
+    // 关闭选择技能对话框
+    closeSkillSelectDialog() {
+      this.skillSelectDialogVisible = false;
+    },
+
+    // 确认选择技能
+    confirmSkillSelect() {
+      // 检查是否已选择技能
+      if (this.skillSelectForm.selectedSkills.length === 0) {
+        this.$message.warning('请至少选择一个技能');
+        return;
+      }
+
+      // 保存选中的技能到设备中
+      const deviceIndex = this.deviceList.findIndex(device => device.id === this.currentDeviceId);
+      if (deviceIndex !== -1) {
+        // 更新设备的技能名称显示
+        this.deviceList[deviceIndex].skill = this.skillSelectForm.selectedSkills.join(',');
+        this.$message.success('技能选择成功');
+      }
+
+      // 关闭选择技能对话框
+      this.skillSelectDialogVisible = false;
+    },
+
+    // 移除已选技能
+    removeSelectedSkill(skill) {
+      this.skillSelectForm.selectedSkills = this.skillSelectForm.selectedSkills.filter(s => s !== skill);
+    },
+
+    // 配置单个技能
+    configureSkill(skill) {
+      // 关闭选择技能对话框
+      this.skillSelectDialogVisible = false;
+
       // 初始化技能表单
       this.skillForm = {
-        selectedSkill: row.skill ? row.skill.split(',').map(s => s.trim()) : ['未佩戴安全帽 (v7)'],
-        alarmLevel: '四级预警',
-        status: true,
+        selectedSkill: [skill], // 注意这里是数组
+        status: true, // 默认启用
         timeRanges: [{
           start: new Date(2024, 0, 1, 0, 0),
           end: new Date(2024, 0, 1, 23, 59)
@@ -722,7 +833,7 @@ export default {
           frames: 1
         },
         electronicFence: {
-          image: '',
+          image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', // 默认空白背景图
           points: [],
           isDrawing: false,
           triggerMode: 'inside',
@@ -730,42 +841,45 @@ export default {
           tempPoints: [],
           draggedPointIndex: -1,
           isDragging: false,
-          currentPolygon: [] // 当前正在绘制的多边形
+          currentPolygon: []
         },
         images: []
       };
 
+      // 当前选中的技能
+      this.currentSkill = skill;
+
+      // 查找设备
+      const device = this.deviceList.find(d => d.id === this.currentDeviceId);
+
       // 如果设备已有配置，则加载已有配置
-      if (row.config) {
+      if (device && device.config) {
         try {
-          this.loadExistingConfig(row.config);
+          // 查找当前技能的配置
+          const skillConfig = device.config[skill];
+          if (skillConfig) {
+            this.loadSkillConfig(skillConfig);
+          }
         } catch (error) {
           console.error('加载配置失败', error);
         }
       }
 
-      // 使用nextTick确保DOM更新后再显示对话框
-      this.$nextTick(() => {
-        this.skillDialogVisible = true;
-        console.log('打开配置技能对话框');
-      });
+      // 打开配置技能对话框
+      this.skillDialogVisible = true;
     },
 
-    // 加载已有配置
-    loadExistingConfig(config) {
+    // 加载技能配置
+    loadSkillConfig(config) {
       if (!config) return;
-
       // 使用深拷贝避免直接引用
       const configCopy = JSON.parse(JSON.stringify(config));
 
-      // 填充表单字段
-      if (configCopy.selectedSkill) {
-        this.skillForm.selectedSkill = Array.isArray(configCopy.selectedSkill)
-          ? configCopy.selectedSkill
-          : [configCopy.selectedSkill];
-      }
-      this.skillForm.alarmLevel = configCopy.alarmLevel || this.skillForm.alarmLevel;
-      this.skillForm.status = configCopy.status !== undefined ? configCopy.status : this.skillForm.status;
+      // 填充表单字段 - 确保正确加载启用状态
+      this.skillForm.status = configCopy.status !== undefined ? configCopy.status : true;
+
+      // 加载预警等级
+      this.skillForm.alarmLevel = configCopy.alarmLevel || '二级预警';
 
       // 时间段
       if (configCopy.timeRanges && configCopy.timeRanges.length > 0) {
@@ -782,7 +896,7 @@ export default {
 
       // 电子围栏
       if (configCopy.electronicFence) {
-        this.skillForm.electronicFence.image = configCopy.electronicFence.image || '';
+        this.skillForm.electronicFence.image = configCopy.electronicFence.image || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
         this.skillForm.electronicFence.triggerMode = configCopy.electronicFence.triggerMode || 'inside';
         this.skillForm.electronicFence.sensitivity = configCopy.electronicFence.sensitivity || 80;
 
@@ -798,18 +912,14 @@ export default {
               } else if (Array.isArray(points[0])) {
                 // 新格式 - 多边形数组
                 this.skillForm.electronicFence.points = points;
-                console.log('加载多边形数组:', points);
               } else if (typeof points[0] === 'object' && points[0].hasOwnProperty('x') && points[0].hasOwnProperty('y')) {
                 // 旧格式 - 单个多边形
                 this.skillForm.electronicFence.points = [points];
-                console.log('加载单个多边形:', points);
               } else {
                 this.skillForm.electronicFence.points = [];
-                console.log('无法识别的点数据格式:', points);
               }
             } else {
               this.skillForm.electronicFence.points = [];
-              console.log('点数据不是数组:', points);
             }
           } catch (error) {
             console.error('处理点数据时出错:', error);
@@ -824,68 +934,26 @@ export default {
       this.skillForm.electronicFence.currentPolygon = [];
     },
 
-    // 添加时间段
-    addTimeRange() {
-      if (this.skillForm.timeRanges.length < 3) {
-        this.skillForm.timeRanges.push({
-          start: '00:00',
-          end: '23:59'
-        })
-      }
-    },
-
-    // 处理关闭对话框
-    handleClose() {
-      console.log('对话框关闭，重置表单');
-      // 重置表单
-      this.skillForm = {
-        selectedSkill: '',
-        alarmLevel: '',
-        status: true,
-        timeRanges: [{
-          start: new Date(2024, 0, 1, 0, 0),
-          end: new Date(2024, 0, 1, 23, 59)
-        }],
-        frequency: {
-          seconds: 1,
-          frames: 1
-        },
-        electronicFence: {
-          image: '',
-          points: [],
-          isDrawing: false,
-          triggerMode: 'inside',
-          sensitivity: 80,
-          tempPoints: [],
-          draggedPointIndex: -1,
-          isDragging: false,
-          currentPolygon: [] // 当前正在绘制的多边形
-        },
-        images: []
-      };
-
-      // 清除当前设备ID
-      this.currentDeviceId = null;
-    },
-
     // 处理确认配置
     handleConfirm() {
       this.$refs.skillForm.validate((valid) => {
         if (valid) {
-          if (this.currentDeviceId) {
+          if (this.currentDeviceId && this.currentSkill) {
             // 构建要保存的配置对象
             const config = this.prepareConfigForSave();
 
-            // 找到当前设备并保存配置
+            // 找到当前设备
             const deviceIndex = this.deviceList.findIndex(device => device.id === this.currentDeviceId);
             if (deviceIndex !== -1) {
-              this.$set(this.deviceList[deviceIndex], 'config', config);
+              // 确保设备有config对象
+              if (!this.deviceList[deviceIndex].config) {
+                this.$set(this.deviceList[deviceIndex], 'config', {});
+              }
 
-              // 更新设备的技能名称显示
-              this.deviceList[deviceIndex].skill = this.skillForm.selectedSkill.join(',');
+              // 为特定技能保存配置
+              this.$set(this.deviceList[deviceIndex].config, this.currentSkill, config);
 
               this.$message.success('保存成功');
-              console.log('保存的电子围栏配置:', config.electronicFence);
 
               // 更新原始列表
               this.originalDeviceList = [...this.deviceList];
@@ -896,7 +964,7 @@ export default {
               this.$message.error('未找到设备，保存失败');
             }
           } else {
-            this.$message.error('未指定设备ID，保存失败');
+            this.$message.error('未指定设备ID或技能，保存失败');
           }
         } else {
           return false;
@@ -908,9 +976,8 @@ export default {
     prepareConfigForSave() {
       // 创建一个深拷贝，避免引用原始对象
       const config = JSON.parse(JSON.stringify({
-        selectedSkill: this.skillForm.selectedSkill,
-        alarmLevel: this.skillForm.alarmLevel,
         status: this.skillForm.status,
+        alarmLevel: this.skillForm.alarmLevel,
         timeRanges: this.skillForm.timeRanges.map(range => ({
           start: range.start instanceof Date ? range.start.toISOString() : range.start,
           end: range.end instanceof Date ? range.end.toISOString() : range.end
@@ -963,28 +1030,6 @@ export default {
       return points.map(point => `${point.x},${point.y}`).join(' ');
     },
 
-    // 处理上传电子围栏图片
-    handleFenceImageUpload(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.skillForm.electronicFence.image = e.target.result;
-        this.skillForm.electronicFence.points = [];
-        this.skillForm.electronicFence.currentPolygon = [];
-      };
-      reader.readAsDataURL(file);
-      return false; // 阻止自动上传
-    },
-
-    // 拍摄快照
-    captureSnapshot() {
-      // 模拟拍摄快照，实际应用中需要调用摄像头API
-      this.$message.info('已拍摄快照，实际应用中需调用摄像头API');
-      // 演示用，使用示例图片
-      this.skillForm.electronicFence.image = 'https://img.alicdn.com/imgextra/i4/O1CN01sjwb8s1jrJWEFhxnJ_!!6000000004601-2-tps-1076-717.png';
-      this.skillForm.electronicFence.points = [];
-      this.skillForm.electronicFence.currentPolygon = [];
-    },
-
     // 处理图片点击事件，添加电子围栏点
     handleImageClick(event) {
       if (!this.skillForm.electronicFence.isDrawing) {
@@ -998,9 +1043,6 @@ export default {
 
       // 添加点到当前围栏
       this.skillForm.electronicFence.currentPolygon.push({ x, y });
-
-      // 显示用户添加的点数提示
-      this.$message.info(`已添加 ${this.skillForm.electronicFence.currentPolygon.length} 个点，至少需要3个点才能形成有效围栏`);
     },
 
     // 开始绘制电子围栏
@@ -1011,7 +1053,6 @@ export default {
         // 开始绘制
         this.skillForm.electronicFence.isDrawing = true;
         this.skillForm.electronicFence.currentPolygon = [];
-        this.$message.info('请在图片上点击添加围栏顶点，至少需要3个点，点击完成绘制按钮结束');
       }
     },
 
@@ -1083,7 +1124,6 @@ export default {
     cancelDrawFence() {
       this.skillForm.electronicFence.isDrawing = false;
       this.skillForm.electronicFence.currentPolygon = [];
-      this.$message.info('已取消绘制');
     },
 
     // 获取多边形颜色
@@ -1140,8 +1180,6 @@ export default {
       // 添加鼠标移动和抬起事件监听
       document.addEventListener('mousemove', this.boundDragPoint);
       document.addEventListener('mouseup', this.boundStopDragPoint);
-
-      this.$message.info('正在调整围栏点位置，松开鼠标完成');
     },
 
     // 拖动点
@@ -1222,9 +1260,10 @@ export default {
 
     // 关闭技能对话框
     closeSkillDialog() {
-      console.log('手动关闭技能对话框');
       this.skillDialogVisible = false;
-      this.handleClose(); // 确保清理表单
+
+      // 重新打开选择技能对话框
+      this.skillSelectDialogVisible = true;
     },
 
     // 新增：添加标签
@@ -1254,6 +1293,89 @@ export default {
       // 使用字符串哈希算法生成随机但确定的颜色索引
       const hash = Array.from(tag).reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
       return colors[Math.abs(hash) % colors.length];
+    },
+
+    // 添加时间段
+    addTimeRange() {
+      if (this.skillForm.timeRanges.length < 3) {
+        this.skillForm.timeRanges.push({
+          start: new Date(2024, 0, 1, 0, 0),
+          end: new Date(2024, 0, 1, 23, 59)
+        });
+      }
+    },
+
+    // 处理关闭对话框
+    handleClose() {
+      // 重置表单
+      this.skillForm = {
+        selectedSkill: [],
+        status: true,
+        timeRanges: [{
+          start: new Date(2024, 0, 1, 0, 0),
+          end: new Date(2024, 0, 1, 23, 59)
+        }],
+        frequency: {
+          seconds: 1,
+          frames: 1
+        },
+        electronicFence: {
+          image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', // 默认空白背景图
+          points: [],
+          isDrawing: false,
+          triggerMode: 'inside',
+          sensitivity: 80,
+          tempPoints: [],
+          draggedPointIndex: -1,
+          isDragging: false,
+          currentPolygon: []
+        },
+        images: []
+      };
+
+      // 清除当前技能
+      this.currentSkill = null;
+
+      // 重新打开选择技能对话框
+      this.skillSelectDialogVisible = true;
+    },
+
+    // 获取技能图标
+    getSkillIcon(skill) {
+      const icons = {
+        '未佩戴安全帽 (v7)': 'el-icon-user',
+        '管道泄漏 (v2)': 'el-icon-warning',
+        '烟雾识别 (v6)': 'el-icon-video-camera',
+        '明火识别 (v3)': 'el-icon-bell',
+        '人员摔倒 (v1)': 'el-icon-cpu',
+        '人员聚集 (v1)': 'el-icon-share',
+        '人员离岗 (v2)': 'el-icon-bell',
+        '未穿工服 (v3)': 'el-icon-user'
+      };
+      return icons[skill] || 'el-icon-question';
+    },
+
+    // 获取技能渐变色
+    getSkillGradient(skill) {
+      // 使用与技能方块相同的渐变色逻辑
+      if (skill === '未佩戴安全帽 (v7)') {
+        return 'linear-gradient(135deg, #409EFF, #1677ff)';
+      } else if (skill === '管道泄漏 (v2)') {
+        return 'linear-gradient(135deg, #67C23A, #53a11d)';
+      } else if (skill === '烟雾识别 (v6)') {
+        return 'linear-gradient(135deg, #F56C6C, #e74c4c)';
+      } else if (skill === '明火识别 (v3)') {
+        return 'linear-gradient(135deg, #E6A23C, #d38b1c)';
+      } else if (skill === '人员摔倒 (v1)') {
+        return 'linear-gradient(135deg, #409EFF, #1677ff)';
+      } else if (skill === '人员聚集 (v1)') {
+        return 'linear-gradient(135deg, #909399, #6e7175)';
+      } else if (skill === '人员离岗 (v2)') {
+        return 'linear-gradient(135deg, #E6A23C, #d38b1c)';
+      } else if (skill === '未穿工服 (v3)') {
+        return 'linear-gradient(135deg, #F56C6C, #e74c4c)';
+      }
+      return 'linear-gradient(135deg, #909399, #6e7175)';
     }
   }
 }
@@ -1372,12 +1494,12 @@ export default {
 .frequency-input {
   display: flex;
   align-items: center;
-  margin-bottom: 5px;
 }
 
-.frequency-label {
+.frequency-input span {
   margin: 0 8px;
-  color: #606266;
+  color: #1F2329;
+  font-size: 14px;
 }
 
 .frequency-hint {
@@ -1462,10 +1584,6 @@ export default {
   align-items: center;
 }
 
-.status-switch {
-  margin-right: auto;
-}
-
 .time-range {
   display: flex;
   align-items: center;
@@ -1493,7 +1611,6 @@ export default {
 .frequency-input {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
 }
 
 .frequency-input span {
@@ -1514,10 +1631,12 @@ export default {
 }
 
 .frequency-tip {
-  color: #86909C;
+  color: #909399;
   font-size: 12px;
   line-height: 1.5;
-  text-align: left;
+  margin-left: 15px;
+  display: inline-block;
+  font-style: italic;
 }
 
 /* 电子围栏样式 */
@@ -1529,41 +1648,44 @@ export default {
   display: flex;
   flex-direction: row;
   gap: 20px;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .fence-preview {
-  width: 60%;
-  height: 240px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
+  width: 75%;
+  aspect-ratio: 16 / 9;
+  /* 兼容老浏览器的16:9比例实现 */
   position: relative;
   overflow: hidden;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
 }
 
-.video-preview {
-  width: 100%;
-  height: 100%;
-  background-color: #f2f6fc;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.preview-placeholder {
-  text-align: center;
-  color: #909399;
-}
-
-.preview-placeholder i {
-  font-size: 36px;
-  margin-bottom: 10px;
+/* 增加一个兼容老浏览器的16:9比例实现方式 */
+@supports not (aspect-ratio: 16 / 9) {
+  .fence-preview {
+    height: 0;
+    padding-bottom: 42.1875%; /* 75% * 9/16 = 42.1875% */
+  }
+  
+  .fence-side-panel {
+    height: 0;
+    padding-bottom: 42.1875%;
+  }
 }
 
 .image-editor {
   width: 100%;
   height: 100%;
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   overflow: hidden;
+  background-color: #000000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .fence-image {
@@ -1572,7 +1694,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   pointer-events: all;
   user-select: none;
   z-index: 10;
@@ -1620,13 +1742,30 @@ export default {
 }
 
 .fence-side-panel {
-  width: 40%;
+  width: 25%;
+  aspect-ratio: 16 / 9;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
 }
 
 .fence-tips {
+  flex-grow: 1;
+}
+
+.fence-controls-panel {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.fence-controls-panel .el-button-group {
   width: 100%;
+  display: flex;
+}
+
+.fence-controls-panel .el-button-group .el-button {
+  flex: 1;
 }
 
 .fence-upload-btn {
@@ -1664,14 +1803,6 @@ export default {
 .form-item-inline {
   margin-right: 15px;
   margin-bottom: 0;
-}
-
-.form-item-skill {
-  flex: 3;
-}
-
-.form-item-level {
-  flex: 2;
 }
 
 .form-item-inline:last-child {
@@ -1797,5 +1928,491 @@ export default {
   margin-left: 10px;
   font-size: 13px;
   color: #606266;
+}
+
+/* 新增选择技能对话框样式 */
+.skill-select-dialog {
+  border-radius: 4px;
+}
+
+.skill-select-dialog>>>.el-dialog__header {
+  padding: 20px;
+  border-bottom: 1px solid #EBEEF5;
+}
+
+.skill-select-dialog>>>.el-dialog__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1F2329;
+}
+
+.skill-select-dialog>>>.el-dialog__headerbtn {
+  top: 20px;
+}
+
+.skill-select-dialog>>>.el-dialog__body {
+  padding: 24px 0;
+}
+
+.skill-select-dialog>>>.el-form-item {
+  margin-bottom: 24px;
+}
+
+.skill-select-dialog>>>.el-form-item__label {
+  font-size: 14px;
+  color: #1F2329;
+  font-weight: 600;
+  padding-right: 12px;
+  text-align: left;
+}
+
+.skill-select-dialog>>>.el-form-item__content {
+  margin-left: 85px !important;
+  text-align: left;
+}
+
+.skill-select-dialog>>>.el-form-item__label::before {
+  margin-right: 4px;
+  color: #F53F3F;
+  font-weight: 600;
+}
+
+.selected-skills-container {
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 4px;
+  background-color: #f9fafc;
+  border: 1px solid #ebeef5;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.skills-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.skills-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #606266;
+  position: relative;
+  padding-left: 10px;
+  border-left: 3px solid #409EFF;
+}
+
+.skills-grid-wrapper {
+  max-height: 230px;
+  overflow-y: auto;
+  padding-right: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.skills-grid-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.skills-grid-wrapper::-webkit-scrollbar-thumb {
+  background-color: #e0e0e0;
+  border-radius: 3px;
+}
+
+.skills-grid-wrapper:hover::-webkit-scrollbar-thumb {
+  background-color: #c0c0c0;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px 25px;
+  padding: 5px 0;
+  width: 100%;
+  box-sizing: border-box;
+  justify-items: center;
+}
+
+.skill-square {
+  width: 90px;
+  height: 100px;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  padding: 10px;
+  position: relative;
+  transition: all 0.25s ease-in-out;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.skill-square:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-3px);
+  border-color: #c6e2ff;
+}
+
+.skill-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #409EFF, #1677ff);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 6px rgba(22, 119, 255, 0.2);
+}
+
+.skill-icon i {
+  font-size: 18px;
+}
+
+.skill-name {
+  font-size: 12px;
+  color: #303133;
+  text-align: center;
+  margin-bottom: 8px;
+  max-width: 85px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.skill-actions {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 6px;
+  background: linear-gradient(to top, rgba(250, 250, 250, 0.9), rgba(250, 250, 250, 0));
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.skill-square:hover .skill-actions {
+  opacity: 1;
+}
+
+.config-btn,
+.delete-btn {
+  transform: scale(0.8);
+  margin: 0 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.config-btn {
+  background-color: #409EFF;
+  border-color: #409EFF;
+}
+
+.delete-btn {
+  background-color: #F56C6C;
+  border-color: #F56C6C;
+}
+
+.current-skill-header {
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+  border-left: 3px solid #67C23A;
+  display: flex;
+  align-items: center;
+}
+
+.current-skill-header .el-tag {
+  font-size: 14px;
+  padding: 6px 10px;
+}
+
+/* 优化已选技能卡片样式 */
+.skill-square {
+  width: 120px;
+  height: 120px;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  padding: 12px;
+  position: relative;
+  transition: all 0.25s ease-in-out;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+/* 技能图标更多样式 */
+.skill-icon i.el-icon-cpu {
+  color: #fff;
+}
+
+.skill-icon i.el-icon-warning {
+  color: #fff;
+}
+
+.skill-icon i.el-icon-video-camera {
+  color: #fff;
+}
+
+.skill-icon i.el-icon-bell {
+  color: #fff;
+}
+
+.skill-icon i.el-icon-user {
+  color: #fff;
+}
+
+.skill-icon i.el-icon-share {
+  color: #fff;
+}
+
+/* 为不同技能设置不同图标和颜色 */
+.skill-square:nth-child(2n) .skill-icon {
+  background: linear-gradient(135deg, #67C23A, #53a11d);
+  box-shadow: 0 3px 8px rgba(103, 194, 58, 0.2);
+}
+
+.skill-square:nth-child(3n) .skill-icon {
+  background: linear-gradient(135deg, #F56C6C, #e74c4c);
+  box-shadow: 0 3px 8px rgba(245, 108, 108, 0.2);
+}
+
+.skill-square:nth-child(4n) .skill-icon {
+  background: linear-gradient(135deg, #E6A23C, #d38b1c);
+  box-shadow: 0 3px 8px rgba(230, 162, 60, 0.2);
+}
+
+.skill-square:nth-child(5n) .skill-icon {
+  background: linear-gradient(135deg, #909399, #6e7175);
+  box-shadow: 0 3px 8px rgba(144, 147, 153, 0.2);
+}
+
+/* 优化技能信息显示 */
+.current-skill-header {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  border-left: 4px solid #67C23A;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.skill-info-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.skill-info-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.skill-info-icon i {
+  font-size: 24px;
+}
+
+.skill-info-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.skill-name-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.skill-info-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-right: 15px;
+}
+
+.skill-info-desc {
+  font-size: 13px;
+  color: #909399;
+}
+
+.skill-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.status-text {
+  font-size: 13px;
+  margin-left: 8px;
+  color: #909399;
+  font-weight: 500;
+}
+
+.status-text.status-active {
+  color: #67C23A;
+}
+
+.status-switch {
+  transform: scale(1.1);
+}
+
+/* 添加状态开关额外样式 */
+.status-switch>>>.el-switch__core {
+  width: 48px;
+  height: 22px;
+  border-radius: 11px;
+  border: none;
+  transition: all 0.3s;
+}
+
+.status-switch>>>.el-switch__core:after {
+  width: 18px;
+  height: 18px;
+  top: 2px;
+  left: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s;
+}
+
+.status-switch>>>.el-switch.is-checked .el-switch__core::after {
+  margin-left: 20px;
+}
+
+.status-switch>>>.el-switch__label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-switch>>>.el-switch__label.is-active {
+  color: #67C23A;
+}
+
+.status-switch>>>.el-switch__label--right {
+  margin-left: 8px;
+}
+
+.status-switch>>>.el-switch__label--left {
+  margin-right: 8px;
+}
+
+/* 表格中的技能项样式 */
+.table-skill-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 5px;
+}
+
+.table-skill-item:last-child {
+  margin-bottom: 0;
+}
+
+.table-skill-item .skill-name {
+  margin-right: 8px;
+  font-size: 13px;
+}
+
+.table-skill-item .el-tag {
+  margin-left: 5px;
+  padding: 0 6px;
+  height: 20px;
+  line-height: 18px;
+}
+
+/* 技能状态样式 */
+.skill-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.skill-status .el-switch>>>.el-switch__core {
+  background-color: #909399;
+}
+
+.skill-status .el-switch.is-checked>>>.el-switch__core {
+  background-color: #67C23A;
+}
+
+.skill-status .el-switch>>>.el-switch__core::after {
+  left: 2px;
+  top: 2px;
+  border-radius: 100%;
+  transition: all .3s;
+  width: 16px;
+  height: 16px;
+  background-color: #FFFFFF;
+}
+
+.skill-status .el-switch.is-checked>>>.el-switch__core::after {
+  left: 100%;
+  margin-left: -18px;
+}
+
+.status-text {
+  font-size: 13px;
+  margin-left: 8px;
+  color: #909399;
+  font-weight: 500;
+}
+
+.status-text.status-active {
+  color: #67C23A;
+}
+
+/* 调整抽帧频率和预警等级在同一行的样式 */
+.form-row {
+  display: flex;
+  flex-wrap: nowrap;
+  margin-bottom: 5px;
+}
+
+.form-item-inline {
+  margin-right: 20px;
+  flex: 1;
+}
+
+.freq-item {
+  flex: 3;
+}
+
+.alarm-level-item {
+  flex: 2;
+}
+
+.frequency-tip {
+  color: #909399;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  margin-bottom: 20px;
+  margin-left: 85px;
 }
 </style>
