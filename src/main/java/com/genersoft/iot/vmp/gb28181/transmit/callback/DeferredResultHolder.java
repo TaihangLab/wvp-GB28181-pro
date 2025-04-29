@@ -31,6 +31,10 @@ public class DeferredResultHolder {
 	public static final String CALLBACK_CMD_MOBILE_POSITION = "CALLBACK_CMD_MOBILE_POSITION";
 
 	public static final String CALLBACK_CMD_SNAP= "CALLBACK_SNAP";
+	
+	public static final String CALLBACK_CMD_PROXY_SNAP= "CALLBACK_PROXY_SNAP";
+	
+	public static final String CALLBACK_CMD_PUSH_SNAP= "CALLBACK_PUSH_SNAP";
 
 	private Map<String, Map<String, DeferredResultEx>> map = new ConcurrentHashMap<>();
 
