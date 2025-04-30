@@ -47,8 +47,28 @@ visionAIAxios.interceptors.response.use(
       total: 0  // 默认总数为0
     };
     
+    // 检查是否为通用操作响应（包含success和message字段的简单响应）
+    if (originalData && originalData.success !== undefined && originalData.message !== undefined) {
+      transformedData.code = originalData.success ? 0 : -1;
+      transformedData.msg = originalData.message;
+      
+      // 处理摄像头更新或添加响应
+      if (originalData.camera) {
+        transformedData.data = originalData.camera;
+      } else if (originalData.status !== undefined) {
+        transformedData.data = {
+          status: originalData.status
+        };
+      }
+    }
+    // 检查是否为标签创建响应
+    else if (originalData && originalData.success !== undefined && originalData.tag) {
+      transformedData.code = originalData.success ? 0 : -1;
+      transformedData.msg = originalData.success ? '创建标签成功' : '创建标签失败';
+      transformedData.data = originalData.tag;
+    }
     // 检查是否包含models数组（模型列表接口）
-    if (originalData && originalData.models) {
+    else if (originalData && originalData.models) {
       transformedData.data = originalData.models.map(model => {
         return {
           id: model.id,
@@ -75,7 +95,7 @@ visionAIAxios.interceptors.response.use(
       if (originalData.limit) transformedData.limit = originalData.limit;
       if (originalData.pages) transformedData.pages = originalData.pages;
     }
-    // 检查是否包含单个模型详情（获取模型详情接口）
+    // 检查是否为单个模型详情（获取模型详情接口）
     else if (originalData && originalData.model) {
       const model = originalData.model;
       transformedData.data = {
@@ -109,7 +129,11 @@ visionAIAxios.interceptors.response.use(
     else if (originalData && originalData.success !== undefined) {
       transformedData.code = originalData.success ? 0 : -1;
       transformedData.msg = originalData.message || (originalData.success ? 'success' : 'failed');
-      if (originalData.status !== undefined) {
+      
+      // 处理摄像头更新响应
+      if (originalData.camera) {
+        transformedData.data = originalData.camera;
+      } else if (originalData.status !== undefined) {
         transformedData.data = {
           status: originalData.status
         };
@@ -144,6 +168,37 @@ visionAIAxios.interceptors.response.use(
         };
       });
       transformedData.total = originalData.length;
+    }
+    // 检查是否为摄像头列表数据（获取AI摄像头列表接口）
+    else if (originalData && originalData.cameras) {
+      transformedData.data = originalData.cameras.map(camera => {
+        return {
+          id: camera.id,
+          name: camera.name || '未命名摄像头',
+          camera_uuid: camera.camera_uuid || camera.deviceId || camera.gb_id || '-',
+          location: camera.location || '-',
+          status: camera.status || false,
+          tags: camera.tags || [],
+          camera_type: camera.camera_type || '-',
+          skill_names: camera.skill_names || [],
+          warning_level: camera.warning_level || 0,
+          frame_rate: camera.frame_rate || 1,
+          running_period: camera.running_period || '{}',
+          electronic_fence: camera.electronic_fence || '{}',
+          deviceId: camera.deviceId || '-',
+          gb_id: camera.gb_id || '-',
+          app: camera.app || '-',
+          stream: camera.stream || '-',
+          proxy_id: camera.proxy_id || '-',
+          push_id: camera.push_id || '-'
+        };
+      });
+      transformedData.total = originalData.total || transformedData.data.length;
+      
+      // 添加分页信息
+      if (originalData.page) transformedData.page = originalData.page;
+      if (originalData.limit) transformedData.limit = originalData.limit;
+      if (originalData.pages) transformedData.pages = originalData.pages;
     }
     // 其他情况，保持原样
     else {
@@ -351,7 +406,167 @@ export const skillAPI = {
   }
 };
 
+// 摄像头服务API
+export const cameraAPI = {
+  /**
+   * 获取视觉AI平台中已添加的摄像头列表
+   * @param {Object} params - 查询参数
+   * @param {number} [params.page=1] - 当前页码，从1开始
+   * @param {number} [params.limit=10] - 每页记录数，最大100条
+   * @param {string} [params.name] - 按摄像头名称过滤（模糊匹配）
+   * @param {string} [params.tag] - 按标签过滤（精确匹配）
+   * @returns {Promise} 包含摄像头列表的Promise对象
+   */
+  getCameraList(params = {}) {
+    // 处理查询和分页参数
+    const apiParams = { ...params };
+    
+    // 处理摄像头名称搜索参数
+    if (params.name) {
+      apiParams.query_name = params.name;
+      delete apiParams.name;
+    }
+    
+    // 处理标签筛选参数
+    if (params.tag) {
+      apiParams.query_tag = params.tag;
+      delete apiParams.tag;
+    }
+    
+    // 处理分页参数 - 确保page和limit被正确传递
+    if (params.page) {
+      apiParams.page = params.page;
+    } else {
+      apiParams.page = 1; // 默认第1页
+    }
+    
+    if (params.limit) {
+      apiParams.limit = Math.min(params.limit, 100); // 限制最大为100条
+    } else {
+      apiParams.limit = 10; // 默认每页10条
+    }
+    
+    return visionAIAxios.get('/api/v1/cameras/ai/list', { params: apiParams });
+  },
+
+  /**
+   * 更新摄像头信息
+   * @param {string|number} cameraId - 摄像头ID
+   * @param {Object} cameraData - 要更新的摄像头数据，只需提供需要更新的字段
+   * @returns {Promise} 更新结果的Promise对象，包含更新后的摄像头信息和操作结果
+   */
+  updateCamera(cameraId, cameraData) {
+    if (!cameraId) {
+      console.error('更新摄像头失败: 缺少摄像头ID');
+      return Promise.reject(new Error('缺少摄像头ID'));
+    }
+    
+    return visionAIAxios.put(`/api/v1/cameras/${cameraId}`, cameraData);
+  },
+  
+  /**
+   * 添加新摄像头到AI平台
+   * @param {Object} cameraData - 摄像头数据，包含必要的设备标识信息
+   * @param {string} cameraData.name - 摄像头名称
+   * @param {string} cameraData.location - 摄像头位置
+   * @param {boolean} cameraData.status - 摄像头状态
+   * @param {Array} cameraData.tags - 摄像头标签
+   * @param {string} cameraData.camera_type - 摄像头类型，支持 'gb28181'、'proxy_stream'、'push_stream'
+   * @param {string} [cameraData.deviceId] - GB28181设备的国标编号，camera_type为'gb28181'时必填
+   * @param {string} [cameraData.gb_id] - GB28181设备的国标编号，通常与deviceId相同
+   * @param {string} [cameraData.app] - 代理流或推流设备的应用名，camera_type为'proxy_stream'或'push_stream'时必填
+   * @param {string} [cameraData.stream] - 代理流或推流设备的流ID，camera_type为'proxy_stream'或'push_stream'时必填
+   * @param {string} [cameraData.proxy_id] - 代理流设备的代理ID，camera_type为'proxy_stream'时必填
+   * @param {string} [cameraData.push_id] - 推流设备的推流ID，camera_type为'push_stream'时必填
+   * @returns {Promise} 添加结果的Promise对象，包含新添加的摄像头信息和操作结果
+   */
+  addCameraToAI(cameraData) {
+    if (!cameraData) {
+      console.error('添加摄像头失败: 缺少摄像头数据');
+      return Promise.reject(new Error('缺少摄像头数据'));
+    }
+    
+    // 验证必填字段
+    if (!cameraData.name || !cameraData.camera_type) {
+      console.error('添加摄像头失败: 缺少必填字段(name或camera_type)');
+      return Promise.reject(new Error('缺少必填字段(name或camera_type)'));
+    }
+    
+    // 根据不同的摄像头类型验证对应的必填字段
+    switch (cameraData.camera_type) {
+      case 'gb28181':
+        if (!cameraData.deviceId) {
+          console.error('添加GB28181摄像头失败: 缺少deviceId字段');
+          return Promise.reject(new Error('添加GB28181摄像头失败: 缺少deviceId字段'));
+        }
+        break;
+      case 'proxy_stream':
+        if (!cameraData.app || !cameraData.stream || !cameraData.proxy_id) {
+          console.error('添加代理流摄像头失败: 缺少app、stream或proxy_id字段');
+          return Promise.reject(new Error('添加代理流摄像头失败: 缺少app、stream或proxy_id字段'));
+        }
+        break;
+      case 'push_stream':
+        if (!cameraData.app || !cameraData.stream || !cameraData.push_id) {
+          console.error('添加推流摄像头失败: 缺少app、stream或push_id字段');
+          return Promise.reject(new Error('添加推流摄像头失败: 缺少app、stream或push_id字段'));
+        }
+        break;
+      default:
+        console.error(`添加摄像头失败: 不支持的摄像头类型 ${cameraData.camera_type}`);
+        return Promise.reject(new Error(`不支持的摄像头类型 ${cameraData.camera_type}`));
+    }
+    
+    return visionAIAxios.post('/api/v1/cameras', cameraData);
+  },
+  
+  /**
+   * 添加新摄像头（旧API，保留兼容性）
+   * @param {Object} cameraData - 摄像头数据
+   * @returns {Promise} 添加结果的Promise对象
+   */
+  addCamera(cameraData) {
+    if (!cameraData) {
+      console.error('添加摄像头失败: 缺少摄像头数据');
+      return Promise.reject(new Error('缺少摄像头数据'));
+    }
+    
+    return visionAIAxios.post('/api/v1/cameras/ai', cameraData);
+  },
+  
+  /**
+   * 删除摄像头
+   * @param {string|number} cameraId - 摄像头ID
+   * @returns {Promise} 删除结果的Promise对象，包含成功状态和消息
+   */
+  deleteCamera(cameraId) {
+    if (!cameraId) {
+      console.error('删除摄像头失败: 缺少摄像头ID');
+      return Promise.reject(new Error('缺少摄像头ID'));
+    }
+    
+    return visionAIAxios.delete(`/api/v1/cameras/${cameraId}`);
+  },
+  
+  /**
+   * 创建新标签
+   * @param {Object} tagData - 标签数据
+   * @param {string} tagData.name - 标签名称(必填)
+   * @param {string} [tagData.description] - 标签描述(可选)
+   * @returns {Promise} 创建结果的Promise对象，包含新创建的标签信息
+   */
+  createTag(tagData) {
+    if (!tagData || !tagData.name) {
+      console.error('创建标签失败: 缺少标签名称');
+      return Promise.reject(new Error('缺少标签名称'));
+    }
+    
+    return visionAIAxios.post('/api/v1/cameras/tags', tagData);
+  }
+};
+
 export default {
   modelAPI,
-  skillAPI
+  skillAPI,
+  cameraAPI
 }; 

@@ -1,21 +1,51 @@
 <template>
   <div>
     <div class="camera-management">
-      <!-- 左侧设备树 -->
+      <!-- 左侧标签区域 -->
       <div class="device-tree">
-        <h3 class="tree-title">设备目录</h3>
-        <el-input v-model="searchKeyword" placeholder="输入关键字搜索" prefix-icon="search" />
-        <el-tree :data="deviceTree" :props="{ children: 'children', label: 'label' }" default-expand-all
-          highlight-current node-key="id" class="custom-tree">
-          <template slot-scope="{ node }">
-            <span class="custom-tree-node">
-              <span>{{ node.label }}</span>
-              <el-tag v-if="node.data.status" :type="node.data.status === 'online' ? 'success' : 'danger'" size="small">
-                {{ node.data.status === 'online' ? '在线' : '离线' }}
-              </el-tag>
-            </span>
-          </template>
-        </el-tree>
+        <h3 class="tree-title">设备标签</h3>
+        
+        <!-- 标签添加区域 -->
+        <div class="tag-add-area">
+          <el-form size="small">
+            <el-form-item>
+              <el-input v-model="newTagValue" placeholder="输入标签名称" class="tag-input"></el-input>
+            </el-form-item>
+            <el-form-item>
+              <el-input 
+                v-model="newTagDetail" 
+                type="textarea" 
+                :rows="3" 
+                placeholder="输入标签详情描述（可选）" 
+                class="tag-detail-input">
+              </el-input>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" size="small" icon="el-icon-plus" @click="addNewTag" style="width:100%">添加标签</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+        
+        <!-- 标签列表区域 -->
+        <div class="tags-list-container">
+          <el-tooltip 
+            v-for="tag in uniqueTags" 
+            :key="tag.name" 
+            :content="tag.detail || '无详情描述'" 
+            placement="right"
+            :open-delay="300">
+            <el-tag 
+              :color="getTagColor(tag.name)" 
+              effect="plain"
+              class="tag-item"
+              @click="filterByTag(tag.name)">
+              {{ tag.name }}
+            </el-tag>
+          </el-tooltip>
+          <div v-if="uniqueTags.length === 0" class="no-tags-tip">
+            暂无标签
+          </div>
+        </div>
       </div>
 
       <!-- 右侧设备列表 -->
@@ -37,18 +67,24 @@
           </div>
         </div>
 
-        <el-table :data="deviceList" style="width: 100%" @selection-change="handleSelectionChange">
+        <el-table 
+          :data="deviceList" 
+          style="width: 100%" 
+          @selection-change="handleSelectionChange"
+          v-loading="loading"
+          element-loading-text="加载中..."
+          empty-text="暂无摄像头数据">
           <el-table-column type="selection" width="55" align="center" />
-          <el-table-column prop="name" label="摄像头名称" align="center" />
-          <el-table-column prop="status" label="状态" align="center">
+          <el-table-column prop="name" label="摄像头名称" width="180" align="center" />
+          <el-table-column prop="status" label="状态" width="100" align="center">
             <template slot-scope="{ row }">
               <el-tag :type="row.status === 'online' ? 'success' : 'danger'">
                 {{ row.status === 'online' ? '在线' : '离线' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="location" label="设备来源" align="center" />
-          <el-table-column label="设备标签" align="center">
+          <el-table-column prop="location" label="设备来源" width="120" align="center" />
+          <el-table-column label="设备标签" width="200" align="center">
             <template slot-scope="{ row }">
               <el-tag v-for="(tag, index) in row.tags" :key="index" :color="getTagColor(tag)" effect="plain" size="mini"
                 style="margin: 2px; color: #fff; border-color: transparent;">
@@ -57,15 +93,13 @@
               <span v-if="!row.tags || row.tags.length === 0">-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="skill" label="视频技能" align="center">
+          <el-table-column prop="skill" label="视频技能" min-width="150" align="center">
             <template slot-scope="{ row }">
-              <div v-if="row.skill">
-                <div v-for="(skillName, idx) in row.skill.split(',')" :key="idx" class="table-skill-item">
-                  <span class="skill-name">{{ skillName.trim() }}</span>
-                  <el-tag v-if="row.config && row.config[skillName.trim()]"
-                    :type="row.config[skillName.trim()].status ? 'success' : 'info'" size="mini" effect="plain">
-                    {{ row.config[skillName.trim()].status ? '已启用' : '已禁用' }}
-                  </el-tag>
+              <div v-if="row.skill && row.skill !== '-'" class="skill-tags-container">
+                <div v-for="(skillName, idx) in row.skill.split(',')" :key="idx" class="skill-tag-item">
+                  <span class="skill-name" :style="{color: row.config && row.config[skillName.trim()] && row.config[skillName.trim()].status ? '#67C23A' : '#909399'}">
+                    {{ skillName.trim() }}
+                  </span>
                 </div>
               </div>
               <span v-else>-</span>
@@ -113,6 +147,39 @@
           <el-form-item label="关联地点">
             <el-input v-model="deviceForm.location" style="width: 200pt;" />
           </el-form-item>
+
+          <!-- 国标设备特定字段 -->
+          <div v-if="deviceForm.type === 'gb28181'">
+            <el-form-item label="设备编号">
+              <el-input v-model="cameraTypeSpecificFields.deviceId" placeholder="请输入国标设备编号" style="width: 200pt;" />
+            </el-form-item>
+          </div>
+
+          <!-- 代理流设备特定字段 -->
+          <div v-if="deviceForm.type === 'pull'">
+            <el-form-item label="应用名称">
+              <el-input v-model="cameraTypeSpecificFields.app" placeholder="请输入应用名称" style="width: 200pt;" />
+            </el-form-item>
+            <el-form-item label="流ID">
+              <el-input v-model="cameraTypeSpecificFields.stream" placeholder="请输入流ID" style="width: 200pt;" />
+            </el-form-item>
+            <el-form-item label="代理ID">
+              <el-input v-model="cameraTypeSpecificFields.proxy_id" placeholder="请输入代理ID" style="width: 200pt;" />
+            </el-form-item>
+          </div>
+
+          <!-- 推流设备特定字段 -->
+          <div v-if="deviceForm.type === 'push'">
+            <el-form-item label="应用名称">
+              <el-input v-model="cameraTypeSpecificFields.app" placeholder="请输入应用名称" style="width: 200pt;" />
+            </el-form-item>
+            <el-form-item label="流ID">
+              <el-input v-model="cameraTypeSpecificFields.stream" placeholder="请输入流ID" style="width: 200pt;" />
+            </el-form-item>
+            <el-form-item label="推流ID">
+              <el-input v-model="cameraTypeSpecificFields.push_id" placeholder="请输入推流ID" style="width: 200pt;" />
+            </el-form-item>
+          </div>
 
           <el-form-item label="设备标签">
             <div class="tag-input-container">
@@ -333,6 +400,8 @@
 </template>
 
 <script>
+import { cameraAPI } from '@/components/service/VisionAIService.js';
+
 export default {
   name: 'CameraManagement',
   data() {
@@ -359,88 +428,7 @@ export default {
       searchKeyword: '',
 
       // 设备列表数据
-      deviceList: [
-        {
-          id: '1',
-          name: '监控设备1',
-          status: 'online',
-          location: '中心节点',
-          skill: '安全帽检测 v2',
-          createTime: '2024-03-20',
-          config: null, // 添加配置字段
-          tags: ['电力行业', '监控设备']
-        },
-        {
-          id: '2',
-          name: '摄像头01',
-          status: 'online',
-          location: '中心节点',
-          skill: '工服检测 v1',
-          createTime: '2024-03-19',
-          config: null,
-          tags: ['油气行业', '摄像头']
-        },
-        {
-          id: '3',
-          name: '消防设备',
-          status: 'offline',
-          location: '中心节点',
-          skill: '未穿工服检测',
-          createTime: '2024-03-18',
-          config: null,
-          tags: ['油气行业', '消防设备']
-        },
-        {
-          id: '4',
-          name: '监控设备2',
-          status: 'offline',
-          location: '中心节点',
-          skill: '安全帽检测 v2, 工服检测 v1',
-          createTime: '2024-03-17',
-          config: null,
-          tags: ['电力行业', '监控设备']
-        },
-        {
-          id: '5',
-          name: '车牌识别东',
-          status: 'online',
-          location: '中心节点',
-          skill: '车牌识别 v6',
-          createTime: '2024-03-16',
-          config: null,
-          tags: ['电力行业', '车牌识别']
-        },
-        {
-          id: '6',
-          name: '沪宁高速监控',
-          status: 'online',
-          location: '中心节点',
-          skill: '雨天人车检测 v1',
-          createTime: '2024-03-15',
-          config: null,
-          tags: ['电力行业', '雨天人车检测']
-        },
-        {
-          id: '7',
-          name: '水位监测',
-          status: 'offline',
-          location: '中心节点',
-          skill: '水位监测 v1',
-          createTime: '2024-03-14',
-          config: null,
-          tags: ['电力行业', '水位监测']
-        },
-        {
-          id: '8',
-          name: '护边检测',
-          status: 'online',
-          location: '中心节点',
-          skill: 'ks_xuangan_detect_851_v1_0',
-          createTime: '2024-03-13',
-          config: null,
-          tags: ['电力行业', '护边检测']
-        }
-      ],
+      deviceList: [],
 
       // 原始设备列表数据（用于搜索和刷新）
       originalDeviceList: [],
@@ -488,6 +476,7 @@ export default {
       currentPage: 1,
       pageSize: 10,
       total: 0,
+      loading: false,
 
       // 配置技能对话框
       skillDialogVisible: false,
@@ -571,7 +560,13 @@ export default {
       },
 
       // 新增：当前选中的技能
-      currentSkill: null
+      currentSkill: null,
+      
+      // 新增：新标签输入值
+      newTagValue: '',
+      newTagDetail: '',
+
+      cameraTypeSpecificFields: {} // 新增：类型特定字段
     }
   },
 
@@ -582,35 +577,248 @@ export default {
         return [];
       }
       return this.cameras.filter(camera => camera.type === this.deviceForm.type);
+    },
+
+    // 唯一标签列表
+    uniqueTags() {
+      // 收集所有的标签对象
+      const allTags = this.deviceList.flatMap(device => device.tags || []);
+      
+      // 创建一个映射来存储唯一的标签对象（按名称去重）
+      const tagMap = new Map();
+      
+      allTags.forEach(tag => {
+        // 如果标签是字符串类型，转换为对象
+        const tagObj = typeof tag === 'string' 
+          ? { name: tag, detail: '' } 
+          : tag;
+        
+        // 只保留每个标签名称的第一个实例
+        if (!tagMap.has(tagObj.name)) {
+          tagMap.set(tagObj.name, tagObj);
+        }
+      });
+      
+      // 返回唯一标签对象的数组
+      return Array.from(tagMap.values());
     }
   },
 
   created() {
-    this.originalDeviceList = [...this.deviceList]
-    this.total = this.deviceList.length
+    // 获取摄像头列表
+    this.fetchCameraList();
   },
 
   watch: {
     searchKeyword(newValue) {
       if (!newValue) {
-        // 如果搜索关键词为空，恢复原始数据
-        this.deviceList = [...this.originalDeviceList]
+        // 如果搜索关键词为空，重新获取摄像头列表数据
+        this.fetchCameraList();
       } else {
-        // 根据关键词过滤设备列表
-        this.deviceList = this.originalDeviceList.filter(device =>
-          device.name.toLowerCase().includes(newValue.toLowerCase()) ||
-          device.skill.toLowerCase().includes(newValue.toLowerCase()) ||
-          device.location.toLowerCase().includes(newValue.toLowerCase())
-        )
+        // 使用关键词搜索摄像头
+        this.fetchCameraList({ name: newValue });
       }
     }
   },
 
   methods: {
+    // 获取摄像头列表数据
+    fetchCameraList(params = {}) {
+      this.loading = true;
+      
+      // 合并查询参数
+      const queryParams = {
+        page: this.currentPage,
+        limit: this.pageSize,
+        ...params
+      };
+      
+      // 如果搜索关键字匹配标签列表中的标签名称，将其作为标签过滤条件
+      if (this.searchKeyword) {
+        const matchingTag = this.uniqueTags.find(tag => tag.name === this.searchKeyword);
+        if (matchingTag) {
+          queryParams.tag = matchingTag.name;
+        } else {
+          queryParams.name = this.searchKeyword;
+        }
+      }
+      
+      cameraAPI.getCameraList(queryParams)
+        .then(response => {
+          if (response.data.code === 0) {
+            // 将获取的摄像头列表转换为前端所需的设备列表格式
+            this.deviceList = response.data.data.map(camera => {
+              return {
+                id: camera.id,
+                name: camera.name,
+                status: camera.status ? 'online' : 'offline',
+                location: camera.location,
+                tags: camera.tags || [],
+                skill: Array.isArray(camera.skill_names) ? camera.skill_names.join(', ') : '-',
+                camera_type: camera.camera_type,
+                config: this.buildConfigFromCamera(camera),
+                camera_uuid: camera.camera_uuid,
+                deviceId: camera.deviceId,
+                gb_id: camera.gb_id
+              };
+            });
+            
+            // 保存原始数据，用于重置
+            this.originalDeviceList = [...this.deviceList];
+            
+            // 更新总数和分页信息
+            this.total = response.data.total || 0;
+            
+            // 检查当前页是否有数据，如果当前页没有数据且不是第一页，则回到前一页
+            if (this.deviceList.length === 0 && this.currentPage > 1 && this.total > 0) {
+              this.currentPage -= 1;
+              // 重新获取上一页数据
+              this.fetchCameraList();
+            }
+          } else {
+            this.$message.error('获取摄像头列表失败：' + (response.data.msg || '未知错误'));
+          }
+        })
+        .catch(error => {
+          console.error('获取摄像头列表出错:', error);
+          this.$message.error('获取摄像头列表失败：' + (error.message || '服务器错误'));
+          
+          // 如果获取失败，使用空数组
+          this.deviceList = [];
+          this.originalDeviceList = [];
+          this.total = 0;
+        })
+        .finally(() => {
+          this.loading = false;
+        });
+    },
+    
+    // 将摄像头数据转换为配置对象
+    buildConfigFromCamera(camera) {
+      // 如果不存在技能名称，返回null
+      if (!camera.skill_names || camera.skill_names.length === 0) {
+        return null;
+      }
+      
+      // 构建配置对象
+      const config = {};
+      
+      // 遍历技能名称，为每个技能创建配置
+      camera.skill_names.forEach(skillName => {
+        // 创建基本配置
+        config[skillName] = {
+          status: true, // 默认启用
+          alarmLevel: camera.warning_level ? this.getAlarmLevelByValue(camera.warning_level) : '二级预警',
+          timeRanges: this.parseRunningPeriod(camera.running_period),
+          frequency: {
+            seconds: camera.frame_rate || 1,
+            frames: 1
+          },
+          electronicFence: this.parseElectronicFence(camera.electronic_fence)
+        };
+      });
+      
+      return config;
+    },
+    
+    // 解析运行时段
+    parseRunningPeriod(runningPeriodStr) {
+      try {
+        // 尝试解析JSON字符串
+        const runningPeriod = typeof runningPeriodStr === 'string' ? 
+          JSON.parse(runningPeriodStr) : runningPeriodStr;
+        
+        // 如果是有效对象且包含时间范围
+        if (runningPeriod && Array.isArray(runningPeriod.times)) {
+          return runningPeriod.times.map(time => ({
+            start: new Date(`2024-01-01T${time.start}:00`),
+            end: new Date(`2024-01-01T${time.end}:00`)
+          }));
+        }
+      } catch (e) {
+        console.error('解析运行时段失败:', e);
+      }
+      
+      // 默认返回全天
+      return [{
+        start: new Date(2024, 0, 1, 0, 0),
+        end: new Date(2024, 0, 1, 23, 59)
+      }];
+    },
+    
+    // 解析电子围栏
+    parseElectronicFence(fenceStr) {
+      try {
+        // 尝试解析JSON字符串
+        const fence = typeof fenceStr === 'string' ? 
+          JSON.parse(fenceStr) : fenceStr;
+        
+        // 如果是有效对象且包含围栏数据
+        if (fence && fence.image) {
+          return {
+            image: fence.image,
+            points: fence.points || [],
+            isDrawing: false,
+            triggerMode: fence.triggerMode || 'inside',
+            sensitivity: fence.sensitivity || 80,
+            tempPoints: [],
+            draggedPointIndex: -1,
+            isDragging: false,
+            currentPolygon: []
+          };
+        }
+      } catch (e) {
+        console.error('解析电子围栏失败:', e);
+      }
+      
+      // 返回默认围栏配置
+      return {
+        image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        points: [],
+        isDrawing: false,
+        triggerMode: 'inside',
+        sensitivity: 80,
+        tempPoints: [],
+        draggedPointIndex: -1,
+        isDragging: false,
+        currentPolygon: []
+      };
+    },
+    
+    // 根据预警等级值获取预警等级名称
+    getAlarmLevelByValue(level) {
+      const levelMap = {
+        1: '一级预警',
+        2: '二级预警',
+        3: '三级预警',
+        4: '四级预警'
+      };
+      return levelMap[level] || '二级预警';
+    },
+    
+    // 格式化技能ID为显示名称
+    formatSkillIds(skillIds) {
+      if (!skillIds || skillIds.length === 0) {
+        return '-';
+      }
+      
+      // 这里可以从后端获取技能名称，暂时使用技能ID作为名称
+      return skillIds.join(', ');
+    },
+
     // 处理设备类型变化
     handleDeviceTypeChange() {
       // 重置摄像头选择
       this.deviceForm.cameraId = '';
+      // 重置类型特定字段
+      this.cameraTypeSpecificFields = {};
+      
+      // 根据设备类型设置默认值
+      if (this.deviceForm.type === 'push') {
+        this.cameraTypeSpecificFields.app = 'live';
+      } else if (this.deviceForm.type === 'pull') {
+        this.cameraTypeSpecificFields.app = 'live';
+      }
     },
 
     // 处理添加设备
@@ -623,6 +831,7 @@ export default {
         skills: [],
         tags: []
       };
+      this.cameraTypeSpecificFields = {}; // 清空类型特定字段
       this.deviceDialogVisible = true;
     },
 
@@ -647,15 +856,46 @@ export default {
           type: 'warning',
         }
       ).then(() => {
-        // 从设备列表中移除选中的设备
-        this.deviceList = this.deviceList.filter(
-          device => !this.selectedDevices.includes(device.id)
-        )
-        this.selectedDevices = []
-        this.$message.success('删除成功')
+        // 显示加载状态
+        this.loading = true;
+        
+        // 创建删除任务数组
+        const deleteTasks = this.selectedDevices.map(id => cameraAPI.deleteCamera(id));
+        
+        // 并行执行所有删除任务
+        Promise.allSettled(deleteTasks)
+          .then(results => {
+            // 统计成功和失败的数量
+            const successCount = results.filter(r => r.status === 'fulfilled' && r.value.data.code === 0).length;
+            const failCount = this.selectedDevices.length - successCount;
+            
+            if (successCount > 0) {
+              // 删除成功后重新获取当前页数据，保持每页显示的数据量
+              this.fetchCameraList();
+              
+              // 提示成功信息
+              if (failCount === 0) {
+                this.$message.success(`成功删除 ${successCount} 个设备`);
+              } else {
+                this.$message.warning(`成功删除 ${successCount} 个设备，${failCount} 个设备删除失败`);
+              }
+            } else {
+              this.$message.error('批量删除失败');
+            }
+            
+            // 清空选中的设备
+            this.selectedDevices = [];
+          })
+          .catch(error => {
+            console.error('批量删除出错:', error);
+            this.$message.error('批量删除失败：' + (error.message || '服务器错误'));
+          })
+          .finally(() => {
+            this.loading = false;
+          });
       }).catch(() => {
         // 用户点击取消，不做操作
-      })
+      });
     },
 
     // 确认添加设备
@@ -680,73 +920,231 @@ export default {
 
       if (this.deviceForm.id) {
         // 编辑现有设备
-        const index = this.deviceList.findIndex(device => device.id === this.deviceForm.id);
-        if (index !== -1) {
-          // 更新设备信息
-          this.deviceList[index].name = this.deviceForm.name;
-          this.deviceList[index].type = this.deviceForm.type;
-          this.deviceList[index].cameraId = this.deviceForm.cameraId;
-          this.deviceList[index].cameraName = cameraName;
-          this.deviceList[index].location = this.deviceForm.location;
-          this.deviceList[index].tags = [...this.deviceForm.tags]; // 保存标签
-          this.$message.success('设备更新成功');
-        }
+        this.loading = true;
+        
+        // 准备更新数据
+        const updateData = {
+          name: this.deviceForm.name,
+          type: this.deviceForm.type,
+          camera_uuid: this.deviceForm.cameraId,
+          location: this.deviceForm.location,
+          tags: [...this.deviceForm.tags]
+        };
+        
+        // 调用API更新摄像头
+        cameraAPI.updateCamera(this.deviceForm.id, updateData)
+          .then(response => {
+            if (response.data.code === 0) {
+              // 从响应中获取更新后的摄像头数据
+              const updatedCameraData = response.data.data;
+              
+              // 合并更新的数据和原有数据，确保保留之前的技能配置
+              const index = this.deviceList.findIndex(device => device.id === this.deviceForm.id);
+              if (index !== -1) {
+                const updatedDevice = {
+                  ...this.deviceList[index],  // 保留原有数据
+                  id: updatedCameraData.id,
+                  name: updatedCameraData.name,
+                  status: updatedCameraData.status ? 'online' : 'offline',
+                  location: updatedCameraData.location,
+                  tags: updatedCameraData.tags || [],
+                  // 如果返回了skill_names，则使用，否则保留原来的skill值
+                  skill: Array.isArray(updatedCameraData.skill_names) 
+                    ? updatedCameraData.skill_names.join(', ') 
+                    : this.deviceList[index].skill,
+                  camera_type: updatedCameraData.camera_type,
+                  camera_uuid: updatedCameraData.camera_uuid,
+                  deviceId: updatedCameraData.deviceId,
+                  gb_id: updatedCameraData.gb_id
+                };
+                
+                // 更新列表中的设备数据
+                this.$set(this.deviceList, index, updatedDevice);
+                // 更新原始列表
+                this.originalDeviceList = [...this.deviceList];
+              }
+              
+              this.$message.success('设备更新成功');
+            } else {
+              this.$message.error('更新设备失败：' + (response.data.msg || '未知错误'));
+            }
+          })
+          .catch(error => {
+            console.error('更新设备出错:', error);
+            this.$message.error('更新设备失败：' + (error.message || '服务器错误'));
+            
+            // 如果API调用失败，手动更新前端数据显示
+            const index = this.deviceList.findIndex(device => device.id === this.deviceForm.id);
+            if (index !== -1) {
+              // 更新设备信息
+              this.$set(this.deviceList, index, {
+                ...this.deviceList[index],
+                name: this.deviceForm.name,
+                type: this.deviceForm.type,
+                cameraId: this.deviceForm.cameraId,
+                cameraName: cameraName,
+                location: this.deviceForm.location,
+                tags: [...this.deviceForm.tags]
+              });
+              this.originalDeviceList = [...this.deviceList];
+            }
+          })
+          .finally(() => {
+            this.loading = false;
+            // 关闭对话框并重置表单
+            this.deviceDialogVisible = false;
+            this.deviceForm = {
+              name: '',
+              type: '',
+              cameraId: '',
+              location: '',
+              skills: [],
+              tags: []
+            };
+            this.cameraTypeSpecificFields = {}; // 清空类型特定字段
+            this.tagInputValue = ''; // 清空标签输入值
+          });
       } else {
         // 添加新设备
-        const newId = Date.now().toString(); // 生成临时ID
-        const newDevice = {
-          id: newId,
+        this.loading = true;
+        
+        // 准备新设备数据
+        let cameraData = {
           name: this.deviceForm.name,
-          status: 'online', // 默认在线
-          type: this.deviceForm.type,
-          cameraId: this.deviceForm.cameraId,
-          cameraName: cameraName,
-          location: this.deviceForm.location,
-          tags: [...this.deviceForm.tags], // 保存标签
-          skill: '',
-          createTime: new Date().toISOString().split('T')[0],
-          config: null
+          location: this.deviceForm.location || '',
+          status: true, // 默认为在线状态
+          tags: [...this.deviceForm.tags],
+          camera_type: this.convertCameraType(this.deviceForm.type),
         };
-
-        // 添加到设备列表
-        this.deviceList.unshift(newDevice);
-        this.originalDeviceList = [...this.deviceList];
-        this.total = this.deviceList.length;
-        this.$message.success('设备添加成功');
+        
+        // 根据摄像头类型添加特定字段
+        switch (cameraData.camera_type) {
+          case 'gb28181':
+            if (this.cameraTypeSpecificFields.deviceId) {
+              cameraData.deviceId = this.cameraTypeSpecificFields.deviceId;
+              cameraData.gb_id = this.cameraTypeSpecificFields.deviceId; // 通常与deviceId相同
+            } else {
+              // 如果未提供deviceId，使用所选摄像头ID
+              cameraData.deviceId = this.deviceForm.cameraId;
+              cameraData.gb_id = this.deviceForm.cameraId;
+            }
+            break;
+          case 'proxy_stream':
+            cameraData.app = this.cameraTypeSpecificFields.app || 'live';
+            cameraData.stream = this.cameraTypeSpecificFields.stream || this.deviceForm.cameraId;
+            cameraData.proxy_id = this.cameraTypeSpecificFields.proxy_id || this.deviceForm.cameraId;
+            break;
+          case 'push_stream':
+            cameraData.app = this.cameraTypeSpecificFields.app || 'live';
+            cameraData.stream = this.cameraTypeSpecificFields.stream || this.deviceForm.cameraId;
+            cameraData.push_id = this.cameraTypeSpecificFields.push_id || this.deviceForm.cameraId;
+            break;
+        }
+        
+        // 调用API添加摄像头
+        cameraAPI.addCameraToAI(cameraData)
+          .then(response => {
+            if (response.data.code === 0) {
+              // 添加成功，刷新摄像头列表
+              this.fetchCameraList();
+              this.$message.success('设备添加成功');
+            } else {
+              this.$message.error('添加设备失败：' + (response.data.msg || '未知错误'));
+              
+              // 如果API调用失败但有返回ID，手动添加到前端显示
+              if (response.data.data && response.data.data.id) {
+                const newId = response.data.data.id;
+                this.addDeviceToList(newId, cameraData, cameraName);
+              }
+            }
+          })
+          .catch(error => {
+            console.error('添加设备出错:', error);
+            this.$message.error('添加设备失败：' + (error.message || '服务器错误'));
+            
+            // 如果API调用失败，生成临时ID并手动添加到前端显示
+            const newId = Date.now().toString();
+            this.addDeviceToList(newId, cameraData, cameraName);
+          })
+          .finally(() => {
+            this.loading = false;
+            // 关闭对话框并重置表单
+            this.deviceDialogVisible = false;
+            this.deviceForm = {
+              name: '',
+              type: '',
+              cameraId: '',
+              location: '',
+              skills: [],
+              tags: []
+            };
+            this.cameraTypeSpecificFields = {}; // 清空类型特定字段
+            this.tagInputValue = ''; // 清空标签输入值
+          });
       }
-
-      // 关闭对话框并重置表单
-      this.deviceDialogVisible = false;
-      this.deviceForm = {
-        name: '',
-        type: '',
-        cameraId: '',
-        location: '',
-        skills: [],
-        tags: []
+    },
+    
+    // 将设备类型转换为API所需的camera_type格式
+    convertCameraType(type) {
+      const typeMap = {
+        'gb28181': 'gb28181',
+        'push': 'push_stream',
+        'pull': 'proxy_stream'
       };
-      this.tagInputValue = ''; // 清空标签输入值
+      return typeMap[type] || type;
+    },
+    
+    // 辅助方法：添加设备到列表中
+    addDeviceToList(id, deviceData, cameraName) {
+      const newDevice = {
+        id: id,
+        name: deviceData.name,
+        status: deviceData.status ? 'online' : 'offline',
+        type: this.deviceForm.type,
+        cameraId: deviceData.deviceId || deviceData.proxy_id || deviceData.push_id || deviceData.camera_uuid,
+        cameraName: cameraName,
+        location: deviceData.location,
+        tags: deviceData.tags || [],
+        skill: '',
+        createTime: new Date().toISOString().split('T')[0],
+        config: null,
+        camera_type: deviceData.camera_type,
+        deviceId: deviceData.deviceId,
+        gb_id: deviceData.gb_id,
+        app: deviceData.app,
+        stream: deviceData.stream,
+        proxy_id: deviceData.proxy_id,
+        push_id: deviceData.push_id
+      };
+
+      // 添加到设备列表
+      this.deviceList.unshift(newDevice);
+      this.originalDeviceList = [...this.deviceList];
+      this.total = this.deviceList.length;
     },
 
     // 处理页码改变
     handleCurrentChange(val) {
-      this.currentPage = val
+      this.currentPage = val;
+      this.fetchCameraList();
     },
 
     // 处理每页条数改变
     handleSizeChange(val) {
-      this.pageSize = val
+      this.pageSize = val;
+      this.currentPage = 1;
+      this.fetchCameraList();
     },
 
     // 刷新功能实现
     handleRefresh() {
-      // 恢复原始数据
-      this.deviceList = [...this.originalDeviceList]
       // 清空搜索关键词
-      this.searchKeyword = ''
+      this.searchKeyword = '';
       // 重置分页
-      this.currentPage = 1
-      this.$message.success('刷新成功')
+      this.currentPage = 1;
+      // 重新获取摄像头列表
+      this.fetchCameraList();
+      this.$message.success('刷新成功');
     },
 
     // 处理编辑设备
@@ -799,13 +1197,80 @@ export default {
       // 保存选中的技能到设备中
       const deviceIndex = this.deviceList.findIndex(device => device.id === this.currentDeviceId);
       if (deviceIndex !== -1) {
-        // 更新设备的技能名称显示
-        this.deviceList[deviceIndex].skill = this.skillSelectForm.selectedSkills.join(',');
-        this.$message.success('技能选择成功');
+        // 获取当前设备
+        const currentDevice = this.deviceList[deviceIndex];
+        const skillNames = this.skillSelectForm.selectedSkills;
+        
+        // 准备更新数据
+        const updateData = {
+          skill_names: skillNames
+        };
+        
+        // 显示加载状态
+        this.loading = true;
+        
+        // 调用API更新摄像头技能
+        cameraAPI.updateCamera(this.currentDeviceId, updateData)
+          .then(response => {
+            if (response.data.code === 0) {
+              // 从响应中获取更新后的摄像头数据
+              const updatedCameraData = response.data.data;
+              
+              // 合并更新的数据和原有数据，确保保留之前的配置
+              const updatedDevice = {
+                ...this.deviceList[deviceIndex],  // 保留原有数据
+                id: updatedCameraData.id,
+                name: updatedCameraData.name,
+                status: updatedCameraData.status ? 'online' : 'offline',
+                location: updatedCameraData.location,
+                tags: updatedCameraData.tags || [],
+                // 使用新的技能名称
+                skill: Array.isArray(updatedCameraData.skill_names) 
+                  ? updatedCameraData.skill_names.join(', ') 
+                  : skillNames.join(', '),
+                camera_type: updatedCameraData.camera_type,
+                camera_uuid: updatedCameraData.camera_uuid,
+                deviceId: updatedCameraData.deviceId,
+                gb_id: updatedCameraData.gb_id
+              };
+              
+              // 更新列表中的设备数据
+              this.$set(this.deviceList, deviceIndex, updatedDevice);
+              // 更新原始列表
+              this.originalDeviceList = [...this.deviceList];
+              
+              this.$message.success('技能选择成功');
+            } else {
+              this.$message.error('更新技能失败：' + (response.data.msg || '未知错误'));
+              
+              // 如果API调用失败，仅在前端更新显示
+              this.updateDeviceSkillDisplay(deviceIndex, skillNames);
+            }
+          })
+          .catch(error => {
+            console.error('更新技能出错:', error);
+            this.$message.error('更新技能失败：' + (error.message || '服务器错误'));
+            
+            // 在前端更新显示
+            this.updateDeviceSkillDisplay(deviceIndex, skillNames);
+          })
+          .finally(() => {
+            this.loading = false;
+            // 关闭选择技能对话框
+            this.skillSelectDialogVisible = false;
+          });
+      } else {
+        this.$message.error('未找到设备，保存失败');
+        this.skillSelectDialogVisible = false;
       }
-
-      // 关闭选择技能对话框
-      this.skillSelectDialogVisible = false;
+    },
+    
+    // 更新设备技能显示
+    updateDeviceSkillDisplay(deviceIndex, skillNames) {
+      // 更新设备的技能名称显示
+      this.$set(this.deviceList[deviceIndex], 'skill', skillNames.join(', '));
+      // 更新原始列表
+      this.originalDeviceList = [...this.deviceList];
     },
 
     // 移除已选技能
@@ -939,7 +1404,10 @@ export default {
           if (this.currentDeviceId && this.currentSkill) {
             // 构建要保存的配置对象
             const config = this.prepareConfigForSave();
-
+            
+            // 显示加载状态
+            this.loading = true;
+            
             // 找到当前设备
             const deviceIndex = this.deviceList.findIndex(device => device.id === this.currentDeviceId);
             if (deviceIndex !== -1) {
@@ -947,19 +1415,73 @@ export default {
               if (!this.deviceList[deviceIndex].config) {
                 this.$set(this.deviceList[deviceIndex], 'config', {});
               }
-
+              
               // 为特定技能保存配置
               this.$set(this.deviceList[deviceIndex].config, this.currentSkill, config);
-
-              this.$message.success('保存成功');
-
-              // 更新原始列表
-              this.originalDeviceList = [...this.deviceList];
-
-              // 关闭对话框
-              this.closeSkillDialog();
+              
+              // 准备更新的设备配置数据
+              const updateData = {
+                skill_config: {
+                  [this.currentSkill]: config
+                }
+              };
+              
+              // 调用API更新摄像头配置
+              cameraAPI.updateCamera(this.currentDeviceId, updateData)
+                .then(response => {
+                  if (response.data.code === 0) {
+                    // 从响应中获取更新后的摄像头数据
+                    const updatedCameraData = response.data.data;
+                    
+                    // 确保保留当前的配置
+                    if (this.deviceList[deviceIndex].config) {
+                      // 原始配置对象
+                      const originalConfig = this.deviceList[deviceIndex].config;
+                      
+                      // 更新设备数据，但保留config对象
+                      const updatedDevice = {
+                        ...this.deviceList[deviceIndex],
+                        id: updatedCameraData.id,
+                        name: updatedCameraData.name,
+                        status: updatedCameraData.status ? 'online' : 'offline',
+                        location: updatedCameraData.location,
+                        tags: updatedCameraData.tags || [],
+                        skill: Array.isArray(updatedCameraData.skill_names) 
+                          ? updatedCameraData.skill_names.join(', ') 
+                          : this.deviceList[deviceIndex].skill,
+                        camera_type: updatedCameraData.camera_type,
+                        camera_uuid: updatedCameraData.camera_uuid,
+                        deviceId: updatedCameraData.deviceId,
+                        gb_id: updatedCameraData.gb_id,
+                        // 保留原始配置
+                        config: originalConfig
+                      };
+                      
+                      // 更新列表中的设备数据
+                      this.$set(this.deviceList, deviceIndex, updatedDevice);
+                    }
+                    
+                    // 更新原始列表
+                    this.originalDeviceList = [...this.deviceList];
+                    
+                    this.$message.success('技能配置保存成功');
+                  } else {
+                    this.$message.error('保存配置失败：' + (response.data.msg || '未知错误'));
+                  }
+                })
+                .catch(error => {
+                  console.error('保存配置出错:', error);
+                  this.$message.error('保存配置失败：' + (error.message || '服务器错误'));
+                })
+                .finally(() => {
+                  this.loading = false;
+                  // 关闭对话框
+                  this.closeSkillDialog();
+                });
             } else {
+              this.loading = false;
               this.$message.error('未找到设备，保存失败');
+              this.closeSkillDialog();
             }
           } else {
             this.$message.error('未指定设备ID或技能，保存失败');
@@ -1003,11 +1525,30 @@ export default {
           type: 'warning',
         }
       ).then(() => {
-        this.deviceList = this.deviceList.filter(device => device.id !== row.id)
-        this.$message.success('删除成功')
+        // 显示加载状态
+        this.loading = true;
+        
+        // 调用API删除摄像头
+        cameraAPI.deleteCamera(row.id)
+          .then(response => {
+            if (response.data.code === 0) {
+              // 删除成功后重新获取当前页数据，保持每页显示的数据量
+              this.fetchCameraList();
+              this.$message.success('删除成功');
+            } else {
+              this.$message.error('删除失败：' + (response.data.msg || '未知错误'));
+            }
+          })
+          .catch(error => {
+            console.error('删除设备出错:', error);
+            this.$message.error('删除失败：' + (error.message || '服务器错误'));
+          })
+          .finally(() => {
+            this.loading = false;
+          });
       }).catch(() => {
         // 用户点击取消，不做操作
-      })
+      });
     },
 
     // 处理移除时间段
@@ -1374,6 +1915,143 @@ export default {
         return 'linear-gradient(135deg, #F56C6C, #e74c4c)';
       }
       return 'linear-gradient(135deg, #909399, #6e7175)';
+    },
+
+    // 过滤设备列表
+    filterByTag(tagName) {
+      this.searchKeyword = tagName;
+      this.fetchCameraList();
+    },
+
+    // 添加新标签
+    addNewTag() {
+      if (this.newTagValue.trim() === '') {
+        this.$message.warning('标签名称不能为空');
+        return;
+      }
+      
+      // 检查是否已存在相同标签
+      const existingTag = this.uniqueTags.find(tag => tag.name === this.newTagValue.trim());
+      if (existingTag) {
+        this.$message.warning('该标签已存在');
+        this.newTagValue = '';
+        this.newTagDetail = '';
+        return;
+      }
+      
+      // 创建标签数据
+      const tagData = {
+        name: this.newTagValue.trim(),
+        description: this.newTagDetail.trim() || undefined
+      };
+      
+      // 显示加载状态
+      this.loading = true;
+      
+      // 调用API创建标签
+      cameraAPI.createTag(tagData)
+        .then(response => {
+          if (response.data.code === 0) {
+            // 创建标签成功
+            const newTag = response.data.data;
+            this.$message.success('添加标签成功');
+            
+            // 如果有设备，将标签添加到第一个设备
+            if (this.deviceList.length > 0) {
+              const firstDevice = this.deviceList[0];
+              if (!firstDevice.tags) {
+                this.$set(firstDevice, 'tags', []);
+              }
+              
+              // 将新标签添加到设备
+              const tagForDevice = {
+                name: newTag.name,
+                detail: newTag.description,
+                id: newTag.id
+              };
+              
+              // 更新设备标签
+              this.updateDeviceWithTag(firstDevice.id, tagForDevice);
+              
+              // 更新设备信息到服务器
+              this.updateDeviceTag(firstDevice.id, tagForDevice);
+            }
+          } else {
+            this.$message.error('创建标签失败：' + (response.data.msg || '未知错误'));
+          }
+        })
+        .catch(error => {
+          console.error('创建标签出错:', error);
+          this.$message.error('创建标签失败：' + (error.message || '服务器错误'));
+        })
+        .finally(() => {
+          // 清空输入框
+          this.newTagValue = '';
+          this.newTagDetail = '';
+          
+          // 结束加载状态
+          this.loading = false;
+        });
+    },
+    
+    // 更新设备标签到服务器
+    updateDeviceTag(deviceId, tagObj) {
+      // 获取设备当前的所有标签
+      const deviceIndex = this.deviceList.findIndex(d => d.id === deviceId);
+      if (deviceIndex === -1) return;
+      
+      const device = this.deviceList[deviceIndex];
+      const deviceTags = device.tags || [];
+      
+      // 准备API所需的标签数据
+      const updateData = {
+        tags: deviceTags.map(tag => {
+          if (typeof tag === 'string') {
+            return { name: tag };
+          } else {
+            return {
+              name: tag.name,
+              description: tag.detail || tag.description
+            };
+          }
+        })
+      };
+      
+      // 调用更新摄像头API
+      cameraAPI.updateCamera(deviceId, updateData)
+        .then(response => {
+          if (response.data.code !== 0) {
+            console.warn('更新设备标签失败:', response.data.msg);
+          }
+        })
+        .catch(error => {
+          console.error('更新设备标签出错:', error);
+        });
+    },
+
+    // 更新设备标签
+    updateDeviceWithTag(deviceId, tagObj) {
+      // 如果有更新设备标签的API，可以在这里调用
+      // 这里仅作为示例，简单地添加到前端数据中
+      const deviceIndex = this.deviceList.findIndex(d => d.id === deviceId);
+      if (deviceIndex !== -1) {
+        const updatedDevice = { ...this.deviceList[deviceIndex] };
+        if (!updatedDevice.tags) {
+          updatedDevice.tags = [];
+        }
+        
+        // 确保不重复添加相同标签
+        const existingTagIndex = updatedDevice.tags.findIndex(
+          tag => (typeof tag === 'string' ? tag : tag.name) === tagObj.name
+        );
+        
+        if (existingTagIndex === -1) {
+          updatedDevice.tags.push(tagObj);
+        }
+        
+        // 更新设备
+        this.$set(this.deviceList, deviceIndex, updatedDevice);
+      }
     }
   }
 }
@@ -1393,29 +2071,66 @@ export default {
   height: calc(100vh - 60px);
   box-sizing: border-box;
   background-color: #f5f7fa;
+  overflow-y: auto;
 }
 
 .tree-title {
-  margin: 0 0 16px 0;
+  margin: 0 0 20px 0;
   font-size: 16px;
   font-weight: 500;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ebeef5;
+  color: #303133;
 }
 
-.device-tree .el-input {
+.tag-add-area {
   margin-bottom: 20px;
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* 自定义树节点样式 */
-.custom-tree>>>.el-tree-node__content {
-  background-color: #f5f7fa;
+.tag-input {
+  width: 100%;
 }
 
-.custom-tree>>>.el-tree-node.is-current>.el-tree-node__content {
-  background-color: #ffffff;
+.tag-detail-input {
+  width: 100%;
 }
 
-.custom-tree>>>.el-tree-node:not(.is-current)>.el-tree-node__content:hover {
-  background-color: #ebeef5;
+.tags-list-container {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  max-height: calc(100% - 330px);
+  overflow-y: auto;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.tag-item {
+  margin: 5px;
+  color: #fff;
+  border-color: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tag-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.no-tags-tip {
+  color: #909399;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 20px;
+  width: 100%;
+  padding: 20px 0;
 }
 
 .device-list {
@@ -2321,30 +3036,55 @@ export default {
 }
 
 /* 表格中的技能项样式 */
-.table-skill-item {
+.skill-tags-container {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   justify-content: center;
-  margin-bottom: 5px;
+  padding: 5px;
 }
 
-.table-skill-item:last-child {
-  margin-bottom: 0;
+.skill-tag-item {
+  display: inline-flex;
+  align-items: center;
+  margin: 2px 5px;
+  padding: 2px 0;
 }
 
-.table-skill-item .skill-name {
-  margin-right: 8px;
-  font-size: 13px;
+.skill-tag-item .skill-name {
+  font-size: 12px;
+  white-space: nowrap;
 }
 
-.table-skill-item .el-tag {
-  margin-left: 5px;
+/* 状态小圆点样式 */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 3px;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+
+.status-enabled {
+  background-color: #67C23A;
+  box-shadow: 0 0 3px rgba(103, 194, 58, 0.6);
+}
+
+.status-disabled {
+  background-color: #909399;
+  box-shadow: 0 0 3px rgba(144, 147, 153, 0.6);
+}
+
+.skill-tag-item .el-tag {
+  margin-left: 3px;
   padding: 0 6px;
   height: 20px;
   line-height: 18px;
 }
 
-/* 技能状态样式 */
 .skill-status {
   margin-left: auto;
   display: flex;
@@ -2412,5 +3152,47 @@ export default {
   text-align: left;
   margin-bottom: 20px;
   margin-left: 85px;
+}
+
+/* 原先的表格技能项样式 */
+.table-skill-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 5px;
+}
+
+.table-skill-item:last-child {
+  margin-bottom: 0;
+}
+
+.table-skill-item .skill-name {
+  margin-right: 8px;
+  font-size: 13px;
+}
+
+.table-skill-item .el-tag {
+  margin-left: 5px;
+  padding: 0 6px;
+  height: 20px;
+  line-height: 18px;
+}
+
+.tag-add-area {
+  margin-top: 10px;
+}
+
+.tag-input {
+  width: 100%;
+}
+
+.tags-list-container {
+  margin-top: 10px;
+}
+
+.no-tags-tip {
+  color: #909399;
+  font-size: 12px;
+  text-align: center;
 }
 </style>
