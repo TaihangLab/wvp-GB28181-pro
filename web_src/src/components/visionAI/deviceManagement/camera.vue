@@ -227,8 +227,6 @@
             </div>
           </el-form-item>
 
-
-
           <el-form-item label="运行时段" required prop="timeRanges">
             <div v-for="(timeRange, index) in skillForm.timeRanges" :key="index" class="time-range">
               <el-time-picker v-model="timeRange.start" placeholder="开始时间" format="HH:mm" class="time-picker" />

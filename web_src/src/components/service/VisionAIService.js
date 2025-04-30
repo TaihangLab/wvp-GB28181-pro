@@ -115,6 +115,36 @@ visionAIAxios.interceptors.response.use(
         };
       }
     }
+    // 检查是否为设备列表数据（获取技能关联设备列表接口）
+    else if (originalData && Array.isArray(originalData.devices)) {
+      transformedData.data = originalData.devices.map(device => {
+        return {
+          id: device.id || device.device_id,
+          name: device.name || device.device_name || '未命名设备',
+          camera_uuid: device.camera_uuid || device.device_id || '-',
+          location: device.location || '-',
+          status: device.status || false
+        };
+      });
+      transformedData.total = transformedData.data.length;
+    }
+    // 检查是否为直接返回的设备数组（技能实例关联设备接口）
+    else if (originalData && Array.isArray(originalData) && originalData.length > 0 
+            && (originalData[0].camera_uuid !== undefined || originalData[0].deviceId !== undefined)) {
+      transformedData.data = originalData.map(device => {
+        return {
+          id: device.id,
+          name: device.name || '未命名设备',
+          camera_uuid: device.camera_uuid || device.deviceId || device.gb_id || '-',
+          location: device.location || '-',
+          status: device.status || false,
+          // 保留可能有用的额外字段
+          tags: device.tags,
+          camera_type: device.camera_type
+        };
+      });
+      transformedData.total = originalData.length;
+    }
     // 其他情况，保持原样
     else {
       transformedData.data = originalData;
@@ -288,6 +318,36 @@ export const skillAPI = {
         console.error('图片上传请求失败:', error);
         throw error;
       });
+  },
+  
+  /**
+   * 获取技能关联的设备列表
+   * @param {string|number} skillClassId - 技能类ID
+   * @returns {Promise} 包含设备列表的Promise对象
+   * 返回的设备数据包含: name(设备名称), camera_uuid(设备ID), location(位置), status(状态)
+   */
+  getSkillDevices(skillClassId) {
+    if (!skillClassId) {
+      console.error('获取技能关联设备失败: 缺少技能ID');
+      return Promise.reject(new Error('缺少技能ID'));
+    }
+    
+    return visionAIAxios.get(`/api/v1/skill-classes/${skillClassId}/devices`);
+  },
+  
+  /**
+   * 获取技能实例关联的设备列表
+   * @param {string|number} instanceId - 技能实例ID
+   * @returns {Promise} 包含设备列表的Promise对象
+   * 返回的设备数据包含: name(设备名称), camera_uuid(设备ID), location(位置), status(状态)
+   */
+  getSkillInstanceDevices(instanceId) {
+    if (!instanceId) {
+      console.error('获取技能实例关联设备失败: 缺少实例ID');
+      return Promise.reject(new Error('缺少技能实例ID'));
+    }
+    
+    return visionAIAxios.get(`/api/v1/skill-instances/${instanceId}/devices`);
   }
 };
 

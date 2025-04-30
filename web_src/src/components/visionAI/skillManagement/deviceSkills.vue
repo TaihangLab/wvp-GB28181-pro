@@ -329,7 +329,10 @@
               <div class="info-card-content">
                 <div class="skill-instances-container">
                   <div class="instances-wrapper">
-                    <div class="instance-item" v-for="instance in currentSkill.instances" :key="instance.id">
+                    <div class="instance-item" 
+                      v-for="instance in currentSkill.instances" 
+                      :key="instance.id"
+                      @click="showInstanceDevices(instance)">
                       <div class="instance-header">
                         <h4>{{ instance.name }}</h4>
                         <el-tag :type="instance.status ? 'success' : 'info'" size="mini" class="status-tag">
@@ -455,7 +458,10 @@
               <div class="info-card-content">
                 <div class="skill-instances-container">
                   <div class="instances-wrapper">
-                    <div class="instance-item" v-for="instance in currentSkill.instances" :key="instance.id">
+                    <div class="instance-item" 
+                      v-for="instance in currentSkill.instances" 
+                      :key="instance.id"
+                      @click="showInstanceDevices(instance)">
                       <div class="instance-header">
                         <h4>{{ instance.name }}</h4>
                         <el-tag :type="instance.status ? 'success' : 'info'" size="mini" class="status-tag">
@@ -495,33 +501,50 @@
     <!-- 关联设备列表弹框 -->
     <el-dialog
       :visible.sync="devicesDialogVisible"
-      width="30%"
+      width="40%"
       :close-on-click-modal="true"
       append-to-body
       custom-class="devices-dialog"
+      :title="deviceDialogTitle"
+      :show-close="true"
     >
       <div class="devices-list-container">
         <el-table
           v-loading="loadingDevices"
           :data="relatedDevices"
-          style="width: 100%"
+          style="width: 100%; background-color: #ffffff;"
           max-height="400"
-          :header-cell-style="{background:'rgba(64, 158, 255, 0.1)',color:'#409EFF', fontWeight: '500'}"
+          :header-cell-style="{background:'#f5f7fa',color:'#303133', fontWeight: '500', textAlign: 'center'}"
+          :cell-style="{textAlign: 'center', backgroundColor: '#ffffff'}"
+          :row-style="{backgroundColor: '#ffffff'}"
           :row-class-name="tableRowClassName"
         >
           <el-table-column
             prop="name"
             label="设备名称"
-            width="180">
+            width="160"
+            align="center">
           </el-table-column>
           <el-table-column
-            prop="id"
-            label="设备ID">
+            prop="camera_uuid"
+            label="设备ID"
+            min-width="220"
+            align="center">
+            <template slot-scope="scope">
+              {{ scope.row.camera_uuid || scope.row.deviceId || scope.row.gb_id || '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="location"
+            label="位置"
+            min-width="120"
+            align="center">
           </el-table-column>
           <el-table-column
             prop="status"
             label="状态"
-            width="80">
+            width="80"
+            align="center">
             <template slot-scope="scope">
               <el-tag :type="scope.row.status ? 'success' : 'info'" size="mini" effect="light">
                 {{ scope.row.status ? '在线' : '离线' }}
@@ -630,6 +653,8 @@ export default {
       devicesDialogVisible: false,
       relatedDevices: [],
       loadingDevices: false,
+      deviceDialogTitle: '关联设备列表',
+      currentInstance: null,
     }
   },
 
@@ -1206,7 +1231,8 @@ export default {
     
     // 显示关联设备列表
     async showDevicesList() {
-      // 不再检查设备数量，无论如何都显示弹框
+      // 设置对话框标题
+      this.deviceDialogTitle = `${this.currentSkill.name_zh}`;
       this.devicesDialogVisible = true;
       this.loadingDevices = true;
       this.relatedDevices = [];
@@ -1217,19 +1243,52 @@ export default {
         
         if (response.data.code === 0) {
           // 处理设备数据
-          this.relatedDevices = response.data.data.map(device => {
-            return {
-              id: device.id || device.device_id,
-              name: device.name || device.device_name || '未命名设备',
-              status: device.status || false,
-              ip: device.ip || '-',
-              type: device.type || '-'
-            };
-          });
+          this.relatedDevices = response.data.data;
+          // 不需要再次映射，因为在VisionAIService.js中已经处理好了数据格式
         } else {
           this.$message.error(response.data.msg || '获取关联设备失败');
         }
       } catch (error) {
+        console.error('获取关联设备失败:', error);
+        this.$message.error('获取关联设备列表失败，请检查网络连接');
+      } finally {
+        this.loadingDevices = false;
+      }
+    },
+    
+    // 显示实例关联设备列表
+    async showInstanceDevices(instance) {
+      this.currentInstance = instance;
+      this.deviceDialogTitle = `${instance.name}`;
+      this.devicesDialogVisible = true;
+      this.loadingDevices = true;
+      this.relatedDevices = [];
+      
+      try {
+        // 调用获取技能实例关联设备的API
+        if (instance.id) {
+          const response = await skillAPI.getSkillInstanceDevices(instance.id);
+          
+          if (response.data && response.data.code === 0) {
+            // 直接使用返回的数据，响应拦截器已处理格式转换
+            this.relatedDevices = response.data.data;
+            
+            // 检查设备数据是否有效
+            if (this.relatedDevices.length === 0) {
+              console.log('该技能实例没有关联设备');
+            } else {
+              console.log('获取到实例关联设备数据:', this.relatedDevices.length, '条');
+            }
+          } else {
+            this.$message.error((response.data && response.data.msg) || '获取实例关联设备失败');
+          }
+        } else {
+          this.$message.warning('实例ID不存在，无法获取关联设备');
+          this.relatedDevices = [];
+        }
+      } catch (error) {
+        console.error('获取实例关联设备失败:', error);
+        this.$message.error('获取实例关联设备列表失败，请检查网络连接');
       } finally {
         this.loadingDevices = false;
       }
@@ -2127,8 +2186,9 @@ export default {
 
 .devices-list-container {
   max-height: 400px;
+  margin-top: -20px;
   overflow-y: auto;
-  background-color: rgba(240, 247, 255, 0.7);
+  background-color: #ffffff;
   border-radius: 4px;
   padding: 10px;
 }
@@ -2155,49 +2215,213 @@ export default {
 .devices-dialog {
   border-radius: 8px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 20px rgba(64, 158, 255, 0.15);
+}
+
+.devices-dialog >>> .el-dialog {
+  background-color: #ffffff !important;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .devices-dialog >>> .el-dialog__header {
-  background: rgba(64, 158, 255, 0.1);
+  background-color: #f5f7fa;
   padding: 15px 20px;
-  border-bottom: 1px solid rgba(64, 158, 255, 0.2);
+  border-bottom: 1px solid #e4e7ed;
 }
 
 .devices-dialog >>> .el-dialog__title {
-  color: #409EFF;
+  color: #303133;
   font-weight: 500;
   font-size: 16px;
 }
 
 .devices-dialog >>> .el-dialog__body {
-  padding: 15px;
-  background: linear-gradient(to bottom, rgba(235, 245, 255, 0.8), rgba(255, 255, 255, 0.8));
-}
-
-.devices-dialog >>> .el-dialog__headerbtn:hover .el-dialog__close {
-  color: #409EFF;
+  padding: 0;
+  background-color: #ffffff;
 }
 
 .devices-dialog >>> .el-table {
-  background-color: transparent;
-}
-
-.devices-dialog >>> .el-table tr {
-  background-color: transparent !important;
+  background-color: #ffffff;
 }
 
 .devices-dialog >>> .el-table th {
-  background-color: rgba(64, 158, 255, 0.1) !important;
-  border-bottom: 1px solid rgba(64, 158, 255, 0.2);
+  background-color: #f5f7fa !important;
+  border-bottom: 1px solid #ebeef5;
+  color: #303133 !important;
 }
 
 .devices-dialog >>> .el-table td {
-  border-bottom: 1px solid rgba(64, 158, 255, 0.1);
+  border-bottom: 1px solid #ebeef5;
 }
 
 .devices-dialog >>> .el-table--striped .el-table__body tr.el-table__row--striped td {
-  background: rgba(64, 158, 255, 0.03);
+  background-color: #fafafa;
+}
+
+/* 隐藏滚动条但保留滚动功能 */
+.devices-dialog >>> * {
+  scrollbar-width: none !important;
+}
+
+.devices-dialog >>> *::-webkit-scrollbar {
+  width: 0 !important;
+  display: none;
+}
+
+.devices-dialog >>> *::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+.devices-dialog >>> *::-webkit-scrollbar-track {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.devices-dialog >>> *::-ms-scrollbar {
+  width: 0 !important;
+  display: none;
+}
+
+.devices-dialog >>> *::-ms-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+.devices-dialog >>> *::-ms-scrollbar-track {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.devices-dialog >>> *::-moz-scrollbar {
+  width: 0 !important;
+  display: none;
+}
+
+.devices-dialog >>> *::-moz-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+.devices-dialog >>> *::-moz-scrollbar-track {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Firefox */
+.devices-list-container,
+.devices-dialog >>> .el-table__body-wrapper {
+  scrollbar-width: none;
+}
+
+/* IE和Edge */
+.devices-list-container,
+.devices-dialog >>> .el-table__body-wrapper {
+  -ms-overflow-style: none;
+}
+
+/* 确保表格完全占满容器宽度 */
+.devices-dialog >>> .el-table {
+  width: 100% !important;
+}
+
+/* 表格设置没有水平滚动条 */
+.devices-dialog >>> .el-table__body-wrapper {
+  overflow-x: hidden;
+}
+
+.no-devices-tip {
+  color: #909399;
+  text-align: center;
+  padding: 30px 0;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.no-devices-tip i {
+  font-size: 30px;
+  color: #409EFF;
+  opacity: 0.5;
+  margin-bottom: 10px;
+}
+
+/* 关联设备列表弹框样式 */
+.devices-dialog {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 整个弹框的背景和边框 */
+.devices-dialog >>> .el-dialog {
+  background-color: #ffffff !important;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* 弹框标题区域 */
+.devices-dialog >>> .el-dialog__header {
+  background-color: #f5f7fa;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+/* 弹框标题文字 */
+.devices-dialog >>> .el-dialog__title {
+  color: #303133;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+/* 弹框内容区域 */
+.devices-dialog >>> .el-dialog__body {
+  padding: 0;
+  background-color: #ffffff;
+}
+
+/* 设备列表容器 */
+.devices-list-container {
+  background-color: #ffffff;
+  padding: 10px;
+}
+
+/* 表格样式 */
+.devices-dialog >>> .el-table {
+  background-color: #ffffff;
+}
+
+/* 表格单元格和行样式 */
+.devices-dialog >>> .el-table td, 
+.devices-dialog >>> .el-table th.is-leaf {
+  background-color: #ffffff;
+  border-bottom: 1px solid #ebeef5;
+}
+
+/* 表格表头样式 */
+.devices-dialog >>> .el-table th {
+  background-color: #f5f7fa !important;
+  border-bottom: 1px solid #ebeef5;
+  color: #303133 !important;
+}
+
+/* 表格行悬浮样式 */
+.devices-dialog >>> .el-table--enable-row-hover .el-table__body tr:hover > td {
+  background-color: #f5f7fa !important;
+}
+
+/* 表格条纹行样式 */
+.devices-dialog >>> .el-table--striped .el-table__body tr.el-table__row--striped td {
+  background-color: #fafafa;
+}
+
+/* 状态标签样式 */
+.devices-dialog >>> .el-tag--success {
+  background-color: rgba(103, 194, 58, 0.15);
+  border-color: rgba(103, 194, 58, 0.3);
+  color: #67c23a;
+}
+
+.devices-dialog >>> .el-tag--info {
+  background-color: rgba(144, 147, 153, 0.15);
+  border-color: rgba(144, 147, 153, 0.3);
+  color: #5a5e66;
 }
 </style>
