@@ -2,10 +2,31 @@ import axios from 'axios';
 
 // 创建专用于visionAI模块的axios实例
 const visionAIAxios = axios.create({
-  baseURL: 'http://192.168.1.101:8000',
+  baseURL: 'http://192.168.1.106:8000',
   timeout: 15000,
-  withCredentials: false  // 将withCredentials设置为false，避免CORS错误
+  withCredentials: false,  // 将withCredentials设置为false，避免CORS错误
 });
+
+// 自定义参数序列化函数
+visionAIAxios.defaults.paramsSerializer = function (params) {
+  // 自定义参数序列化逻辑，确保数组以多个同名参数形式传递
+  const queryParams = [];
+
+  for (const key in params) {
+    if (params[key] !== undefined) {
+      if (Array.isArray(params[key])) {
+        // 对于数组参数，使用重复的键名传递每个值
+        params[key].forEach(value => {
+          queryParams.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+        });
+      } else {
+        queryParams.push(`${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`);
+      }
+    }
+  }
+
+  return queryParams.join('&');
+};
 
 // 添加请求拦截器
 visionAIAxios.interceptors.request.use(
@@ -28,17 +49,26 @@ visionAIAxios.interceptors.response.use(
     // 转换响应数据为前端期望的格式
     // 前端期望格式: { code: 0, data: [...], total: ... }
     const originalData = response.data;
-    
+
     // 如果是批量删除技能或模型的响应（包含detail字段），直接返回不进行转换
     if (originalData && originalData.detail && originalData.success !== undefined) {
       return response;
     }
-    
+
+    // 如果是批量删除摄像头的响应（包含success_ids和failed_ids字段），直接返回不进行转换
+    if (originalData && (originalData.success_ids !== undefined || originalData.failed_ids !== undefined)) {
+      // 增加一个code字段方便前端统一处理
+      if (originalData.code === undefined) {
+        originalData.code = originalData.success ? 0 : -1;
+      }
+      return response;
+    }
+
     // 如果已经是期望的格式，直接返回
     if (originalData && (originalData.code !== undefined)) {
       return response;
     }
-    
+
     // 否则，转换数据格式
     const transformedData = {
       code: 0, // 成功状态码
@@ -46,12 +76,12 @@ visionAIAxios.interceptors.response.use(
       data: [], // 默认空数组
       total: 0  // 默认总数为0
     };
-    
+
     // 检查是否为通用操作响应（包含success和message字段的简单响应）
     if (originalData && originalData.success !== undefined && originalData.message !== undefined) {
       transformedData.code = originalData.success ? 0 : -1;
       transformedData.msg = originalData.message;
-      
+
       // 处理摄像头更新或添加响应
       if (originalData.camera) {
         transformedData.data = originalData.camera;
@@ -84,12 +114,12 @@ visionAIAxios.interceptors.response.use(
         };
       });
       transformedData.total = originalData.total || transformedData.data.length;
-    } 
+    }
     // 检查是否包含技能列表数据（技能列表接口）
     else if (originalData && originalData.skill_classes) {
       transformedData.data = originalData.skill_classes;
       transformedData.total = originalData.total || transformedData.data.length;
-      
+
       // 添加分页信息
       if (originalData.page) transformedData.page = originalData.page;
       if (originalData.limit) transformedData.limit = originalData.limit;
@@ -118,7 +148,7 @@ visionAIAxios.interceptors.response.use(
         // 相关技能
         skill_classes: model.skill_classes
       };
-      
+
       // 如果包含success字段（更新模型接口）
       if (originalData.success !== undefined) {
         transformedData.code = originalData.success ? 0 : -1;
@@ -129,7 +159,7 @@ visionAIAxios.interceptors.response.use(
     else if (originalData && originalData.success !== undefined) {
       transformedData.code = originalData.success ? 0 : -1;
       transformedData.msg = originalData.message || (originalData.success ? 'success' : 'failed');
-      
+
       // 处理摄像头更新响应
       if (originalData.camera) {
         transformedData.data = originalData.camera;
@@ -153,8 +183,8 @@ visionAIAxios.interceptors.response.use(
       transformedData.total = transformedData.data.length;
     }
     // 检查是否为直接返回的设备数组（技能实例关联设备接口）
-    else if (originalData && Array.isArray(originalData) && originalData.length > 0 
-            && (originalData[0].camera_uuid !== undefined || originalData[0].deviceId !== undefined)) {
+    else if (originalData && Array.isArray(originalData) && originalData.length > 0
+      && (originalData[0].camera_uuid !== undefined || originalData[0].deviceId !== undefined)) {
       transformedData.data = originalData.map(device => {
         return {
           id: device.id,
@@ -194,7 +224,7 @@ visionAIAxios.interceptors.response.use(
         };
       });
       transformedData.total = originalData.total || transformedData.data.length;
-      
+
       // 添加分页信息
       if (originalData.page) transformedData.page = originalData.page;
       if (originalData.limit) transformedData.limit = originalData.limit;
@@ -204,10 +234,10 @@ visionAIAxios.interceptors.response.use(
     else {
       transformedData.data = originalData;
     }
-    
+
     // 替换原始响应数据
     response.data = transformedData;
-    
+
     return response;
   },
   error => {
@@ -226,22 +256,22 @@ export const modelAPI = {
   getModelList(params) {
     // 转换前端参数为后端API所需格式
     const apiParams = { ...params };
-    
+
     // 处理模型名称搜索参数
     if (params.name) {
       apiParams.query_name = params.name;
       delete apiParams.name;
     }
-    
+
     // 处理使用状态筛选参数
     if (params.usage_status) {
       apiParams.query_used = params.usage_status === 'using' ? true : false;
       delete apiParams.usage_status;
     }
-    
+
     return visionAIAxios.get('/api/v1/models/list', { params: apiParams });
   },
-  
+
   // 获取模型详情
   getModelDetail(modelId) {
     return visionAIAxios.get(`/api/v1/models/${modelId}`);
@@ -279,19 +309,19 @@ export const skillAPI = {
   getSkillList(params = {}) {
     // 处理分页参数和查询参数
     const apiParams = { ...params };
-    
+
     // 处理技能名称搜索参数
     if (params.name) {
       apiParams.query_name = params.name;
       delete apiParams.name;
     }
-    
+
     // 处理技能类型参数
     if (params.type) {
       apiParams.query_type = params.type;
       delete apiParams.type;
     }
-    
+
     // 处理状态筛选参数
     if (params.status !== undefined) {
       // 将状态字符串转换为布尔值: 'published' -> true, 'unpublished' -> false
@@ -301,19 +331,19 @@ export const skillAPI = {
         apiParams.status = params.status;
       }
     }
-    
+
     // 处理分页参数 - 确保page和limit被正确传递
     if (params.page) {
       apiParams.page = params.page;
     }
-    
+
     if (params.limit) {
       apiParams.limit = Math.min(params.limit, 100); // 限制最大为100条
     }
-    
+
     return visionAIAxios.get('/api/v1/skill-classes', { params: apiParams });
   },
-  
+
   // 获取技能详情
   getSkillDetail(skillClassId) {
     return visionAIAxios.get(`/api/v1/skill-classes/${skillClassId}`);
@@ -338,20 +368,20 @@ export const skillAPI = {
   updateSkill(skillClassId, skillData) {
     return visionAIAxios.put(`/api/v1/skill-classes/${skillClassId}`, skillData);
   },
-  
+
   // 上传技能图片
   uploadSkillImage(skillClassId, imageFile) {
     if (!imageFile || !skillClassId) {
       console.error('上传图片失败: 缺少必要参数', { skillClassId, imageFile: !!imageFile });
       return Promise.reject(new Error('缺少必要参数'));
     }
-    
+
     console.log('准备上传图片到服务器:', skillClassId, imageFile.name, imageFile.type, imageFile.size);
-    
+
     // 创建FormData对象
     const formData = new FormData();
     formData.append('file', imageFile);
-    
+
     // 设置请求头
     const config = {
       headers: {
@@ -363,7 +393,7 @@ export const skillAPI = {
         console.log('上传进度:', percentCompleted + '%');
       }
     };
-    
+
     return visionAIAxios.post(`/api/v1/skill-classes/${skillClassId}/image`, formData, config)
       .then(response => {
         console.log('图片上传成功:', response.data);
@@ -374,7 +404,7 @@ export const skillAPI = {
         throw error;
       });
   },
-  
+
   /**
    * 获取技能关联的设备列表
    * @param {string|number} skillClassId - 技能类ID
@@ -386,10 +416,10 @@ export const skillAPI = {
       console.error('获取技能关联设备失败: 缺少技能ID');
       return Promise.reject(new Error('缺少技能ID'));
     }
-    
+
     return visionAIAxios.get(`/api/v1/skill-classes/${skillClassId}/devices`);
   },
-  
+
   /**
    * 获取技能实例关联的设备列表
    * @param {string|number} instanceId - 技能实例ID
@@ -401,7 +431,7 @@ export const skillAPI = {
       console.error('获取技能实例关联设备失败: 缺少实例ID');
       return Promise.reject(new Error('缺少技能实例ID'));
     }
-    
+
     return visionAIAxios.get(`/api/v1/skill-instances/${instanceId}/devices`);
   }
 };
@@ -414,39 +444,65 @@ export const cameraAPI = {
    * @param {number} [params.page=1] - 当前页码，从1开始
    * @param {number} [params.limit=10] - 每页记录数，最大100条
    * @param {string} [params.name] - 按摄像头名称过滤（模糊匹配）
-   * @param {string} [params.tag] - 按标签过滤（精确匹配）
+   * @param {string} [params.location] - 按设备来源地点过滤（模糊匹配）
+   * @param {Array|string} [params.tags] - 按标签过滤，可传入数组或单个字符串
+   * @param {boolean} [params.match_all] - 多标签过滤时是否需要匹配所有标签（true为AND逻辑，false为OR逻辑）
    * @returns {Promise} 包含摄像头列表的Promise对象
    */
   getCameraList(params = {}) {
     // 处理查询和分页参数
     const apiParams = { ...params };
-    
-    // 处理摄像头名称搜索参数
-    if (params.name) {
-      apiParams.query_name = params.name;
-      delete apiParams.name;
-    }
-    
-    // 处理标签筛选参数
-    if (params.tag) {
-      apiParams.query_tag = params.tag;
-      delete apiParams.tag;
-    }
-    
+
     // 处理分页参数 - 确保page和limit被正确传递
-    if (params.page) {
-      apiParams.page = params.page;
-    } else {
+    if (!apiParams.page) {
       apiParams.page = 1; // 默认第1页
     }
-    
-    if (params.limit) {
-      apiParams.limit = Math.min(params.limit, 100); // 限制最大为100条
-    } else {
+
+    if (!apiParams.limit) {
       apiParams.limit = 10; // 默认每页10条
+    } else {
+      apiParams.limit = Math.min(params.limit, 100); // 限制最大为100条
     }
-    
+
+    // tags参数保持原样，由paramsSerializer处理数组格式
+    // 不再对标签数组进行特殊处理
+
+    console.log('API调用参数:', apiParams);
+
     return visionAIAxios.get('/api/v1/cameras/ai/list', { params: apiParams });
+  },
+
+  /**
+   * 获取国标设备列表
+   * @param {Object} params - 查询参数
+   * @param {number} [params.page=1] - 当前页码
+   * @param {number} [params.count=20] - 每页记录数
+   * @param {string} [params.query] - 搜索关键词（按设备名称和ID查询）
+   * @param {string} [params.status] - 设备状态筛选
+   * @returns {Promise} 包含国标设备列表的Promise对象
+   */
+  getGb28181List(params = {}) {
+    // 处理查询和分页参数
+    const apiParams = { ...params };
+
+    // 设置默认值
+    if (!apiParams.page) {
+      apiParams.page = 1; // 默认第1页
+    }
+
+    if (!apiParams.count) {
+      apiParams.count = 20; // 默认每页20条
+    }
+
+    return visionAIAxios.get('/api/v1/cameras/wvp/gb28181_list', { params: apiParams });
+  },
+
+  /**
+   * 获取所有标签列表
+   * @returns {Promise} 获取结果的Promise对象，包含所有标签信息
+   */
+  getAllTags() {
+    return visionAIAxios.get('/api/v1/cameras/tags/list');
   },
 
   /**
@@ -460,10 +516,10 @@ export const cameraAPI = {
       console.error('更新摄像头失败: 缺少摄像头ID');
       return Promise.reject(new Error('缺少摄像头ID'));
     }
-    
+
     return visionAIAxios.put(`/api/v1/cameras/${cameraId}`, cameraData);
   },
-  
+
   /**
    * 添加新摄像头到AI平台
    * @param {Object} cameraData - 摄像头数据，包含必要的设备标识信息
@@ -485,13 +541,13 @@ export const cameraAPI = {
       console.error('添加摄像头失败: 缺少摄像头数据');
       return Promise.reject(new Error('缺少摄像头数据'));
     }
-    
+
     // 验证必填字段
     if (!cameraData.name || !cameraData.camera_type) {
       console.error('添加摄像头失败: 缺少必填字段(name或camera_type)');
       return Promise.reject(new Error('缺少必填字段(name或camera_type)'));
     }
-    
+
     // 根据不同的摄像头类型验证对应的必填字段
     switch (cameraData.camera_type) {
       case 'gb28181':
@@ -516,10 +572,10 @@ export const cameraAPI = {
         console.error(`添加摄像头失败: 不支持的摄像头类型 ${cameraData.camera_type}`);
         return Promise.reject(new Error(`不支持的摄像头类型 ${cameraData.camera_type}`));
     }
-    
+
     return visionAIAxios.post('/api/v1/cameras', cameraData);
   },
-  
+
   /**
    * 添加新摄像头（旧API，保留兼容性）
    * @param {Object} cameraData - 摄像头数据
@@ -530,10 +586,10 @@ export const cameraAPI = {
       console.error('添加摄像头失败: 缺少摄像头数据');
       return Promise.reject(new Error('缺少摄像头数据'));
     }
-    
+
     return visionAIAxios.post('/api/v1/cameras/ai', cameraData);
   },
-  
+
   /**
    * 删除摄像头
    * @param {string|number} cameraId - 摄像头ID
@@ -544,10 +600,10 @@ export const cameraAPI = {
       console.error('删除摄像头失败: 缺少摄像头ID');
       return Promise.reject(new Error('缺少摄像头ID'));
     }
-    
+
     return visionAIAxios.delete(`/api/v1/cameras/${cameraId}`);
   },
-  
+
   /**
    * 创建新标签
    * @param {Object} tagData - 标签数据
@@ -560,8 +616,68 @@ export const cameraAPI = {
       console.error('创建标签失败: 缺少标签名称');
       return Promise.reject(new Error('缺少标签名称'));
     }
-    
+
     return visionAIAxios.post('/api/v1/cameras/tags', tagData);
+  },
+
+  /**
+   * 批量删除摄像头
+   * @param {Array<number|string>} cameraIds - 摄像头ID列表
+   * @returns {Promise} 删除结果的Promise对象，包含成功和失败的ID列表
+   * 返回数据格式:
+   * {
+   *   "success": boolean,
+   *   "message": string,
+   *   "success_ids": Array<number>,
+   *   "failed_ids": Array<number>,
+   *   "total": number,
+   *   "success_count": number,
+   *   "failed_count": number
+   * }
+   */
+  batchDeleteCameras(cameraIds) {
+    if (!cameraIds || !Array.isArray(cameraIds) || cameraIds.length === 0) {
+      console.error('批量删除摄像头失败: 缺少有效的摄像头ID列表');
+      return Promise.reject(new Error('缺少有效的摄像头ID列表'));
+    }
+
+    return visionAIAxios.post('/api/v1/cameras/batch-delete', { camera_ids: cameraIds });
+  },
+
+  /**
+   * 更新标签
+   * @param {string|number} tagId - 标签ID
+   * @param {Object} tagData - 标签数据
+   * @param {string} tagData.name - 标签名称
+   * @param {string} [tagData.description] - 标签描述
+   * @returns {Promise} 更新结果的Promise对象，包含更新后的标签信息
+   */
+  updateTag(tagId, tagData) {
+    if (!tagId) {
+      console.error('更新标签失败: 缺少标签ID');
+      return Promise.reject(new Error('缺少标签ID'));
+    }
+
+    if (!tagData || !tagData.name) {
+      console.error('更新标签失败: 缺少标签名称');
+      return Promise.reject(new Error('缺少标签名称'));
+    }
+
+    return visionAIAxios.put(`/api/v1/cameras/tags/${tagId}`, tagData);
+  },
+
+  /**
+   * 删除标签
+   * @param {string|number} tagId - 标签ID
+   * @returns {Promise} 删除结果的Promise对象，包含成功状态和消息
+   */
+  deleteTag(tagId) {
+    if (!tagId) {
+      console.error('删除标签失败: 缺少标签ID');
+      return Promise.reject(new Error('缺少标签ID'));
+    }
+
+    return visionAIAxios.delete(`/api/v1/cameras/tags/${tagId}`);
   }
 };
 
