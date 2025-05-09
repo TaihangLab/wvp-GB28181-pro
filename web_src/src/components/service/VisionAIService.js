@@ -46,13 +46,107 @@ visionAIAxios.interceptors.request.use(
 // 添加响应拦截器
 visionAIAxios.interceptors.response.use(
   response => {
-    // 检查是否是国标设备列表、推流设备列表、拉流设备列表或摄像头详情接口
-    // 这些接口不进行数据转换，保留原始数据结构
-    if (response.config.url.includes('/api/v1/cameras/wvp/gb28181_list') ||
-        response.config.url.includes('/api/v1/cameras/wvp/push_list') ||
-        response.config.url.includes('/api/v1/cameras/wvp/proxy_list') ||
-        /\/api\/v1\/cameras\/\d+$/.test(response.config.url)) {  // 匹配摄像头详情接口
-      console.log('特殊API接口返回原始数据:', response.config.url);
+    // 检查是否是特殊API，需要保留原始数据结构
+    const isSpecialApi = 
+      response.config.url.includes('/api/v1/cameras/wvp/gb28181_list') ||
+      response.config.url.includes('/api/v1/cameras/wvp/push_list') ||
+      response.config.url.includes('/api/v1/cameras/wvp/proxy_list') ||
+      /\/api\/v1\/cameras\/\d+$/.test(response.config.url); // 匹配摄像头详情接口
+      
+    // 检查是否是删除摄像头请求（DELETE方法 + 摄像头ID路径）
+    const isDeleteCameraRequest = 
+      response.config.method === 'delete' && 
+      /\/api\/v1\/cameras\/\d+$/.test(response.config.url);
+      
+    // 检查是否是批量删除摄像头请求
+    const isBatchDeleteRequest = 
+      response.config.method === 'post' && 
+      response.config.url.includes('/api/v1/cameras/batch-delete');
+      
+    if (isSpecialApi || isDeleteCameraRequest || isBatchDeleteRequest) {
+      console.log('特殊API接口返回原始数据:', response.config.method, response.config.url);
+      
+      // 对于删除操作，添加一个标准格式的包装层，方便前端处理
+      if (isDeleteCameraRequest) {
+        // 如果原始响应中没有code字段，添加一个
+        const originalData = response.data;
+        
+        // 如果响应数据还不是对象，或已经有code字段，则不做处理
+        if (typeof originalData !== 'object' || originalData.code !== undefined) {
+          return response;
+        }
+        
+        // 添加code字段，基于success状态
+        if (originalData.success !== undefined) {
+          originalData.code = originalData.success ? 0 : -1;
+          originalData.msg = originalData.message || (originalData.success ? '操作成功' : '操作失败');
+        } else if (response.status >= 200 && response.status < 300) {
+          // HTTP成功状态码，假定操作成功
+          originalData.code = 0;
+          originalData.msg = '操作成功';
+          originalData.success = true;
+        }
+      }
+      
+      // 对于批量删除操作，进行类似处理
+      if (isBatchDeleteRequest) {
+        const originalData = response.data;
+        
+        // 如果响应数据还不是对象，则不做处理
+        if (typeof originalData !== 'object') {
+          return response;
+        }
+        
+        // 如果已经有success_ids和failed_ids字段，确保有code字段便于统一处理
+        if (originalData.success_ids !== undefined || originalData.failed_ids !== undefined) {
+          if (originalData.code === undefined) {
+            // 根据success字段或操作结果推断code
+            if (originalData.success !== undefined) {
+              originalData.code = originalData.success ? 0 : -1;
+            } else if (originalData.success_ids && originalData.success_ids.length > 0) {
+              originalData.code = 0; // 至少有一个成功，视为成功
+            } else {
+              originalData.code = -1; // 都失败，视为失败
+            }
+          }
+          
+          // 确保有消息字段
+          if (!originalData.msg && !originalData.message) {
+            originalData.msg = originalData.success ? '批量删除成功' : '批量删除部分失败';
+          }
+        }
+        // 如果是简单的success/message格式，转换为包含success_ids/failed_ids的格式
+        else if (originalData.success !== undefined) {
+          originalData.code = originalData.success ? 0 : -1;
+          originalData.msg = originalData.message || (originalData.success ? '批量删除成功' : '批量删除失败');
+          
+          // 尝试从请求数据中获取删除的ID列表
+          try {
+            const requestData = JSON.parse(response.config.data);
+            const cameraIds = requestData.camera_ids || [];
+            
+            if (originalData.success) {
+              // 如果操作成功，所有ID都视为成功
+              originalData.success_ids = cameraIds;
+              originalData.failed_ids = [];
+              originalData.success_count = cameraIds.length;
+              originalData.failed_count = 0;
+            } else {
+              // 如果操作失败，所有ID都视为失败
+              originalData.success_ids = [];
+              originalData.failed_ids = cameraIds;
+              originalData.success_count = 0;
+              originalData.failed_count = cameraIds.length;
+            }
+          } catch (error) {
+            console.error('解析批量删除请求数据出错:', error);
+            // 确保至少有空数组
+            originalData.success_ids = originalData.success_ids || [];
+            originalData.failed_ids = originalData.failed_ids || [];
+          }
+        }
+      }
+      
       return response;
     }
     
@@ -314,6 +408,74 @@ export const skillAPI = {
     }
 
     return visionAIAxios.get('/api/v1/skill-classes', { params: apiParams });
+  },
+
+  // 获取AI任务技能类列表
+  getAITaskSkillClasses(params = {}) {
+    // 处理分页参数和查询参数
+    const apiParams = { ...params };
+    
+    // 处理分页参数
+    if (params.page) {
+      apiParams.page = params.page;
+    }
+
+    if (params.limit) {
+      apiParams.limit = Math.min(params.limit, 100); // 限制最大为100条
+    }
+    
+    // 处理查询参数
+    if (params.query) {
+      apiParams.query = params.query;
+    }
+    
+    // 处理状态筛选，默认获取启用状态的技能
+    if (params.status !== undefined) {
+      apiParams.status = params.status;
+    } else {
+      apiParams.status = true; // 默认获取启用的技能
+    }
+    
+    return visionAIAxios.get('/api/v1/ai-tasks/skill-classes', { params: apiParams });
+  },
+
+  // 创建AI任务（系统会自动创建技能实例）
+  createAITask(taskData) {
+    // 验证必要参数
+    if (!taskData.camera_id || !taskData.skill_class_id) {
+      console.error('创建AI任务失败: 缺少必要参数', { 
+        camera_id: taskData.camera_id, 
+        skill_class_id: taskData.skill_class_id 
+      });
+      return Promise.reject(new Error('缺少必要参数: 摄像头ID和技能类ID必须提供'));
+    }
+    
+    // 创建任务数据对象
+    const data = {
+      ...taskData,
+      // 确保运行时段格式正确
+      running_period: taskData.running_period || {
+        enabled: true,
+        periods: [
+          {
+            start: "00:00",
+            end: "23:59"
+          }
+        ]
+      },
+      // 确保电子围栏格式正确
+      electronic_fence: taskData.electronic_fence || {
+        enabled: false,
+        points: []
+      },
+      // 默认状态为启用
+      status: taskData.status !== undefined ? taskData.status : true
+    };
+    
+    console.log('创建AI任务请求数据:', data);
+    
+    // 发送创建AI任务请求
+    return visionAIAxios.post('/api/v1/ai-tasks', data);
   },
 
   // 获取技能详情
@@ -718,7 +880,36 @@ export const cameraAPI = {
       return Promise.reject(new Error('缺少摄像头ID'));
     }
 
-    return visionAIAxios.delete(`/api/v1/cameras/${cameraId}`);
+    // 确保cameraId是字符串类型
+    if (typeof cameraId !== 'string') {
+      cameraId = String(cameraId);
+    }
+
+    // 打印删除请求信息，帮助调试
+    console.log(`删除摄像头: 正在发送请求删除ID为 ${cameraId} 的摄像头`);
+    
+    return visionAIAxios.delete(`/api/v1/cameras/${cameraId}`)
+      .then(response => {
+        // 打印原始响应，帮助调试
+        console.log(`删除摄像头 ${cameraId} 响应:`, response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error(`删除摄像头 ${cameraId} 错误:`, error);
+        
+        // 增强错误信息
+        if (error.response) {
+          console.error('错误状态码:', error.response.status);
+          console.error('错误响应数据:', error.response.data);
+          
+          // 如果有具体错误信息，附加到错误对象
+          if (error.response.data && (error.response.data.message || error.response.data.error)) {
+            error.detailedMessage = error.response.data.message || error.response.data.error;
+          }
+        }
+        
+        throw error;
+      });
   },
 
   /**
@@ -758,7 +949,31 @@ export const cameraAPI = {
       return Promise.reject(new Error('缺少有效的摄像头ID列表'));
     }
 
-    return visionAIAxios.post('/api/v1/cameras/batch-delete', { camera_ids: cameraIds });
+    // 打印请求信息，帮助调试
+    console.log(`批量删除摄像头: 正在发送请求删除 ${cameraIds.length} 个摄像头`, cameraIds);
+    
+    return visionAIAxios.post('/api/v1/cameras/batch-delete', { camera_ids: cameraIds })
+      .then(response => {
+        // 打印原始响应，帮助调试
+        console.log(`批量删除摄像头响应:`, response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error(`批量删除摄像头错误:`, error);
+        
+        // 增强错误信息
+        if (error.response) {
+          console.error('错误状态码:', error.response.status);
+          console.error('错误响应数据:', error.response.data);
+          
+          // 如果有具体错误信息，附加到错误对象
+          if (error.response.data && (error.response.data.message || error.response.data.error)) {
+            error.detailedMessage = error.response.data.message || error.response.data.error;
+          }
+        }
+        
+        throw error;
+      });
   },
 
   /**
