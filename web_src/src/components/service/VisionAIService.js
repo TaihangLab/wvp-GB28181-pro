@@ -46,6 +46,16 @@ visionAIAxios.interceptors.request.use(
 // 添加响应拦截器
 visionAIAxios.interceptors.response.use(
   response => {
+    // 检查是否是国标设备列表、推流设备列表、拉流设备列表或摄像头详情接口
+    // 这些接口不进行数据转换，保留原始数据结构
+    if (response.config.url.includes('/api/v1/cameras/wvp/gb28181_list') ||
+        response.config.url.includes('/api/v1/cameras/wvp/push_list') ||
+        response.config.url.includes('/api/v1/cameras/wvp/proxy_list') ||
+        /\/api\/v1\/cameras\/\d+$/.test(response.config.url)) {  // 匹配摄像头详情接口
+      console.log('特殊API接口返回原始数据:', response.config.url);
+      return response;
+    }
+    
     // 转换响应数据为前端期望的格式
     // 前端期望格式: { code: 0, data: [...], total: ... }
     const originalData = response.data;
@@ -169,58 +179,20 @@ visionAIAxios.interceptors.response.use(
         };
       }
     }
-    // 检查是否为设备列表数据（获取技能关联设备列表接口）
-    else if (originalData && Array.isArray(originalData.devices)) {
-      transformedData.data = originalData.devices.map(device => {
-        return {
-          id: device.id || device.device_id,
-          name: device.name || device.device_name || '未命名设备',
-          camera_uuid: device.camera_uuid || device.device_id || '-',
-          location: device.location || '-',
-          status: device.status || false
-        };
-      });
-      transformedData.total = transformedData.data.length;
-    }
-    // 检查是否为直接返回的设备数组（技能实例关联设备接口）
-    else if (originalData && Array.isArray(originalData) && originalData.length > 0
-      && (originalData[0].camera_uuid !== undefined || originalData[0].deviceId !== undefined)) {
-      transformedData.data = originalData.map(device => {
-        return {
-          id: device.id,
-          name: device.name || '未命名设备',
-          camera_uuid: device.camera_uuid || device.deviceId || device.gb_id || '-',
-          location: device.location || '-',
-          status: device.status || false,
-          // 保留可能有用的额外字段
-          tags: device.tags,
-          camera_type: device.camera_type
-        };
-      });
-      transformedData.total = originalData.length;
-    }
+
     // 检查是否为摄像头列表数据（获取AI摄像头列表接口）
-    else if (originalData && originalData.cameras) {
+    else if (originalData && originalData.cameras && response.config.url.includes('/api/v1/cameras/ai/list')) {
       transformedData.data = originalData.cameras.map(camera => {
+        console.log(response.config.url)
         return {
           id: camera.id,
           name: camera.name || '未命名摄像头',
-          camera_uuid: camera.camera_uuid || camera.deviceId || camera.gb_id || '-',
+          camera_uuid: camera.camera_uuid || '-',
           location: camera.location || '-',
           status: camera.status || false,
           tags: camera.tags || [],
           camera_type: camera.camera_type || '-',
           skill_names: camera.skill_names || [],
-          warning_level: camera.warning_level || 0,
-          frame_rate: camera.frame_rate || 1,
-          running_period: camera.running_period || '{}',
-          electronic_fence: camera.electronic_fence || '{}',
-          deviceId: camera.deviceId || '-',
-          gb_id: camera.gb_id || '-',
-          app: camera.app || '-',
-          stream: camera.stream || '-',
-          proxy_id: camera.proxy_id || '-',
-          push_id: camera.push_id || '-'
         };
       });
       transformedData.total = originalData.total || transformedData.data.length;
@@ -498,6 +470,56 @@ export const cameraAPI = {
   },
 
   /**
+   * 获取推流设备列表
+   * @param {Object} params - 查询参数
+   * @param {number} [params.page=1] - 当前页码
+   * @param {number} [params.count=20] - 每页记录数
+   * @param {string} [params.query] - 搜索关键词（按设备名称和ID查询）
+   * @param {boolean} [params.pushing] - 是否正在推流
+   * @returns {Promise} 包含推流设备列表的Promise对象
+   */
+  getPushStreamList(params = {}) {
+    // 处理查询和分页参数
+    const apiParams = { ...params };
+
+    // 设置默认值
+    if (!apiParams.page) {
+      apiParams.page = 1; // 默认第1页
+    }
+
+    if (!apiParams.count) {
+      apiParams.count = 20; // 默认每页20条
+    }
+
+    return visionAIAxios.get('/api/v1/cameras/wvp/push_list', { params: apiParams });
+  },
+
+  /**
+   * 获取拉流设备列表
+   * @param {Object} params - 查询参数
+   * @param {number} [params.page=1] - 当前页码
+   * @param {number} [params.count=20] - 每页记录数
+   * @param {string} [params.query] - 搜索关键词（按设备名称和ID查询）
+   * @param {boolean} [params.pulling] - 是否正在拉流
+   * @returns {Promise} 包含拉流设备列表的Promise对象
+   */
+  getProxyStreamList(params = {}) {
+    // 处理查询和分页参数
+    const apiParams = { ...params };
+
+    // 设置默认值
+    if (!apiParams.page) {
+      apiParams.page = 1; // 默认第1页
+    }
+
+    if (!apiParams.count) {
+      apiParams.count = 20; // 默认每页20条
+    }
+
+    return visionAIAxios.get('/api/v1/cameras/wvp/proxy_list', { params: apiParams });
+  },
+
+  /**
    * 获取所有标签列表
    * @returns {Promise} 获取结果的Promise对象，包含所有标签信息
    */
@@ -529,12 +551,35 @@ export const cameraAPI = {
    * @param {Array} cameraData.tags - 摄像头标签
    * @param {string} cameraData.camera_type - 摄像头类型，支持 'gb28181'、'proxy_stream'、'push_stream'
    * @param {string} [cameraData.deviceId] - GB28181设备的国标编号，camera_type为'gb28181'时必填
+   * @param {string} [cameraData.channelId] - GB28181设备的通道编号，camera_type为'gb28181'时必填
    * @param {string} [cameraData.gb_id] - GB28181设备的国标编号，通常与deviceId相同
    * @param {string} [cameraData.app] - 代理流或推流设备的应用名，camera_type为'proxy_stream'或'push_stream'时必填
    * @param {string} [cameraData.stream] - 代理流或推流设备的流ID，camera_type为'proxy_stream'或'push_stream'时必填
    * @param {string} [cameraData.proxy_id] - 代理流设备的代理ID，camera_type为'proxy_stream'时必填
    * @param {string} [cameraData.push_id] - 推流设备的推流ID，camera_type为'push_stream'时必填
-   * @returns {Promise} 添加结果的Promise对象，包含新添加的摄像头信息和操作结果
+   * @returns {Promise} 添加结果的Promise对象
+   * 返回数据格式:
+   * {
+   *   "success": true,
+   *   "camera": {
+   *     "id": "51",
+   *     "camera_uuid": "c9411735-6f64-4217-b865-c45d6d58d820",
+   *     "name": "前门摄像头",
+   *     "location": "大楼前门",
+   *     "tags": [],
+   *     "status": true,
+   *     "camera_type": "gb28181",
+   *     "skill_names": [],
+   *     "deviceId": "34020000001320000001",
+   *     "channelId": "34020000001320000001",
+   *     "gb_id": "34020000001320000001",
+   *     "app": null,
+   *     "stream": null,
+   *     "proxy_id": null,
+   *     "push_id": null
+   *   },
+   *   "message": null
+   * }
    */
   addCameraToAI(cameraData) {
     if (!cameraData) {
@@ -542,38 +587,110 @@ export const cameraAPI = {
       return Promise.reject(new Error('缺少摄像头数据'));
     }
 
+    // 创建请求数据的副本，避免修改原始对象
+    const requestData = { ...cameraData };
+    
+    // 确保基本字段存在且有效
+    requestData.name = requestData.name || '';
+    requestData.location = requestData.location || '';
+    requestData.status = requestData.status !== false; // 默认为true
+    requestData.tags = Array.isArray(requestData.tags) ? requestData.tags : [];
+    
+    // 默认值填充
+    requestData.app = requestData.app || '';
+    requestData.stream = requestData.stream || '';
+    requestData.deviceId = requestData.deviceId || '';
+    requestData.channelId = requestData.channelId || ''; // 确保channelId字段存在
+    requestData.gb_id = requestData.gb_id || '';
+    requestData.proxy_id = requestData.proxy_id || '';
+    requestData.push_id = requestData.push_id || '';
+    requestData.camera_uuid = requestData.camera_uuid || '';
+
     // 验证必填字段
-    if (!cameraData.name || !cameraData.camera_type) {
+    if (!requestData.name || !requestData.camera_type) {
       console.error('添加摄像头失败: 缺少必填字段(name或camera_type)');
       return Promise.reject(new Error('缺少必填字段(name或camera_type)'));
     }
 
-    // 根据不同的摄像头类型验证对应的必填字段
-    switch (cameraData.camera_type) {
+    // 确保所有ID字段都是字符串类型
+    Object.keys(requestData).forEach(key => {
+      if (key.includes('id') || key.includes('Id') || key === 'camera_uuid') {
+        if (requestData[key] !== null && requestData[key] !== undefined && typeof requestData[key] !== 'string') {
+          requestData[key] = String(requestData[key]);
+        }
+      }
+    });
+
+    // 根据不同的摄像头类型验证和处理对应的必填字段
+    switch (requestData.camera_type) {
       case 'gb28181':
-        if (!cameraData.deviceId) {
+        if (!requestData.deviceId) {
           console.error('添加GB28181摄像头失败: 缺少deviceId字段');
           return Promise.reject(new Error('添加GB28181摄像头失败: 缺少deviceId字段'));
         }
+        
+        // 确保gb_id字段存在
+        requestData.gb_id = requestData.gb_id || requestData.deviceId;
+        
+        // 确保channelId字段存在，如果不存在，使用deviceId作为默认值
+        requestData.channelId = requestData.channelId || requestData.deviceId;
         break;
+        
       case 'proxy_stream':
-        if (!cameraData.app || !cameraData.stream || !cameraData.proxy_id) {
-          console.error('添加代理流摄像头失败: 缺少app、stream或proxy_id字段');
-          return Promise.reject(new Error('添加代理流摄像头失败: 缺少app、stream或proxy_id字段'));
+        // 确保app和stream字段存在且非null
+        requestData.app = requestData.app || 'live';
+        if (requestData.app === null) requestData.app = 'live';
+        
+        if (!requestData.stream || requestData.stream === null) {
+          requestData.stream = `stream_${Date.now()}`;
+          console.log('自动生成stream值:', requestData.stream);
+        }
+        
+        if (!requestData.proxy_id) {
+          console.error('添加代理流摄像头失败: 缺少proxy_id字段');
+          return Promise.reject(new Error('添加代理流摄像头失败: 缺少proxy_id字段'));
         }
         break;
+        
       case 'push_stream':
-        if (!cameraData.app || !cameraData.stream || !cameraData.push_id) {
-          console.error('添加推流摄像头失败: 缺少app、stream或push_id字段');
-          return Promise.reject(new Error('添加推流摄像头失败: 缺少app、stream或push_id字段'));
+        // 确保app和stream字段存在且非null
+        requestData.app = requestData.app || 'live';
+        if (requestData.app === null) requestData.app = 'live';
+        
+        if (!requestData.stream || requestData.stream === null) {
+          requestData.stream = `stream_${Date.now()}`;
+          console.log('自动生成stream值:', requestData.stream);
+        }
+        
+        if (!requestData.push_id) {
+          console.error('添加推流摄像头失败: 缺少push_id字段');
+          return Promise.reject(new Error('添加推流摄像头失败: 缺少push_id字段'));
         }
         break;
+        
       default:
-        console.error(`添加摄像头失败: 不支持的摄像头类型 ${cameraData.camera_type}`);
-        return Promise.reject(new Error(`不支持的摄像头类型 ${cameraData.camera_type}`));
+        console.error(`添加摄像头失败: 不支持的摄像头类型 ${requestData.camera_type}`);
+        return Promise.reject(new Error(`不支持的摄像头类型 ${requestData.camera_type}`));
     }
 
-    return visionAIAxios.post('/api/v1/cameras', cameraData);
+    console.log('发送到API的数据:', requestData);
+
+    // 最后一次确保关键字段不为null或undefined
+    ['app', 'stream', 'proxy_id', 'push_id'].forEach(key => {
+      if (requestData[key] === null || requestData[key] === undefined) {
+        if (key === 'app') {
+          requestData[key] = 'live';
+        } else if (key === 'stream') {
+          requestData[key] = `stream_${Date.now()}`;
+        } else if (requestData.camera_type === 'proxy_stream' && key === 'proxy_id') {
+          requestData[key] = requestData.camera_uuid || '';
+        } else if (requestData.camera_type === 'push_stream' && key === 'push_id') {
+          requestData[key] = requestData.camera_uuid || '';
+        }
+      }
+    });
+    
+    return visionAIAxios.post('/api/v1/cameras', requestData);
   },
 
   /**
@@ -678,6 +795,15 @@ export const cameraAPI = {
     }
 
     return visionAIAxios.delete(`/api/v1/cameras/tags/${tagId}`);
+  },
+
+  /**
+   * 获取单个AI摄像头信息
+   * @param {string} cameraId 摄像头ID
+   * @returns {Promise} 返回包含摄像头详细信息的响应
+   */
+  getCameraDetail(cameraId) {
+    return visionAIAxios.get(`/api/v1/cameras/${cameraId}`);
   }
 };
 
