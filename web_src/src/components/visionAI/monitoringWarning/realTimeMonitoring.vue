@@ -44,9 +44,9 @@
               <span>{{ currentDateTime }}</span>
             </div>
             <el-tooltip content="全屏" placement="bottom" effect="light">
-              <i class="el-icon-full-screen btn" @click="toggleFullscreen" :class="{ disabled: selectedCamera === null }"/>
+              <i class="el-icon-full-screen btn" @click="toggleFullscreen"/>
             </el-tooltip>
-              </div>
+          </div>
         </el-header>
 
       <!-- 视频网格区域 -->
@@ -83,23 +83,29 @@
           </div>
         </template>
         <template v-else>
-          <div class="video-cell fullscreen">
-                <!-- 超薄标题栏 -->
-                <div class="video-slim-header">
-                  <span class="camera-name">摄像头 {{ selectedCamera }}</span>
-                  <div class="video-status" :class="getVideoStatus(selectedCamera-1)">
-                    <span class="status-dot"></span>
-                    <span class="status-text">{{ getVideoStatusText(selectedCamera-1) }}</span>
+          <div 
+            v-for="index in generateGrids()" 
+            :key="index"
+            class="video-cell"
+            :class="{ selected: selectedCamera === index }"
+            @click="selectCamera(index)"
+          >
+            <!-- 超薄标题栏 -->
+            <div class="video-slim-header">
+              <span class="camera-name">摄像头 {{ index }}</span>
+              <div class="video-status" :class="getVideoStatus(index-1)">
+                <span class="status-dot"></span>
+                <span class="status-text">{{ getVideoStatusText(index-1) }}</span>
+              </div>
             </div>
-                </div>
                 
             <div class="video-content">
-              <div class="video-placeholder" :data-timestamp="currentDateTime" :data-camera="formatCameraName(selectedCamera)">
-                    <div v-if="!videoUrl[selectedCamera-1]" class="no-signal">
+              <div class="video-placeholder" :data-timestamp="currentDateTime" :data-camera="formatCameraName(index)">
+                    <div v-if="!videoUrl[index-1]" class="no-signal">
                       <i class="el-icon-video-camera-solid"></i>
-                      <div>{{ videoTip[selectedCamera-1] ? videoTip[selectedCamera-1] : "无信号" }}</div>
+                      <div>{{ videoTip[index-1] ? videoTip[index-1] : "无信号" }}</div>
                     </div>
-                    <player :ref="'player'+(selectedCamera-1)" v-else :videoUrl="videoUrl[selectedCamera-1]" fluent autoplay @screenshot="shot"
+                    <player :ref="'player'+(index-1)" v-else :videoUrl="videoUrl[index-1]" fluent autoplay @screenshot="shot"
                             @destroy="destroy"/>
               </div>
             </div>
@@ -421,12 +427,10 @@ export default {
     },
     // 切换全屏显示
     toggleFullscreen() {
-      if (this.selectedCamera !== null) {
-        if (!this.isFullscreen) {
-          this.enterFullscreen();
-        } else {
-          this.exitFullscreen();
-        }
+      if (!this.isFullscreen) {
+        this.enterFullscreen();
+      } else {
+        this.exitFullscreen();
       }
     },
     // 进入全屏模式
@@ -1790,4 +1794,3 @@ body.camera-fullscreen-mode .video-cell .video-overlay .camera-name {
 
 /* 添加截图按钮的数据方法 */
 </style>
-
