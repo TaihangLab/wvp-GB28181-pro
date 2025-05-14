@@ -32,7 +32,7 @@
       <el-submenu index="/deviceManage" popper-class="modern-submenu">
         <template slot="title">
           <i class="el-icon-cpu"></i>
-          <span>设备管理</span>
+          <span>设备配置</span>
         </template>
         <el-menu-item index="/deviceManage/camera">摄像头</el-menu-item>
       </el-submenu>
@@ -90,7 +90,7 @@
       <el-submenu index="/videoMonitor" popper-class="modern-submenu">
         <template slot="title">
           <i class="el-icon-video-play"></i>
-          <span>WVP</span>
+          <span>流媒体中心</span>
         </template>
         <el-menu-item index="/console">控制台</el-menu-item>
         <el-menu-item index="/live">分屏监控</el-menu-item>
@@ -107,30 +107,26 @@
           <el-menu-item index="/channel/region">行政区划</el-menu-item>
           <el-menu-item index="/channel/group">业务分组</el-menu-item>
         </el-submenu>
+
+        <el-menu-item v-if="editUser" index="/userManager">
+          <span>用户管理</span>
+        </el-menu-item>
+        
+        <el-menu-item index="/operations">
+          <span>运维中心</span>
+        </el-menu-item>
       </el-submenu>
       
-      <!-- 用户管理菜单 -->
-      <el-menu-item v-if="editUser" index="/userManager">
-        <i class="el-icon-user"></i>
-        <span>用户管理</span>
-      </el-menu-item>
-      
-      <!-- 运维中心菜单 -->
-      <el-menu-item index="/operations">
-        <i class="el-icon-odometer"></i>
-        <span>运维中心</span>
-      </el-menu-item>
-
       <!-- 用户菜单 -->
       <el-submenu index="" class="user-menu" popper-class="modern-submenu">
         <template slot="title">
           <el-avatar :size="28" icon="el-icon-user" class="user-avatar"></el-avatar>
           <span>{{ username }}</span>
         </template>
-        <el-menu-item @click="openDoc">
+        <!-- <el-menu-item @click="openDoc">
           <i class="el-icon-document"></i>
           <span>在线文档</span>
-        </el-menu-item>
+        </el-menu-item> -->
         <el-menu-item>
           <i class="el-icon-bell"></i>
           <el-switch v-model="alarmNotify" 
