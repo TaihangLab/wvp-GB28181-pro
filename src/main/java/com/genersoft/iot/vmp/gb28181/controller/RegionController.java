@@ -50,7 +50,7 @@ public class RegionController {
         return regionService.query(query, page, count);
     }
 
-    @Operation(summary = "查询区域")
+    @Operation(summary = "查询区域", security = @SecurityRequirement(name = JwtUtils.HEADER))
     @Parameter(name = "query", description = "要搜索的内容", required = true)
     @Parameter(name = "parent", description = "所属行政区划编号", required = true)
     @ResponseBody
