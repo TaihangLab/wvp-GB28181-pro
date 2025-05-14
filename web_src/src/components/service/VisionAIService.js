@@ -567,6 +567,11 @@ export const skillAPI = {
     }
 
     return visionAIAxios.get(`/api/v1/skill-instances/${instanceId}/devices`);
+  },
+
+  // 获取AI任务技能详情
+  getAITaskSkillDetail(skillClassId) {
+    return visionAIAxios.get(`/api/v1/ai-tasks/skill-classes/${skillClassId}`);
   }
 };
 
