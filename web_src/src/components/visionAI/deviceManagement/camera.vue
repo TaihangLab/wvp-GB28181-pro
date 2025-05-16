@@ -3,153 +3,61 @@
     <div class="camera-management">
       <!-- 左侧标签区域 -->
       <div class="device-tree">
-        <!-- 设备来源标题 -->
+        <!-- 摄像头分类标题 -->
         <h3 class="tree-title location-title">
           <div class="title-container">
-            <i class="el-icon-location title-icon"></i>
-            <span class="title-text">设备来源</span>
+            <i class="el-icon-video-camera title-icon"></i>
+            <span class="title-text">摄像头分类</span>
           </div>
         </h3>
         
         <div class="location-filter-container">
           <div 
             class="location-item-wrapper" 
-            @click="filterAllLocations">
+            @click="filterAllCameraTypes">
             <el-tag 
-              :color="currentLocationFilter === '' ? '#409EFF' : '#f0f2f5'"
-              :effect="currentLocationFilter === '' ? 'dark' : 'plain'"
+              :color="currentCameraTypeFilter === 0 ? '#409EFF' : '#f5f7fa'"
+              :effect="currentCameraTypeFilter === 0 ? 'dark' : 'plain'"
+              :style="{ color: currentCameraTypeFilter === 0 ? '#ffffff' : '#333333' }"
               class="location-item location-item-all">
-              <i class="el-icon-check" v-if="currentLocationFilter === ''"></i>
-              全部地点
+              <i class="el-icon-check" v-if="currentCameraTypeFilter === 0"></i>
+              全部类型
             </el-tag>
           </div>
-          <div v-if="uniqueLocations.length === 0" class="no-locations-tip">
-            暂无地点数据
-          </div>
-          <div v-else class="locations-grid">
-            <div 
-              v-for="location in uniqueLocations" 
-              :key="location.name"
-              class="location-item-wrapper" 
-              @click="filterByLocation(location.name)">
+          <div class="locations-grid">
+            <!-- 国标摄像头 -->
+            <div class="location-item-wrapper" @click="filterByCameraType(1)">
               <el-tag 
-                :color="currentLocationFilter === location.name ? '#409EFF' : getLocationColor(location.name)"
-                :effect="currentLocationFilter === location.name ? 'dark' : 'plain'"
+                :color="currentCameraTypeFilter === 1 ? '#409EFF' : '#f8f9fc'"
+                :effect="currentCameraTypeFilter === 1 ? 'dark' : 'plain'"
+                :style="{ color: currentCameraTypeFilter === 1 ? '#ffffff' : '#67C23A' }"
                 class="location-item">
-                <i class="el-icon-check" v-if="currentLocationFilter === location.name"></i>
-                {{ location.name }}
+                <i class="el-icon-check" v-if="currentCameraTypeFilter === 1"></i>
+                国标设备
               </el-tag>
             </div>
-          </div>
-        </div>
-        
-        <!-- 标签标题 -->
-        <h3 class="tree-title">
-          <div class="title-container">
-            <i class="el-icon-collection-tag title-icon"></i>
-            <span class="title-text">设备标签</span>
-          </div>
-          <div class="title-buttons">
-            <el-button 
-              type="text" 
-              size="mini" 
-              icon="el-icon-plus"
-              @click="openAddTagDialog"
-              class="add-tag-button"
-              title="添加标签">
-            </el-button>
-            <el-tooltip content="清空筛选" placement="top" v-if="currentFilteredTags.length > 0">
-              <el-button 
-                type="text" 
-                size="mini" 
-                class="clear-tag-filter"
-                @click="clearTagFilter">
-                <i class="el-icon-delete"></i>
-              </el-button>
-            </el-tooltip>
-          </div>
-        </h3>
-        
-        <!-- 标签添加按钮 -->
-        <div class="tag-add-button-container">
-          <el-button 
-            type="text" 
-            size="mini" 
-            class="add-tag-button-alt"
-            @click="openAddTagDialog">
-            <i class="el-icon-plus"></i> 添加标签
-          </el-button>
-        </div>
-        
-        <!-- 选中的标签展示区域 -->
-        <div class="filtered-tags-container" v-if="currentFilteredTags.length > 0">
-          <div class="filtered-tags-title">
-            <div style="display: flex; align-items: center;">
-              <i class="el-icon-collection-tag" style="color: #409EFF; margin-right: 5px;"></i>
-              <span>已选标签</span>
+            <!-- 推流摄像头 -->
+            <div class="location-item-wrapper" @click="filterByCameraType(2)">
               <el-tag
-                size="mini"
-                type="info"
-                effect="plain"
-                style="margin-left: 5px;">
-                {{ currentFilteredTags.length }}
+                :color="currentCameraTypeFilter === 2 ? '#409EFF' : '#f8f9fc'"
+                :effect="currentCameraTypeFilter === 2 ? 'dark' : 'plain'"
+                :style="{ color: currentCameraTypeFilter === 2 ? '#ffffff' : '#E6A23C' }"
+                class="location-item">
+                <i class="el-icon-check" v-if="currentCameraTypeFilter === 2"></i>
+                推流设备
               </el-tag>
             </div>
-          </div>
-          <div class="filtered-tags-list">
-            <el-tag
-              v-for="tag in currentFilteredTags"
-              :key="tag"
-              :color="getTagColor(tag)"
-              effect="dark"
-              closable
-              size="mini"
-              @close="removeFilterTag(tag)"
-              class="filtered-tag-item">
-              {{ tag }}
-            </el-tag>
-          </div>
-          <div class="filter-options" v-if="currentFilteredTags.length > 1">
-            
-            <el-radio-group v-model="tagMatchType" size="mini" @change="applyTagFilter">
-              <el-radio-button label="all">全部包含</el-radio-button>
-              <el-radio-button label="any">任一包含</el-radio-button>
-            </el-radio-group>
-          </div>
-        </div>
-        
-        <!-- 标签列表区域 -->
-        <div class="tags-list-container">
-          <el-tooltip 
-            v-for="tag in filteredTags" 
-            :key="tag.id || tag.name" 
-            :content="tag.description || '无详情描述'" 
-            placement="right"
-            :open-delay="300">
-            <div class="tag-item-wrapper">
+            <!-- 拉流摄像头 -->
+            <div class="location-item-wrapper" @click="filterByCameraType(3)">
               <el-tag 
-                :color="getTagColor(tag.name)" 
-                effect="plain"
-                class="tag-item"
-                :class="{'tag-selected': currentFilteredTags.includes(tag.name)}"
-                @click="toggleFilterTag(tag.name)">
-                {{ tag.name }}
+                :color="currentCameraTypeFilter === 3 ? '#409EFF' : '#f8f9fc'"
+                :effect="currentCameraTypeFilter === 3 ? 'dark' : 'plain'"
+                :style="{ color: currentCameraTypeFilter === 3 ? '#ffffff' : '#F56C6C' }"
+                class="location-item">
+                <i class="el-icon-check" v-if="currentCameraTypeFilter === 3"></i>
+                拉流设备
               </el-tag>
-              <div class="tag-actions">
-                <el-dropdown trigger="hover" size="mini" placement="bottom-end" @command="handleTagAction($event, tag)">
-                  <el-button type="text" size="mini" class="tag-action-btn">
-                    <i class="el-icon-more"></i>
-                  </el-button>
-                  <el-dropdown-menu slot="dropdown">
-                    <el-dropdown-item command="edit"><i class="el-icon-edit"></i> 编辑</el-dropdown-item>
-                    <el-dropdown-item command="delete" divided><i class="el-icon-delete"></i> 删除</el-dropdown-item>
-                  </el-dropdown-menu>
-                </el-dropdown>
-              </div>
             </div>
-          </el-tooltip>
-          <div v-if="filteredTags.length === 0" class="no-tags-tip">
-            暂无标签
           </div>
         </div>
       </div>
@@ -158,48 +66,51 @@
       <div class="device-list">
         <div class="operation-bar">
           <div class="left-operations">
-            <el-button type="primary" @click="handleAddDevice">
-              <i class="el-icon-plus"></i>添加摄像头
-            </el-button>
-            <el-button type="danger" @click="handleBatchDelete" :disabled="selectedDevices.length === 0">
-              <i class="el-icon-delete"></i>批量删除
-            </el-button>
+            <!-- 添加刷新列表按钮 -->
+            <el-button type="primary" icon="el-icon-refresh" @click="handleRefresh">刷新列表</el-button>
           </div>
           <div class="right-operations">
             <el-input v-model="searchKeyword" placeholder="请输入设备名称搜索" style="width: 200px" clearable>
               <i slot="prefix" style="align-items: center; display: flex; height: 40px;" class="el-icon-search"></i>
             </el-input>
-            <el-button type="primary" icon="el-icon-refresh" circle @click="handleRefresh" class="search-button" />
           </div>
         </div>
 
         <el-table 
           :data="deviceList" 
           style="width: 100%" 
-          @selection-change="handleSelectionChange"
           v-loading="loading"
           element-loading-text="加载中..."
           empty-text="暂无摄像头数据">
-          <el-table-column type="selection" width="55" align="center" />
-          <el-table-column prop="name" label="摄像头名称" width="180" align="center" />
+          <el-table-column type="index" label="序号" width="70" align="center" />
+          <el-table-column prop="id" label="ID" width="80" align="center" />
+          <el-table-column prop="name" label="摄像头名称" width="150" align="center" />
+          <el-table-column prop="camera_type" label="类型" width="100" align="center">
+            <template slot-scope="{ row }">
+              <el-tag size="mini" effect="plain">{{ getCameraTypeText(row.camera_type) }}</el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="status" label="状态" width="100" align="center">
             <template slot-scope="{ row }">
-              <el-tag :type="row.status === 'online' ? 'success' : 'danger'">
-                {{ row.status === 'online' ? '在线' : '离线' }}
+              <el-tag :type="row.status === true ? 'success' : 'danger'">
+                <!-- 根据摄像头类型显示不同的状态文字 -->
+                <template v-if="row.camera_type === 1">
+                  {{ row.status === true ? '在线' : '离线' }}
+                </template>
+                <template v-else-if="row.camera_type === 2">
+                  {{ row.status === true ? '推流中' : '已停止' }}
+                </template>
+                <template v-else-if="row.camera_type === 3">
+                  {{ row.status === true ? '正在拉流' : '尚未拉流' }}
+                </template>
+                <template v-else>{{ row.status }}
+                  {{ row.status === true ? '启用' : '禁用' }}
+                </template>
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="location" label="设备来源" width="120" align="center" />
-          <el-table-column label="设备标签" width="200" align="center">
-            <template slot-scope="{ row }">
-              <el-tag v-for="(tag, index) in row.tags" :key="index" :color="getTagColor(tag)" effect="plain" size="mini"
-                style="margin: 2px; color: #fff; border-color: transparent; display: inline-flex; align-items: center; line-height: 1;">
-                {{ tag }}
-              </el-tag>
-              <span v-if="!row.tags || row.tags.length === 0">-</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="skill" label="视频技能" min-width="150" align="center">
+          <el-table-column prop="location" label="设备来源" width="140" align="center" />
+          <el-table-column prop="skill" label="视频技能" min-width="220" align="center">
             <template slot-scope="{ row }">
               <div v-if="row.skill && row.skill !== '-'" class="skill-tags-container">
                 <div v-for="(skillName, idx) in row.skill.split(',')" :key="idx" class="skill-tag-item">
@@ -211,14 +122,14 @@
               <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="280" align="center">
+          <el-table-column label="操作" width="220" align="center">
             <template slot-scope="{ row }">
-              <el-button-group>
-                <el-button type="primary" size="small" icon="el-icon-setting"
+              <div class="operation-buttons">
+                <el-button type="primary" size="mini" icon="el-icon-setting"
                   @click="handleConfigSkill(row)">配置技能</el-button>
-                <el-button type="primary" size="small" icon="el-icon-edit" @click="handleEdit(row)">编辑</el-button>
-                <el-button type="danger" size="small" icon="el-icon-delete" @click="handleDelete(row)">删除</el-button>
-              </el-button-group>
+                <el-button type="info" size="mini" icon="el-icon-view"
+                  @click="handleViewDetails(row)">查看详情</el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -230,399 +141,105 @@
         </div>
       </div>
 
-      <!-- 添加/编辑设备对话框 -->
-      <el-dialog :visible.sync="deviceDialogVisible" 
-        :title="(deviceForm.id !== 0 && !!deviceForm.id) ? '编辑摄像头' : '添加摄像头'" 
-        width="30%"
-        :close-on-click-modal="false" 
-        :destroy-on-close="false" 
-        :modal-append-to-body="true" 
-        :append-to-body="true"
-        :show-close="true" 
-        :lock-scroll="true" 
-        custom-class="device-dialog" 
-        @opened="handleDialogOpened">
-        <el-form :model="deviceForm" label-width="80px" class="skill-form">
-          <el-form-item label="设备名称">
-            <el-input v-model="deviceForm.name" style="width: 200pt;" />
-          </el-form-item>
-          <el-form-item label="设备类型">
-            <el-select v-model="deviceForm.type" placeholder="请选择设备类型" style="width: 200pt;"
-              @change="handleDeviceTypeChange" :disabled="deviceForm.id !== 0 && !!deviceForm.id">
-              <el-option v-for="item in deviceTypes" :key="item.value" :label="item.label" :value="item.value" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="摄像头">
-            <el-select 
-              v-model="deviceForm.cameraId" 
-              placeholder="请选择摄像头" 
-              style="width: 100%;"
-              value-key="id"
-              :disabled="deviceForm.id !== 0 && !!deviceForm.id"
-              :loading="deviceForm.type === 'gb28181' && gb28181CamerasLoading || deviceForm.type === 'push' && pushStreamCamerasLoading"
-              filterable
-              @change="handleCameraChange">
-              <template v-if="deviceForm.id !== 0 && !!deviceForm.id">
-                <!-- 编辑模式显示当前摄像头名称，并禁用选择 -->
-                <el-option
-                  :key="deviceForm.cameraId"
-                  :label="deviceForm.source_name || getCameraNameById(deviceForm.cameraId, deviceForm.type)"
-                  :value="deviceForm.cameraId">
-                </el-option>
-              </template>
-              <template v-else-if="deviceForm.type === 'gb28181'">
-                <!-- 国标设备列表 -->
-                <el-option
-                  v-for="camera in gb28181Cameras"
-                  :key="camera.id"
-                  :label="camera.name"
-                  :value="camera.id">
-                  <div style="display: flex; justify-content: space-between; align-items: center">
-                    <span style="font-weight: 500;">{{ camera.name }}</span>
-                    <span style="float: right; color: #8492a6; font-size: 12px; display: flex; align-items: center;">
-                      <span>{{ camera.ip || '-' }}</span>
-                      <el-tag 
-                        size="mini" 
-                        :type="camera.status === 'online' || camera.onLine ? 'success' : 'danger'" 
-                        style="margin-left: 5px;">
-                        {{ camera.status === 'online' || camera.onLine ? '在线' : '离线' }}
-                      </el-tag>
-                    </span>
-                  </div>
-                </el-option>
-              </template>
-              <template v-else-if="deviceForm.type === 'push'">
-                <!-- 推流设备列表 -->
-                <el-option
-                  v-for="camera in pushStreamCameras"
-                  :key="camera.id"
-                  :label="`${camera.name} (${camera.app || ''}/${camera.stream || ''})`"
-                  :value="camera.id">
-                  <div style="display: flex; justify-content: space-between; align-items: center">
-                    <span style="font-weight: 500;">{{ camera.name }}</span>
-                    <span style="float: right; color: #8492a6; font-size: 12px; display: flex; align-items: center;">
-                      <span>{{ camera.app || '' }}/{{ camera.stream || '' }}</span>
-                      <el-tag 
-                        size="mini" 
-                        :type="camera.pushing ? 'success' : 'danger'" 
-                        style="margin-left: 5px;">
-                        {{ camera.pushing ? '推流中' : '未推流' }}
-                      </el-tag>
-                    </span>
-                  </div>
-                </el-option>
-              </template>
-              <template v-else-if="deviceForm.type === 'pull'">
-                <!-- 拉流设备列表 -->
-                <el-tooltip 
-                  v-for="camera in proxyStreamCameras" 
-                  :key="camera.id"
-                  :content="camera.srcUrl ? `源URL: ${camera.srcUrl}` : '无源URL'" 
-                  placement="top"
-                  :disabled="!camera.srcUrl">
-                  <el-option
-                    :label="`${camera.name} (${camera.app || ''}/${camera.stream || ''})`"
-                    :value="camera.id">
-                    <div style="display: flex; justify-content: space-between; align-items: center">
-                      <span style="font-weight: 500;">{{ camera.name }}</span>
-                      <span style="float: right; color: #8492a6; font-size: 12px; display: flex; align-items: center;">
-                        <span>{{ camera.app || '' }}/{{ camera.stream || '' }}</span>
-                        <el-tag 
-                          size="mini" 
-                          :type="camera.pulling ? 'success' : 'danger'" 
-                          style="margin-left: 5px;">
-                          {{ camera.pulling ? '拉流中' : '未拉流' }}
-                        </el-tag>
-                      </span>
-                    </div>
-                  </el-option>
-                </el-tooltip>
-              </template>
-              <template v-else>
-                <!-- 其他类型摄像头列表 -->
-                <el-option
-                  v-for="camera in filteredCameras"
-                  :key="camera.id"
-                  :label="camera.name"
-                  :value="camera.id">
-                </el-option>
-              </template>
-            </el-select>
-            <!-- 设备信息显示和刷新按钮 -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
-              <!-- 编辑模式下显示的信息 -->
-              <span v-if="deviceForm.id" style="font-size: 12px; color: #409EFF;">
-                <i class="el-icon-info"></i> 编辑模式下不能更改摄像头
-              </span>
-              
-              <!-- 添加模式下的设备列表信息 -->
-              <span v-else-if="deviceForm.type === 'gb28181' && !deviceForm.cameraId" style="font-size: 12px; color: #909399;">
-                {{ gb28181CamerasLoading ? '加载中...' : `共找到 ${gb28181CamerasTotal} 个设备` }}
-              </span>
-              <span v-else-if="deviceForm.type === 'push' && !deviceForm.cameraId" style="font-size: 12px; color: #909399;">
-                {{ pushStreamCamerasLoading ? '加载中...' : `共找到 ${pushStreamCamerasTotal} 个设备` }}
-              </span>
-              <span v-else-if="deviceForm.type === 'pull' && !deviceForm.cameraId" style="font-size: 12px; color: #909399;">
-                {{ proxyStreamCamerasLoading ? '加载中...' : `共找到 ${proxyStreamCamerasTotal} 个设备` }}
-              </span>
-              
-              <!-- 选择了摄像头后显示的详细信息 -->
-              <span v-else-if="deviceForm.cameraId && deviceForm.type === 'gb28181'" style="font-size: 12px; color: #67C23A; display: flex; align-items: center;">
-                <i class="el-icon-check" style="margin-right: 5px;"></i>
-                <span>IP: {{ getSelectedCameraIP() || '-' }}</span>
-                <el-tag 
-                  size="mini" 
-                  :type="getSelectedCameraStatus() ? 'success' : 'danger'" 
-                  style="margin-left: 5px;">
-                  {{ getSelectedCameraStatus() ? '在线' : '离线' }}
-                </el-tag>
-              </span>
-              
-              <!-- 推流设备选择后信息 -->
-              <span v-else-if="deviceForm.cameraId && deviceForm.type === 'push'" style="font-size: 12px; color: #67C23A; display: flex; align-items: center;">
-                <i class="el-icon-check" style="margin-right: 5px;"></i>
-                <span>{{ cameraTypeSpecificFields.app || '' }}/{{ cameraTypeSpecificFields.stream || '' }}</span>
-                <el-tag 
-                  size="mini" 
-                  :type="getSelectedCameraPushingStatus() ? 'success' : 'danger'" 
-                  style="margin-left: 5px;">
-                  {{ getSelectedCameraPushingStatus() ? '推流中' : '未推流' }}
-                </el-tag>
-              </span>
-              
-              <!-- 拉流设备选择后信息 -->
-              <span v-else-if="deviceForm.cameraId && deviceForm.type === 'pull'" style="font-size: 12px; color: #67C23A; display: flex; align-items: center;">
-                <i class="el-icon-check" style="margin-right: 5px;"></i>
-                <span>{{ cameraTypeSpecificFields.app || '' }}/{{ cameraTypeSpecificFields.stream || '' }}</span>
-                <el-tag 
-                  size="mini" 
-                  :type="getSelectedCameraPullingStatus() ? 'success' : 'danger'" 
-                  style="margin-left: 5px;">
-                  {{ getSelectedCameraPullingStatus() ? '拉流中' : '未拉流' }}
-                </el-tag>
-              </span>
-              
-              <!-- 刷新按钮 -->
-              <el-button 
-                v-if="deviceForm.type === 'gb28181' && !(deviceForm.id !== 0 && !!deviceForm.id)"
-                type="text" 
-                size="small"
-                :loading="gb28181CamerasLoading"
-                @click="fetchGb28181Cameras">
-                <i class="el-icon-refresh"></i> 刷新列表
-              </el-button>
-              <el-button 
-                v-if="deviceForm.type === 'push' && !(deviceForm.id !== 0 && !!deviceForm.id)"
-                type="text" 
-                size="small"
-                :loading="pushStreamCamerasLoading"
-                @click="fetchPushStreamCameras">
-                <i class="el-icon-refresh"></i> 刷新列表
-              </el-button>
-              <el-button 
-                v-if="deviceForm.type === 'pull' && !(deviceForm.id !== 0 && !!deviceForm.id)"
-                type="text" 
-                size="small"
-                :loading="proxyStreamCamerasLoading"
-                @click="fetchProxyStreamCameras">
-                <i class="el-icon-refresh"></i> 刷新列表
-              </el-button>
-            </div>
-          </el-form-item>
-          <el-form-item label="关联地点">
-            <el-input v-model="deviceForm.location" style="width: 200pt;" />
-          </el-form-item>
-
-          <!-- 国标设备特定字段 -->
-          <div v-if="deviceForm.type === 'gb28181'">
-            <el-form-item label="设备编号">
-              <el-input 
-                v-model="cameraTypeSpecificFields.deviceId" 
-                placeholder="请输入国标设备编号" 
-                style="width: 200pt;" 
-                :disabled="true"
-              />
-            </el-form-item>
-            <el-form-item label="通道编号">
-              <el-input 
-                v-model="cameraTypeSpecificFields.channelId" 
-                placeholder="通道编号" 
-                style="width: 200pt;" 
-                :disabled="true"
-              />
-            </el-form-item>
-          </div>
-
-          <!-- 代理流设备特定字段 -->
-          <div v-if="deviceForm.type === 'pull'">
-            <el-form-item label="应用名称">
-              <el-input v-model="cameraTypeSpecificFields.app" placeholder="应用名称" style="width: 200pt;" :disabled="true" />
-            </el-form-item>
-            <el-form-item label="流ID">
-              <el-input v-model="cameraTypeSpecificFields.stream" placeholder="流ID" style="width: 200pt;" :disabled="true" />
-            </el-form-item>
-            <el-form-item label="代理ID">
-              <el-input v-model="cameraTypeSpecificFields.proxy_id" placeholder="代理ID" style="width: 200pt;" :disabled="true" />
-            </el-form-item>
-          </div>
-
-          <!-- 推流设备特定字段 -->
-          <div v-if="deviceForm.type === 'push'">
-            <el-form-item label="应用名称">
-              <el-input v-model="cameraTypeSpecificFields.app" placeholder="应用名称" style="width: 200pt;" :disabled="true" />
-            </el-form-item>
-            <el-form-item label="流ID">
-              <el-input v-model="cameraTypeSpecificFields.stream" placeholder="流ID" style="width: 200pt;" :disabled="true" />
-            </el-form-item>
-            <el-form-item label="推流ID">
-              <el-input v-model="cameraTypeSpecificFields.push_id" placeholder="推流ID" style="width: 200pt;" :disabled="true" />
-            </el-form-item>
-          </div>
-
-          <el-form-item label="设备标签">
-            <div class="tag-selection-container">
-              <!-- 可选标签区域 - 移到已选标签上方 -->
-              <div class="available-tags-container">
-                <div class="available-tags-header" @click="toggleAvailableTagsCollapse">
-                  <div class="collapse-title">
-                    <span>可选标签</span>
-                    <el-tag
-                      size="mini"
-                      type="info"
-                      effect="plain"
-                      style="margin-left: 5px;">
-                      {{ getAvailableTags().length }}
-                    </el-tag>
-                  </div>
-                  <i :class="availableTagsCollapsed ? 'el-icon-arrow-down' : 'el-icon-arrow-up'" 
-                     style="color: #409EFF; cursor: pointer;"></i>
-                </div>
-                <div class="tags-grid" v-show="!availableTagsCollapsed">
-                  <el-tag
-                    v-for="tag in getAvailableTags()"
-                    :key="tag.id || tag.name"
-                    :color="getTagColor(tag.name)"
-                    effect="plain"
-                    class="selectable-tag-item"
-                    @click="addSelectedTag(tag.name)"
-                    style="color: #fff; border-color: transparent; cursor: pointer;">
-                    {{ tag.name }}
-                  </el-tag>
-                  <div v-if="getAvailableTags().length === 0" class="no-tags-tip">
-                    所有标签已选择
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 已选标签区域 -->
-              <div class="selected-tags-container" v-if="deviceForm.tags && deviceForm.tags.length > 0">
-                <div class="selected-tags-header" @click="toggleSelectedTagsCollapse">
-                  <div class="collapse-title">
-                    <span>已选标签</span>
-                    <el-tag
-                      size="mini"
-                      type="info"
-                      effect="plain"
-                      style="margin-left: 5px;">
-                      {{ deviceForm.tags.length }}
-                    </el-tag>
-                  </div>
-                  <div style="display: flex; align-items: center;">
-                    <el-link type="danger" :underline="false" v-if="deviceForm.tags.length > 0" @click.stop="clearAllTags" style="margin-right: 10px;">清空</el-link>
-                    <i :class="selectedTagsCollapsed ? 'el-icon-arrow-down' : 'el-icon-arrow-up'" 
-                       style="color: #409EFF; cursor: pointer;"></i>
-                  </div>
-                </div>
-                <div class="selected-tags-list" v-show="!selectedTagsCollapsed">
-                  <el-tag 
-                    v-for="(tag, index) in deviceForm.tags" 
-                    :key="index" 
-                    :color="getTagColor(tag)" 
-                    effect="plain"
-                    class="selected-tag-item"
-                    closable 
-                    @close="removeTag(index)"
-                    style="color: #fff; border-color: transparent;">
-                    {{ tag }}
-                  </el-tag>
-                </div>
-              </div>
-              <div v-else class="no-tags-selected">
-                <i class="el-icon-info"></i> 尚未选择任何标签
-              </div>
-            </div>
-          </el-form-item>
-        </el-form>
-        <span slot="footer" class="dialog-footer">
-          <el-button @click="closeDeviceDialog">取消</el-button>
-          <el-button type="primary" @click="confirmAddDevice">确认</el-button>
-        </span>
-      </el-dialog>
-
       <!-- 选择技能对话框 -->
-      <el-dialog title="选择技能" :visible.sync="skillSelectDialogVisible" width="40%" :close-on-click-modal="false"
+      <el-dialog title="选择技能" :visible.sync="skillSelectDialogVisible" width="55%" :close-on-click-modal="false"
         :destroy-on-close="false" :modal-append-to-body="true" :append-to-body="true" :show-close="true"
-        :lock-scroll="true" custom-class="skill-select-dialog" center>
+        :lock-scroll="true" custom-class="skill-select-dialog" center @close="handleSkillSelectClose">
         <el-form :model="skillSelectForm" class="skill-form">
-          <div v-if="!showLeftSkillMenu">
-            <el-select v-model="skillSelectForm.selectedSkill" placeholder="请选择技能" style="width: 100%"
-              popper-class="skill-select" @change="handleSingleSkillSelect" :loading="skillOptionsLoading">
-              <el-option
-                v-for="item in skillOptions"
-                :key="item.id"
-                :label="item.label"
-                :value="item.value">
-                <span style="float: left; font-weight: 500;">{{ item.name_zh }}</span>
-                <span style="float: right; color: #8492a6; font-size: 12px; display: flex; align-items: center;">
-                  {{ item.name }}
-                  <el-tag size="mini" type="info" effect="plain" style="margin-left: 5px;">
-                    {{ item.type }}
-                  </el-tag>
-                </span>
-              </el-option>
-              <div slot="empty" class="empty-options" v-if="skillOptionsLoading">
-                <i class="el-icon-loading"></i> 正在加载技能列表...
-              </div>
-              <div slot="empty" class="empty-options" v-else>
-                暂无可用技能
-              </div>
-            </el-select>
-            <div class="skill-info" v-if="skillOptions.length > 0">
-              <span style="font-size: 12px; color: #909399;">共发现 {{ skillOptionsTotal }} 个技能</span>
-              <el-button type="text" size="small" @click="fetchSkillClasses" :loading="skillOptionsLoading">
-                <i class="el-icon-refresh"></i> 刷新列表
-              </el-button>
+          <!-- 搜索和筛选工具栏 -->
+          <div class="skill-toolbar">
+            <div class="skill-search-container">
+              <el-input 
+                v-model="skillSearchKeyword"
+                placeholder="请输入技能名称搜索"
+                prefix-icon="el-icon-search"
+                clearable
+                @clear="clearSkillSearch">
+              </el-input>
+            </div>
+            <div class="skill-filter-container">
+              <el-radio-group v-model="skillStatusFilter" size="small" @change="filterSkillsByStatus">
+                <el-radio-button label="all">全部</el-radio-button>
+                <el-radio-button label="true">已启用</el-radio-button>
+                <el-radio-button label="false">未启用</el-radio-button>
+              </el-radio-group>
             </div>
           </div>
 
-          <!-- 已选技能展示区域 -->
-          <div class="selected-skills-container" v-if="skillSelectForm.selectedSkills.length > 0">
-            <div class="skills-header">
-              <div class="skills-title">已选技能</div>
-            </div>
-            <div class="skills-grid-wrapper">
-              <div class="skills-grid">
-                <div v-for="skill in skillSelectForm.selectedSkills" :key="skill" class="skill-square"
-                  @click="configureSkill(skill)">
-                  <div class="skill-icon">
-                    <i :class="getSkillIcon(skill)"></i>
+          <!-- 技能选择网格 -->
+          <div class="skills-selection-container">
+            <div class="section-title">可用技能</div>
+            <div v-if="skillOptionsLoading" class="skills-loading">
+              <i class="el-icon-loading"></i> 正在加载技能列表...
+          </div>
+            <div v-else-if="filteredSkillOptions.length === 0" class="no-skills-tip">
+              <i class="el-icon-info"></i> 暂无可用技能
+          </div>
+            <div v-else class="skills-grid">
+              <div 
+                v-for="skill in filteredSkillOptions" 
+                :key="skill.id"
+                :class="['skill-card', {selected: isSkillSelected(skill.value), disabled: skill.status === false}]"
+                @click="skill.status !== false ? toggleSkillSelection(skill.value) : $message.warning('该技能未启用，无法配置')">
+                <div class="skill-icon" :style="{ background: getSkillGradient(skill.value) }">
+                  <i :class="getSkillIcon(skill.value)"></i>
+                </div>
+                <div class="skill-card-content">
+                  <div class="skill-info">
+                    <div class="skill-name-wrapper">
+                      <div class="skill-name-container" :title="skill.name_zh">
+                        <div class="skill-name">{{ skill.name_zh }}</div>
+                        <span v-if="skill.version" class="skill-version">v{{ skill.version }}</span>
+                      </div>
+                      <div class="skill-eng-name" :title="skill.value">{{ skill.value }}</div>
+                    </div>
                   </div>
-                  <div class="skill-name">{{ skill }}</div>
-                  <div class="skill-actions">
-                    <el-button class="config-btn" type="primary" circle size="mini" @click.stop="configureSkill(skill)">
-                      <i class="el-icon-setting"></i>
-                    </el-button>
-                    <el-button class="delete-btn" type="danger" circle size="mini"
-                      @click.stop="removeSelectedSkill(skill)">
-                      <i class="el-icon-delete"></i>
-                    </el-button>
+                  <div class="skill-meta">
+                    <span class="skill-type">{{ skill.type }}</span>
+                    <el-tag size="mini" :type="skill.status !== false ? 'success' : 'danger'" class="skill-status-tag">
+                      {{ skill.status !== false ? '已启用' : '未启用' }}
+                    </el-tag>
                   </div>
+                </div>
+                <div class="skill-selection-mark" v-if="isSkillSelected(skill.value)">
+                  <i class="el-icon-check"></i>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- 关联任务展示区域 -->
+          <div class="related-tasks-container">
+            <div class="skills-header">
+              <div class="skills-title">关联任务 ({{ cameraRelatedTasks.length }})</div>
+            </div>
+            <div v-if="taskLoading" class="task-loading">
+              <i class="el-icon-loading"></i> 正在加载关联任务...
+            </div>
+            <div v-else-if="cameraRelatedTasks.length === 0" class="no-tasks-tip">
+              <i class="el-icon-info"></i> 暂无关联任务
+            </div>
+            <div v-else class="related-tasks-list">
+              <el-card v-for="task in cameraRelatedTasks" :key="task.id" class="task-card">
+                <div class="task-header">
+                  <div class="task-name">{{ task.name }}</div>
+                  <el-tag size="mini" :type="task.status ? 'success' : 'info'" class="task-status-tag">
+                    {{ task.status ? '运行中' : '已停止' }}
+                  </el-tag>
+                </div>
+                <div class="task-info">
+                  <div class="task-desc">{{ task.description }}</div>
+                  <div class="task-alert">
+                    <el-tag size="mini" :type="getAlertLevelType(task.alert_level)">
+                      {{ getAlertLevelName(task.alert_level) }}
+                    </el-tag>
+                  </div>
+                </div>
+              </el-card>
+            </div>
+          </div>
         </el-form>
-        <div slot="footer" class="dialog-footer">
+                  <div slot="footer" class="dialog-footer">
           <el-button @click="closeSkillSelectDialog">取消</el-button>
           <el-button type="primary" @click="confirmSkillSelect">确定</el-button>
         </div>
@@ -639,7 +256,16 @@
             </div>
             <div class="skill-info-content">
               <div class="skill-name-row">
-                <span class="skill-info-name">{{ currentSkill }}</span>
+                <span class="skill-info-name">{{ currentSkillInfo.name_zh || currentSkill }}</span>
+                <el-tag size="mini" type="info" class="skill-eng-name-tag" v-if="currentSkillInfo.value && currentSkillInfo.value !== currentSkillInfo.name_zh">
+                  {{ currentSkillInfo.value }}
+                </el-tag>
+                <el-tag size="mini" type="success" class="skill-version-tag" v-if="currentSkillInfo.version">
+                  v{{ currentSkillInfo.version }}
+                </el-tag>
+                <el-tag size="mini" effect="plain" class="skill-type-tag" v-if="currentSkillInfo.type">
+                  {{ currentSkillInfo.type }}
+                </el-tag>
                 <el-button type="text" icon="el-icon-setting" @click.stop="viewSkillDetails" style="margin-left: 5px;" title="配置技能参数"></el-button>
                 <div class="skill-status">
                   <el-switch v-model="skillForm.status" active-color="#67C23A" inactive-color="#909399">
@@ -653,6 +279,32 @@
           </div>
         </div>
         <el-form :model="skillForm" label-width="85px" :rules="rules" ref="skillForm" class="skill-form">
+          <el-form-item label="任务名称" prop="name">
+            <el-input 
+              v-model="skillForm.name" 
+              placeholder="请输入任务名称" 
+              prefix-icon="el-icon-document-add" 
+              style="width: 80%; max-width: 500px;"
+              :maxlength="50"
+              show-word-limit
+              clearable
+              class="custom-input">
+            </el-input>
+          </el-form-item>
+
+          <el-form-item label="任务描述" prop="description">
+            <el-input 
+              v-model="skillForm.description" 
+              placeholder="请简要描述任务的检测目标和用途" 
+              type="textarea" 
+              :rows="3" 
+              style="width: 80%; max-width: 500px;"
+              :maxlength="200"
+              show-word-limit
+              resize="none"
+              class="custom-textarea">
+            </el-input>
+          </el-form-item>
 
           <el-form-item label="预警等级" required prop="alarmLevel">
             <el-select v-model="skillForm.alarmLevel" placeholder="请选择预警等级" style="width: 220px;">
@@ -764,68 +416,14 @@
                   <el-radio-button label="outside">离开围栏触发</el-radio-button>
                 </el-radio-group>
               </div>
-              <div class="setting-item">
-                <span class="setting-label">检测灵敏度：</span>
-                <el-slider v-model="skillForm.electronicFence.sensitivity" :min="0" :max="100"
-                  :format-tooltip="value => `${value}%`" style="width: 200px;" />
-              </div>
+
             </div>
           </el-form-item>
         </el-form>
         <div slot="footer" class="dialog-footer" style="margin-top: -30px;">
           <el-button @click="closeSkillDialog">取消</el-button>
-          <el-button type="primary" @click="handleConfirm">确定</el-button>
+          <el-button type="primary" @click="handleConfirm">创建任务</el-button>
         </div>
-      </el-dialog>
-
-      <!-- 添加编辑标签对话框 -->
-      <el-dialog
-        :visible.sync="editTagDialogVisible"
-        title="编辑标签"
-        width="30%"
-        :close-on-click-modal="false">
-        <el-form :model="editTagForm" label-width="80px">
-          <el-form-item label="标签名称" required>
-            <el-input v-model="editTagForm.name" placeholder="请输入标签名称"></el-input>
-          </el-form-item>
-          <el-form-item label="详情描述">
-            <el-input 
-              v-model="editTagForm.description" 
-              type="textarea" 
-              :rows="3" 
-              placeholder="输入标签详情描述（可选）">
-            </el-input>
-          </el-form-item>
-        </el-form>
-        <span slot="footer" class="dialog-footer">
-          <el-button @click="editTagDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="updateTag">确定</el-button>
-        </span>
-      </el-dialog>
-
-      <!-- 添加新标签对话框 -->
-      <el-dialog
-        :visible.sync="addTagDialogVisible"
-        title="添加标签"
-        width="30%"
-        :close-on-click-modal="false">
-        <el-form :model="newTagForm" label-width="80px">
-          <el-form-item label="标签名称" required>
-            <el-input v-model="newTagForm.name" placeholder="请输入标签名称"></el-input>
-          </el-form-item>
-          <el-form-item label="详情描述">
-            <el-input 
-              v-model="newTagForm.description" 
-              type="textarea" 
-              :rows="3" 
-              placeholder="输入标签详情描述（可选）">
-            </el-input>
-          </el-form-item>
-        </el-form>
-        <span slot="footer" class="dialog-footer">
-          <el-button @click="addTagDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="addNewTag">确定</el-button>
-        </span>
       </el-dialog>
 
       <!-- 技能详情对话框 -->
@@ -874,12 +472,109 @@
           <el-button type="primary" size="small" @click="saveSkillDetails" v-if="skillDetailData && skillDetailData.params">保存</el-button>
         </span>
       </el-dialog>
+      
+      <!-- 设备详情对话框 -->
+      <el-dialog title="摄像头详情" :visible.sync="deviceDetailDialogVisible" width="60%" :close-on-click-modal="false">
+        <div v-if="deviceDetailData" class="device-detail-content">
+          <el-descriptions title="基本信息" :column="2" border>
+            <el-descriptions-item label="摄像头ID">{{ deviceDetailData.id }}</el-descriptions-item>
+            <el-descriptions-item label="摄像头名称">{{ deviceDetailData.name }}</el-descriptions-item>
+            <el-descriptions-item label="摄像头状态">
+              <el-tag :type="deviceDetailData.status ? 'success' : 'danger'">
+                <!-- 根据摄像头类型显示不同的状态文字 -->
+                <template v-if="deviceDetailData.camera_type === 1">
+                  {{ deviceDetailData.status ? '在线' : '离线' }}
+                </template>
+                <template v-else-if="deviceDetailData.camera_type === 2">
+                  {{ deviceDetailData.status ? '推流中' : '已停止' }}
+                </template>
+                <template v-else-if="deviceDetailData.camera_type === 3">
+                  {{ deviceDetailData.status ? '正在拉流' : '尚未拉流' }}
+                </template>
+                <template v-else>
+                  {{ deviceDetailData.status ? '启用' : '禁用' }}
+                </template>
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="设备来源">{{ deviceDetailData.location || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="摄像头类型">
+              <el-tag>
+                {{ getCameraTypeText(deviceDetailData.camera_type) }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ deviceDetailData.createTime || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="更新时间">{{ deviceDetailData.updateTime || '-' }}</el-descriptions-item>
+          </el-descriptions>
+          
+          <el-divider content-position="left">设备详细信息</el-divider>
+          
+          <div class="device-specific-info">
+            <el-descriptions :column="2" border size="small">
+              <!-- 动态展示所有设备属性 -->
+              <el-descriptions-item 
+                v-for="(value, key) in getDeviceSpecificInfo(deviceDetailData)" 
+                :label="formatPropertyLabel(key)" 
+                :key="key">
+                <!-- 根据属性类型显示不同的格式 -->
+                <template v-if="typeof value === 'boolean'">
+                  {{ value ? '是' : '否' }}
+                </template>
+                <template v-else-if="key.includes('Longitude') || key.includes('Latitude') && value !== null">
+                  {{ Number(value).toFixed(6) }}
+                </template>
+                <template v-else-if="value === null || value === undefined || value === ''">
+                  -
+                </template>
+                <template v-else>
+                  {{ value }}
+                </template>
+              </el-descriptions-item>
+            </el-descriptions>
+          </div>
+          
+          <el-divider content-position="left">关联技能</el-divider>
+          
+          <div v-if="deviceDetailData.skill_names && deviceDetailData.skill_names.length > 0" class="skills-list">
+            <el-tag
+              v-for="skill in deviceDetailData.skill_names"
+              :key="skill"
+              effect="plain"
+              type="success"
+              class="skill-tag">
+              {{ skill }}
+            </el-tag>
+          </div>
+          <el-empty v-else description="暂无关联技能"></el-empty>
+        </div>
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="deviceDetailDialogVisible = false">关 闭</el-button>
+        </span>
+      </el-dialog>
     </div>
   </div>
 </template>
 
 <script>
 import cameraComponent from './cameraComponents/camera.js'
+
+// 添加这些方法到组件对象
+if (!cameraComponent.methods.closeSkillDialog) {
+  cameraComponent.methods.closeSkillDialog = function() {
+    this.skillDialogVisible = false;
+  }
+}
+
+if (!cameraComponent.methods.handleClose) {
+  cameraComponent.methods.handleClose = function() {
+    // 如果正在绘制电子围栏，则取消绘制
+    if (this.skillForm.electronicFence.isDrawing) {
+      this.cancelDrawFence();
+    }
+    // 关闭对话框
+    this.skillDialogVisible = false;
+  }
+}
+
 export default cameraComponent
 </script>
 
