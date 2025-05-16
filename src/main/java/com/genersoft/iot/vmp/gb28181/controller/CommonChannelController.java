@@ -425,7 +425,7 @@ public class CommonChannelController {
                 }
                 
                 String path = "snap";
-                String pushFileName = app + "_" + stream + ".jpg";
+                String pushFileName = app + "_" + stream + DateUtil.getNowForUrl() + ".jpg";
                 
                 // 请求截图
                 log.info("[请求推流设备截图]: " + pushFileName);
@@ -474,7 +474,7 @@ public class CommonChannelController {
                 }
                 
                 String proxyPath = "snap";
-                String proxyFileName = app + "_" + stream + ".jpg";
+                String proxyFileName = app + "_" + stream + DateUtil.getNowForUrl() +  ".jpg";
                 
                 // 请求截图
                 log.info("[请求拉流代理截图]: " + proxyFileName);
