@@ -24,6 +24,8 @@ public interface IStreamPushService {
 
     StreamPush getPush(String app, String streamId);
 
+    StreamPush getPush(Integer id);
+
     boolean stop(StreamPush streamPush);
 
     /**

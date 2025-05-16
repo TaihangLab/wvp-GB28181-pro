@@ -15,8 +15,9 @@ import com.genersoft.iot.vmp.gb28181.service.IPlatformChannelService;
 import com.genersoft.iot.vmp.service.bean.ErrorCallback;
 import com.genersoft.iot.vmp.service.bean.GPSMsgInfo;
 import com.genersoft.iot.vmp.streamPush.bean.StreamPush;
-import com.genersoft.iot.vmp.utils.DateUtil;
+import com.genersoft.iot.vmp.gb28181.bean.RecordInfo;
 import com.genersoft.iot.vmp.vmanager.bean.ErrorCode;
+import com.genersoft.iot.vmp.utils.DateUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -27,10 +28,15 @@ import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
 import javax.sip.message.Response;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -328,8 +334,6 @@ public class GbChannelServiceImpl implements IGbChannelService {
             log.warn("[更新多个通道] 发送失败，{}个", commonGBChannels.size(), e);
         }
     }
-
-
 
     @Override
     public CommonGBChannel getOne(int id) {

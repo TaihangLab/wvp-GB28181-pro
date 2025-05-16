@@ -77,8 +77,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
             matchers.add("/v3/api-docs/**");
             matchers.add("/js/**");
             matchers.add("/api/device/query/snap/**");
-            matchers.add("/api/proxy/snap/**");
-            matchers.add("/api/push/snap/**");
+            matchers.add("/api/proxy/getsnap/**");
+            matchers.add("/api/push/getsnap/**");
+            matchers.add("/api/common/channel/getsnap/**");
             matchers.add("/record_proxy/*/**");
             matchers.add("/api/emit");
             matchers.add("/favicon.ico");
@@ -112,8 +113,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         defaultExcludes.add("/api/user/login");
         defaultExcludes.add("/index/hook/**");
         defaultExcludes.add("/api/device/query/snap/**");
-        defaultExcludes.add("/api/proxy/snap/**");
-        defaultExcludes.add("/api/push/snap/**");
+        defaultExcludes.add("/api/proxy/getsnap/**");
+        defaultExcludes.add("/api/push/getsnap/**");
+        defaultExcludes.add("/api/common/channel/getsnap/**");
         defaultExcludes.add("/index/hook/abl/**");
         defaultExcludes.add("/swagger-ui/**");
         defaultExcludes.add("/doc.html#/**");

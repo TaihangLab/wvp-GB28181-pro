@@ -61,6 +61,12 @@ public interface IStreamProxyService {
      */
     StreamProxy getStreamProxyByAppAndStream(String app, String streamId);
 
+    /**
+     * 根据id获取streamProxy
+     * @param id
+     * @return
+     */
+    StreamProxy getStreamProxyById(int id);
 
     /**
      * 新的节点加入

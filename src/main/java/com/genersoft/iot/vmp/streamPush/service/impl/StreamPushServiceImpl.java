@@ -194,6 +194,12 @@ public class StreamPushServiceImpl implements IStreamPushService {
     public StreamPush getPush(String app, String stream) {
         return streamPushMapper.selectByAppAndStream(app, stream);
     }
+    
+
+    @Override
+    public StreamPush getPush(Integer id) {
+        return streamPushMapper.queryOne(id);
+    }
 
     @Override
     @Transactional

@@ -92,8 +92,8 @@ public class StreamProxySnapshotController {
             streamUrl = String.format("http://127.0.0.1:%s/%s/%s.live.mp4", mediaServer.getHttpPort(), app, stream);
         }
         String path = "snap";
-        // String fileName = app + "_" + stream + "_" + DateUtil.getNowForUrl() + ".jpg";
-        String fileName = app + "_" + stream + ".jpg";
+        String fileName = app + "_" + stream + "_" + DateUtil.getNowForUrl() + ".jpg";
+        // String fileName = app + "_" + stream + ".jpg";
 
         // 请求截图
         log.info("[请求拉流代理截图]: " + fileName);
@@ -113,7 +113,7 @@ public class StreamProxySnapshotController {
     /**
      * 请求截图
      */
-    @GetMapping("/snap/{app}/{stream}")
+    @GetMapping("/getsnap/{app}/{stream}")
     @Operation(summary = "拉流代理请求截图")
     @Parameter(name = "app", description = "应用名", required = true)
     @Parameter(name = "stream", description = "流ID", required = true)

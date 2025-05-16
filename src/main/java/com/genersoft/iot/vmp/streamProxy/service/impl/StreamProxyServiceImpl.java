@@ -278,6 +278,11 @@ public class StreamProxyServiceImpl implements IStreamProxyService {
     }
 
     @Override
+    public StreamProxy getStreamProxyById(int id) {
+        return streamProxyMapper.select(id);
+    }
+
+    @Override
     @Transactional
     public void zlmServerOnline(MediaServer mediaServer) {
         if (mediaServer == null) {
