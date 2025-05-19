@@ -48,7 +48,8 @@ visionAIAxios.interceptors.response.use(
   response => {
     // 检查是否是特殊API，需要保留原始数据结构
     const isSpecialApi =  /\/api\/v1\/cameras\/\d+$/.test(response.config.url) || // 匹配摄像头详情接口
-                         /\/api\/v1\/ai-tasks\/camera\/id\/\d+$/.test(response.config.url); // 匹配摄像头关联任务接口
+                         /\/api\/v1\/ai-tasks\/camera\/id\/\d+$/.test(response.config.url) || // 匹配摄像头关联任务接口
+                         /\/api\/v1\/ai-tasks\/\d+$/.test(response.config.url); // 匹配AI任务详情接口
       
 
       
@@ -513,6 +514,25 @@ export const skillAPI = {
   // 获取AI任务技能详情
   getAITaskSkillDetail(skillClassId) {
     return visionAIAxios.get(`/api/v1/ai-tasks/skill-classes/${skillClassId}`);
+  },
+
+  // 获取AI任务详情
+  getAITaskDetail(taskId) {
+    if (!taskId) {
+      console.error('获取AI任务详情失败: 缺少任务ID');
+      return Promise.reject(new Error('缺少任务ID'));
+    }
+    return visionAIAxios.get(`/api/v1/ai-tasks/${taskId}`);
+  },
+
+  // 更新AI任务
+  updateAITask(taskId, taskData) {
+    if (!taskId) {
+      console.error('更新AI任务失败: 缺少任务ID');
+      return Promise.reject(new Error('缺少任务ID'));
+    }
+    console.log('更新AI任务请求数据:', taskData);
+    return visionAIAxios.put(`/api/v1/ai-tasks/${taskId}`, taskData);
   }
 };
 
