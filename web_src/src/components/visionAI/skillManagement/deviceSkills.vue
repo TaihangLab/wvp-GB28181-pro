@@ -526,12 +526,12 @@
             align="center">
           </el-table-column>
           <el-table-column
-            prop="camera_uuid"
+            prop="id"
             label="设备ID"
             min-width="220"
             align="center">
             <template slot-scope="scope">
-              {{ scope.row.camera_uuid || scope.row.deviceId || scope.row.gb_id || '-' }}
+              {{ scope.row.id }}
             </template>
           </el-table-column>
           <el-table-column
