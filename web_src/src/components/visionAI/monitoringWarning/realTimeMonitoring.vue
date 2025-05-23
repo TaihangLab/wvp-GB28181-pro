@@ -135,7 +135,10 @@
             </div>
           </div>
           <div class="warning-info">
-            <div class="warning-time">{{ warning.time }}</div>
+            <div class="warning-time-location">
+              <div class="warning-time">{{ warning.time }}</div>
+              <div class="warning-location">{{ warning.location }}</div>
+            </div>
             <div class="warning-detail">
               <div class="device-type-row">
                 <span class="device-name">{{ warning.device }}</span>
@@ -153,77 +156,12 @@
       </el-aside>
     </el-container>
 
-    <!-- 预警详情对话框 -->
-    <el-dialog
-      title="预警详情"
+    <!-- 引入预警详情组件 -->
+    <WarningDetail 
       :visible.sync="warningDetailVisible"
-      width="700px"
-      :before-close="handleCloseDialog">
-      <div v-if="currentWarning" class="warning-detail-container">
-        <div class="warning-detail-header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: linear-gradient(to right, #f5f7fa, #f9fafc); border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);">
-          <div style="font-size: 16px; font-weight: bold; padding: 6px 14px; border-radius: 4px; color: white; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); background-color: #f56c6c;"
-               :style="{'background-color': getWarningLevelColor(currentWarning.level)}">
-            {{ getWarningLevelText(currentWarning.level) }}预警
-          </div>
-          <div class="warning-detail-time" style="font-size: 14px; color: #606266; display: flex; align-items: center; background: rgba(0, 0, 0, 0.03); padding: 4px 12px; border-radius: 20px;">
-            <i class="el-icon-time" style="margin-right: 5px; color: #409EFF;"></i>
-            {{ currentWarning.time }}
-          </div>
-        </div>
-        
-        <div class="warning-detail-content" style="padding: 0 20px 20px;">
-          <div class="warning-detail-info" style="margin-bottom: 25px; background-color: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #409EFF; box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.03);">
-            <div class="info-item" style="display: flex; margin-bottom: 15px; line-height: 1.6;">
-              <span class="label" style="color: #606266; width: 90px; flex-shrink: 0; font-weight: 500;">设备名称：</span>
-              <span class="value" style="color: #303133; font-weight: 500; background: rgba(64, 158, 255, 0.1); padding: 0 8px; border-radius: 4px;">{{ currentWarning.device }}</span>
-            </div>
-            <div class="info-item" style="display: flex; margin-bottom: 15px; line-height: 1.6;">
-              <span class="label" style="color: #606266; width: 90px; flex-shrink: 0; font-weight: 500;">违规类型：</span>
-              <span class="value" style="color: #f56c6c; font-weight: 500; background: rgba(245, 108, 108, 0.1); padding: 0 8px; border-radius: 4px;">{{ currentWarning.type }}</span>
-            </div>
-            <div class="info-item" style="display: flex; line-height: 1.6;">
-              <span class="label" style="color: #606266; width: 90px; flex-shrink: 0; font-weight: 500;">违规位置：</span>
-              <span class="value" style="color: #303133; font-weight: 500; background: rgba(103, 194, 58, 0.1); padding: 0 8px; border-radius: 4px;">{{ currentWarning.location || '未知位置' }}</span>
-            </div>
-          </div>
-          
-          <div class="warning-media" style="display: flex; gap: 20px;">
-            <div class="warning-image" style="flex: 1; display: flex; flex-direction: column;">
-              <h4 style="font-size: 15px; margin: 0 0 12px; color: #303133; font-weight: 600; display: flex; align-items: center;">
-                <i class="el-icon-picture" style="margin-right: 6px; color: #409EFF;"></i>
-                违规截图
-              </h4>
-              <div class="image-container" style="position: relative; height: 0; padding-bottom: 75%; background-color: #000; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
-                <div class="placeholder-image" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(45deg, #1e3c72, #2a5298);">
-                  <i :class="getWarningIcon(currentWarning.level)" style="font-size: 48px;"></i>
-                  <span style="margin-top: 15px;">违规截图</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="warning-video-clip" style="flex: 1; display: flex; flex-direction: column;">
-              <h4 style="font-size: 15px; margin: 0 0 12px; color: #303133; font-weight: 600; display: flex; align-items: center;">
-                <i class="el-icon-video-camera" style="margin-right: 6px; color: #409EFF;"></i>
-                视频片段
-              </h4>
-              <div class="video-container" style="position: relative; height: 0; padding-bottom: 75%; background-color: #000; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
-                <div class="placeholder-video" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(45deg, #1e3c72, #2a5298);">
-                  <i class="el-icon-video-camera" style="font-size: 48px;"></i>
-                  <span style="margin-top: 15px;">视频片段</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <span slot="footer" class="dialog-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
-        <el-button @click="warningDetailVisible = false" style="padding: 10px 20px;">关闭</el-button>
-        <el-button type="success" @click="handleWarningFromDialog" style="padding: 10px 20px;">
-          <i class="el-icon-check" style="margin-right: 5px;"></i>
-          立即处理
-        </el-button>
-      </span>
-    </el-dialog>
+      :warning="currentWarning"
+      @handle-warning="handleWarningFromDialog"
+    />
   </div>
 </template>
 
@@ -232,12 +170,13 @@ import player from '../../common/jessibuca.vue'
 import DeviceTree from '../../common/DeviceTree.vue'
 import RegionTree from '../../common/RegionTree.vue'
 import GroupTree from '../../common/GroupTree.vue'
+import WarningDetail from './warningDetail.vue'
 import screenfull from "screenfull";
 
 export default {
   name: "RealTimeMonitoring",
   components: {
-    player, DeviceTree, RegionTree, GroupTree
+    player, DeviceTree, RegionTree, GroupTree, WarningDetail
   },
   data() {
     return {
@@ -264,10 +203,42 @@ export default {
       
       // 预警列表数据
       warningList: [
-        { id: 1, time: '10:30:25', device: '摄像头01', type: '未戴安全帽', level: 'level1', location: '工地东北角' },
-        { id: 2, time: '10:28:15', device: '摄像头03', type: '未穿工作服', level: 'level2', location: '工地南侧' },
-        { id: 3, time: '10:15:42', device: '摄像头02', type: '闲杂人员', level: 'level3', location: '材料区' },
-        { id: 4, time: '09:58:30', device: '摄像头05', type: '吸烟', level: 'level4', location: '休息区' },
+        { 
+          id: 1, 
+          time: '10:30:25', 
+          device: '摄像头01', 
+          type: '未戴安全帽', 
+          level: 'level1', 
+          location: '工地东北角',
+          description: '检测到工作人员未佩戴安全帽，存在严重安全隐患，请立即整改并加强安全教育'
+        },
+        { 
+          id: 2, 
+          time: '10:28:15', 
+          device: '摄像头03', 
+          type: '未穿工作服', 
+          level: 'level2', 
+          location: '工地南侧',
+          description: '发现工作人员未按规定穿着工作服，违反现场作业安全规范，需要立即纠正'
+        },
+        { 
+          id: 3, 
+          time: '10:15:42', 
+          device: '摄像头02', 
+          type: '闲杂人员', 
+          level: 'level3', 
+          location: '材料区',
+          description: '检测到非工作人员进入施工区域，可能存在安全风险，请及时清理并加强管控'
+        },
+        { 
+          id: 4, 
+          time: '09:58:30', 
+          device: '摄像头05', 
+          type: '吸烟', 
+          level: 'level4', 
+          location: '休息区',
+          description: '发现工作人员在禁烟区域吸烟，违反安全生产规定，请立即制止并进行安全教育'
+        },
       ],
       warningDetailVisible: false,
       currentWarning: null,
@@ -710,16 +681,10 @@ export default {
       // 这里可以添加处理预警的逻辑
     },
     // 从对话框处理预警
-    handleWarningFromDialog() {
-      if (this.currentWarning) {
-        this.handleWarning(this.currentWarning);
-        this.warningDetailVisible = false;
+    handleWarningFromDialog(warning) {
+      if (warning) {
+        this.handleWarning(warning);
       }
-    },
-    // 关闭对话框的处理
-    handleCloseDialog(done) {
-      if (done) done();
-      this.currentWarning = null;
     },
     // 跳转到更多预警页面
     goToMoreWarnings() {
@@ -736,16 +701,6 @@ export default {
         'level4': 'el-icon-warning-outline'
       };
       return iconMap[level] || 'el-icon-warning';
-    },
-    // 获取预警等级颜色
-    getWarningLevelColor(level) {
-      const colorMap = {
-        'level1': '#f56c6c',
-        'level2': '#e6a23c',
-        'level3': '#409EFF',
-        'level4': '#67c23a'
-      };
-      return colorMap[level] || '#f56c6c';
     },
   }
 }
@@ -1219,13 +1174,21 @@ export default {
   padding: 4px 0;
 }
 
+.warning-list .list-content .warning-item .warning-info .warning-time-location {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 .warning-list .list-content .warning-item .warning-info .warning-time {
   font-size: 12px;
   color: #909399;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   font-weight: 500;
   display: flex;
   align-items: center;
+  flex: 1;
 }
 
 .warning-list .list-content .warning-item .warning-info .warning-time:before {
@@ -1235,6 +1198,27 @@ export default {
   height: 12px;
   margin-right: 6px;
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23909399"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>');
+  background-size: contain;
+}
+
+.warning-list .list-content .warning-item .warning-info .warning-location {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 0;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.warning-list .list-content .warning-item .warning-info .warning-location:before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23909399"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>');
   background-size: contain;
 }
 
