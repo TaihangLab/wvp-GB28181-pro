@@ -1,9 +1,13 @@
 import { cameraAPI, skillAPI } from '@/components/service/VisionAIService.js';
+import MediaServer from '@/components/service/MediaServer.js';
 
 export default {
   name: 'CameraManagement',
   data() {
     return {
+      // 初始化MediaServer实例
+      mediaServer: new MediaServer(),
+      
       // 摄像头列表数据
       deviceList: [],
       loading: true,
@@ -11,6 +15,10 @@ export default {
       pageSize: 10,
       total: 0,
       searchKeyword: '',
+
+      // 任务更新相关
+      isUpdateMode: false,
+      currentTaskId: null,
 
       // 设备操作相关
       deviceDialogVisible: false,
@@ -80,7 +88,8 @@ export default {
           tempPoints: [],
           draggedPointIndex: -1,
           isDragging: false,
-          currentPolygon: []
+          currentPolygon: [],
+          imageLoading: false
         }
       },
 
@@ -307,119 +316,8 @@ export default {
           this.loading = false;
         });
     },
-    
-    // 将摄像头数据转换为配置对象
-    buildConfigFromCamera(camera) {
-      // 如果不存在技能名称，返回null
-      if (!camera.skill_names || camera.skill_names.length === 0) {
-        return null;
-      }
-      
-      // 构建配置对象
-      const config = {};
-      
-      // 遍历技能名称，为每个技能创建配置
-      camera.skill_names.forEach(skillName => {
-        // 创建基本配置
-        config[skillName] = {
-          status: true, // 默认启用
-          alarmLevel: camera.alert_level ? this.getAlarmLevelByValue(camera.alert_level) : '二级预警',
-          timeRanges: this.parseRunningPeriod(camera.running_period),
-          frequency: {
-            seconds: camera.frame_rate || 1,
-            frames: 1
-          },
-          electronicFence: this.parseElectronicFence(camera.electronic_fence)
-        };
-      });
-      
-      return config;
-    },
-    
-    // 解析运行时段
-    parseRunningPeriod(runningPeriodStr) {
-      try {
-        // 尝试解析JSON字符串
-        const runningPeriod = typeof runningPeriodStr === 'string' ? 
-          JSON.parse(runningPeriodStr) : runningPeriodStr;
         
-        // 如果是有效对象且包含时间范围
-        if (runningPeriod && Array.isArray(runningPeriod.times)) {
-          return runningPeriod.times.map(time => ({
-            start: new Date(`2024-01-01T${time.start}:00`),
-            end: new Date(`2024-01-01T${time.end}:00`)
-          }));
-        }
-      } catch (e) {
-        console.error('解析运行时段失败:', e);
-      }
-      
-      // 默认返回全天
-      return [{
-        start: new Date(2024, 0, 1, 0, 0),
-        end: new Date(2024, 0, 1, 23, 59)
-      }];
-    },
-    
-    // 解析电子围栏
-    parseElectronicFence(fenceStr) {
-      try {
-        // 尝试解析JSON字符串
-        const fence = typeof fenceStr === 'string' ? 
-          JSON.parse(fenceStr) : fenceStr;
-        
-        // 如果是有效对象且包含围栏数据
-        if (fence && fence.image) {
-          return {
-            image: fence.image,
-            points: fence.points || [],
-            isDrawing: false,
-            triggerMode: fence.triggerMode || 'inside',
-            tempPoints: [],
-            draggedPointIndex: -1,
-            isDragging: false,
-            currentPolygon: []
-          };
-        }
-      } catch (e) {
-        console.error('解析电子围栏失败:', e);
-      }
-      
-      // 返回默认围栏配置
-      return {
-        image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
-        points: [],
-        isDrawing: false,
-        triggerMode: 'inside',
-        sensitivity: 80,
-        tempPoints: [],
-        draggedPointIndex: -1,
-        isDragging: false,
-        currentPolygon: []
-      };
-    },
-    
-    // 根据预警等级值获取预警等级名称
-    getAlarmLevelByValue(level) {
-      const levelMap = {
-        1: '一级预警',
-        2: '二级预警',
-        3: '三级预警',
-        4: '四级预警'
-      };
-      return levelMap[level] || '二级预警';
-    },
-    
-    // 格式化技能ID为显示名称
-    formatSkillIds(skillIds) {
-      if (!skillIds || skillIds.length === 0) {
-        return '-';
-      }
-      
-      // 这里可以从后端获取技能名称，暂时使用技能ID作为名称
-      return skillIds.join(', ');
-    },
-
+  
 
     // 处理页码改变
     handleCurrentChange(val) {
@@ -465,23 +363,6 @@ export default {
       this.fetchCameraList(params);
     },
     
-    // 添加刷新所有数据的方法（包括地点数据）
-    refreshAllData() {
-      // 清空搜索关键词
-      this.searchKeyword = '';
-
-      // 清空摄像头类型筛选
-      this.currentCameraTypeFilter = 0;
-      // 重置分页
-      this.currentPage = 1;
-      // 重新获取摄像头列表
-      this.fetchCameraList();
-
-      this.fetchSkillClasses()
-
-      this.$message.success('所有数据刷新成功');
-    },
-
     // 处理查看详情
     handleViewDetails(row) {
       // 显示加载状态
@@ -579,55 +460,6 @@ export default {
         this.fetchCameraRelatedTasks(this.currentDeviceId);
       }
     },
-
-    // 添加handleSkillSelectChange方法
-    handleSkillSelectChange(value) {
-      console.log('技能选择变更:', value);
-      // 如果是添加了新技能
-      if (value.length > this.selectedSkillCache.length) {
-        // 找出新添加的技能
-        const newSkill = value.find(skill => !this.selectedSkillCache.includes(skill));
-        if (newSkill) {
-          // 检查是否已经存在该技能，防止重复添加
-          if (this.selectedSkillCache.includes(newSkill)) {
-            // 如果已经存在，恢复原来的选择状态
-            this.skillSelectForm.selectedSkills = [...this.selectedSkillCache];
-            this.$message.warning(`技能"${newSkill}"已经添加过，不能重复添加`);
-            return;
-          }
-          
-          // 暂存当前已选技能，移除新添加的技能
-          this.selectedSkillCache = [...value].filter(skill => skill !== newSkill);
-          this.skillSelectForm.selectedSkills = [...this.selectedSkillCache];
-          
-          // 配置新添加的技能
-          this.configureSkill(newSkill, true);
-        }
-      } else {
-        // 如果是移除了技能，更新缓存
-        this.selectedSkillCache = [...value];
-      }
-    },
-
-    // 确认选择技能
-    confirmSkillSelect() {
-      // 检查是否有选择技能
-      if (this.skillSelectForm.selectedSkills.length === 0) {
-        this.$message.warning('请至少选择一个技能');
-        return;
-      }
-
-      // 保存用户当前选择的技能
-      const selectedSkills = [...this.skillSelectForm.selectedSkills];
-      
-      // 关闭选择技能对话框
-      this.skillSelectDialogVisible = false;
-      
-      // 刷新摄像头关联任务数据
-      if (this.currentDeviceId) {
-        this.refreshCameraDetail(this.currentDeviceId);
-      }
-    },
     
     // 更新设备技能显示
     updateDeviceSkillDisplay(deviceIndex, skillNames) {
@@ -707,7 +539,7 @@ export default {
             seconds: 1,
             frames: 1
           },
-                  electronicFence: {
+          electronicFence: {
           image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', // 默认空白背景图
           points: [],
           isDrawing: false,
@@ -715,7 +547,8 @@ export default {
           tempPoints: [],
           draggedPointIndex: -1,
           isDragging: false,
-          currentPolygon: []
+            currentPolygon: [],
+            imageLoading: false
         },
           images: []
         };
@@ -736,45 +569,7 @@ export default {
           type: ''
         };
 
-        // 查找设备
-        const device = this.deviceList.find(d => d.id === this.currentDeviceId);
-
-        // 如果设备已有配置，则加载已有配置
-        if (device && device.config) {
-          try {
-            // 首先尝试使用技能的中文名称查找配置
-            let skillConfig = device.config[skill];
-            
-            // 如果没有找到，尝试查找其他可能的键名
-            if (!skillConfig) {
-              // 查找匹配的技能信息
-              const skillInfo = this.skillOptions.find(option => 
-                option.value === skill || option.name_zh === skill
-              );
-              
-              if (skillInfo) {
-                // 使用英文名称尝试查找
-                skillConfig = device.config[skillInfo.name];
-                
-                // 如果还是没找到，尝试其他组合形式
-                if (!skillConfig && skillInfo.name_zh) {
-                  skillConfig = device.config[skillInfo.name_zh];
-                }
-              }
-            }
-            
-            // 如果找到了配置，则加载
-            if (skillConfig) {
-              console.log('找到技能配置:', skillConfig);
-              this.loadSkillConfig(skillConfig);
-            } else {
-              console.log('未找到技能配置，使用默认值');
-            }
-          } catch (error) {
-            console.error('加载配置失败', error);
-          }
-        }
-
+  
         // 如果是新选择的技能且之前未被选中，暂存到临时变量中
         if (isNewSelection && !this.isSkillSelected(skill)) {
           // 将新选择的技能保存到临时变量
@@ -783,85 +578,116 @@ export default {
 
         // 打开配置技能对话框
         this.skillDialogVisible = true;
+        
+        // 获取摄像头截图作为电子围栏背景 - 移到这里确保对话框已经打开再获取截图
+        if (this.currentDeviceId) {
+          this.getAndSetCameraSnapForFence(this.currentDeviceId);
+        }
       }, 100);
     },
 
-    // 加载技能配置
-    loadSkillConfig(config) {
-      if (!config) return;
-      // 使用深拷贝避免直接引用
-      const configCopy = JSON.parse(JSON.stringify(config));
-
-      // 填充表单字段 - 确保正确加载启用状态
-      this.skillForm.status = configCopy.status !== undefined ? configCopy.status : true;
-      
-      // 查找设备和技能名称，用于默认值
-      const deviceForDefaults = this.deviceList.find(d => d.id === this.currentDeviceId);
-      const deviceName = deviceForDefaults ? deviceForDefaults.name : '';
-      const skillName = this.currentSkill || '';
-      
-      // 加载任务名称和描述，如果没有已保存的值则使用默认值
-      this.skillForm.name = configCopy.name || `${deviceName}-${skillName}分析任务`;
-      this.skillForm.description = configCopy.description || `此任务使用${skillName}技术对${deviceName}进行智能分析，可自动识别并进行预警`;
-
-      // 加载预警等级
-      this.skillForm.alarmLevel = configCopy.alarmLevel || '二级预警';
-
-      // 时间段
-      if (configCopy.timeRanges && configCopy.timeRanges.length > 0) {
-        this.skillForm.timeRanges = configCopy.timeRanges.map(range => ({
-          start: range.start ? new Date(range.start) : new Date(2024, 0, 1, 0, 0),
-          end: range.end ? new Date(range.end) : new Date(2024, 0, 1, 23, 59)
-        }));
+    // 获取并设置围栏图片
+    getAndSetCameraSnapForFence(cameraId) {
+      if (!cameraId) {
+        console.error('无法获取摄像头截图：缺少摄像头ID');
+        this.skillForm.electronicFence.imageLoading = false;
+        return;
       }
-
-      // 抽帧频率
-      if (configCopy.frequency) {
-        this.skillForm.frequency = configCopy.frequency;
+      
+      // 设置加载状态
+      this.skillForm.electronicFence.imageLoading = true;
+      
+      // 检查对话框是否已关闭
+      if (!this.skillDialogVisible && !this.skillForm.electronicFence.imageLoading) {
+        console.log('对话框已关闭，取消获取摄像头截图');
+        this.skillForm.electronicFence.imageLoading = false;
+        return;
       }
-
-      // 电子围栏
-      if (configCopy.electronicFence) {
-        this.skillForm.electronicFence.image = configCopy.electronicFence.image || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
-        this.skillForm.electronicFence.triggerMode = configCopy.electronicFence.triggerMode || 'inside';
-        this.skillForm.electronicFence.sensitivity = configCopy.electronicFence.sensitivity || 80;
-
-        // 处理点数据 - 兼容旧格式和新格式
-        if (configCopy.electronicFence.points) {
-          try {
-            // 尝试检测数据格式
-            const points = configCopy.electronicFence.points;
-
-            if (Array.isArray(points)) {
-              if (points.length === 0) {
-                this.skillForm.electronicFence.points = [];
-              } else if (Array.isArray(points[0])) {
-                // 新格式 - 多边形数组
-                this.skillForm.electronicFence.points = points;
-              } else if (typeof points[0] === 'object' && points[0].hasOwnProperty('x') && points[0].hasOwnProperty('y')) {
-                // 旧格式 - 单个多边形
-                this.skillForm.electronicFence.points = [points];
-              } else {
-                this.skillForm.electronicFence.points = [];
-              }
+      
+      // 显示加载提示
+      console.log('正在获取摄像头截图:', cameraId);
+      
+      // 清理之前可能存在的URL对象，避免内存泄漏
+      if (this.skillForm.electronicFence._blobUrl) {
+        try {
+          URL.revokeObjectURL(this.skillForm.electronicFence._blobUrl);
+        } catch (e) {}
+        this.skillForm.electronicFence._blobUrl = null;
+      }
+      
+      // 使用Promise包装API调用
+      const getSnapPromise = new Promise((resolve, reject) => {
+        try {
+          // 调用获取截图API
+          this.mediaServer.getChannelSnapWithImage(cameraId, (result) => {
+            if (result.success && result.imageData) {
+              resolve(result);
             } else {
-              this.skillForm.electronicFence.points = [];
+              reject(new Error(result.message || '获取截图失败'));
             }
-          } catch (error) {
-            console.error('处理点数据时出错:', error);
-            this.skillForm.electronicFence.points = [];
-          }
-        } else {
-          this.skillForm.electronicFence.points = [];
+          });
+        } catch (error) {
+          reject(error);
         }
-      }
-
-      // 确保currentPolygon是空数组
-      this.skillForm.electronicFence.currentPolygon = [];
+      });
+      
+      // 处理Promise结果
+      getSnapPromise
+        .then(result => {
+          // 检查对话框是否已关闭
+          if (!this.skillDialogVisible) {
+            console.log('对话框已关闭，丢弃摄像头截图');
+            throw new Error('对话框已关闭');
+          }
+          
+          console.log('获取截图成功，图像大小:', result.imageData.size, '类型:', result.imageData.type);
+          
+          // 检查数据是否是有效的Blob对象
+          if (!(result.imageData instanceof Blob)) {
+            throw new Error('获取的数据不是有效的图像');
+          }
+          
+          // 创建一个新的Blob URL
+          const blobUrl = URL.createObjectURL(result.imageData);
+          
+          // 保存URL以便后续清理
+          this.skillForm.electronicFence._blobUrl = blobUrl;
+          
+          // 设置图像源
+          this.skillForm.electronicFence.image = blobUrl;
+          
+          console.log('图像设置成功，等待加载完成');
+        })
+        .catch(error => {
+          console.error('获取摄像头截图失败:', error);
+          
+          // 如果不是因为对话框关闭的错误，显示错误提示
+          if (error.message !== '对话框已关闭' && this.skillDialogVisible) {
+            this.$alert(`获取摄像头截图失败: ${error.message}`, {
+              title: '获取截图失败',
+              type: 'error',
+              confirmButtonText: '确定'
+            });
+          }
+        })
+        .finally(() => {
+          // 只有当对话框仍然打开时才更新UI状态
+          if (this.skillDialogVisible) {
+            setTimeout(() => {
+              this.skillForm.electronicFence.imageLoading = false;
+            }, 500);
+          }
+        });
     },
+
 
     // 处理确认配置
     handleConfirm() {
+      // 添加表单验证前的调试日志
+      console.log('准备进行表单验证，当前预警等级:', this.skillForm.alarmLevel);
+      console.log('准备进行表单验证，当前任务名称:', this.skillForm.name);
+      console.log('准备进行表单验证，当前任务描述:', this.skillForm.description);
+      
       this.$refs.skillForm.validate((valid) => {
         if (valid) {
           if (this.currentDeviceId && this.currentSkill) {
@@ -872,10 +698,22 @@ export default {
             this.loading = true;
 
             // 找到当前设备
-            const deviceIndex = this.deviceList.findIndex(device => device.id === this.currentDeviceId);
-            if (deviceIndex !== -1) {
+            console.log('当前设备ID:', this.currentDeviceId);
+            console.log('设备列表长度:', this.deviceList.length);
+            
+            const deviceIndex = this.deviceList.findIndex(device => {
+              console.log('比较设备ID:', device.id, typeof device.id, '与', this.currentDeviceId, typeof this.currentDeviceId);
+              return String(device.id) === String(this.currentDeviceId);
+            });
+            
+            console.log('找到的设备索引:', deviceIndex);
+            
+            if (deviceIndex !== -1 || this.isUpdateMode) {
+              // 如果找到设备索引或者是更新模式
+              // 更新模式下不需要依赖deviceList
+              
               // 确保设备有config对象
-              if (!this.deviceList[deviceIndex].config) {
+              if (deviceIndex !== -1 && !this.deviceList[deviceIndex].config) {
                 this.$set(this.deviceList[deviceIndex], 'config', {});
               }
 
@@ -894,12 +732,14 @@ export default {
               
               console.log('使用键名保存技能配置:', skillKey);
 
-              // 准备创建AI任务的数据
+              // 准备任务数据
               const taskData = {
                 // 使用用户输入的任务名称，如果没有则使用默认值
-                name: this.skillForm.name || `${this.deviceList[deviceIndex].name}-${skillKey}分析任务`,
+                name: this.skillForm.name || (deviceIndex !== -1 ? `${this.deviceList[deviceIndex].name}-${skillKey}分析任务` : `${skillKey}分析任务`),
+                
                 // 使用用户输入的任务描述，如果没有则使用默认值
-                description: this.skillForm.description || `此任务使用${skillKey}技术对${this.deviceList[deviceIndex].name}进行智能分析，可自动识别并进行预警`,
+                description: this.skillForm.description || (deviceIndex !== -1 ? `此任务使用${skillKey}技术对${this.deviceList[deviceIndex].name}进行智能分析，可自动识别并进行预警` : `此任务使用${skillKey}技术进行智能分析，可自动识别并进行预警`),
+                
                 // 预警等级转换为数字
                 alert_level: this.getWarningLevelValue(this.skillForm.alarmLevel),
                 // 抽帧频率
@@ -922,51 +762,56 @@ export default {
                 },
                 // 任务状态
                 status: this.skillForm.status,
-                // 摄像头ID
-                camera_id: parseInt(this.currentDeviceId),
-                // 技能类ID
-                skill_class_id: skillInfo ? parseInt(skillInfo.id) : null,
                 // 自定义技能配置
-                skill_custom_config: {
-                  params: {}  // 默认为空对象
+                skill_config: {
+                  params: this.skillDetailData && this.skillDetailData.params ? this.skillDetailData.params : {}
                 }
               };
               
-              // 检查是否具有有效的技能类ID
-              if (!taskData.skill_class_id) {
-                this.$message.error('创建AI任务失败：未找到有效的技能类ID');
-                this.loading = false;
-                return;
-              }
+              // 如果是创建模式，需要添加摄像头ID和技能类ID
+              if (!this.isUpdateMode) {
+                taskData.camera_id = parseInt(this.currentDeviceId);
+                taskData.skill_class_id = skillInfo ? parseInt(skillInfo.id) : null;
               
-              // 获取技能参数，无论用户是否点击过保存按钮
-              this.getSkillParams(skillInfo ? skillInfo.id : null, skillKey)
-                .then(params => {
-                  // 添加获取到的参数到任务数据中
-                  if (params && Object.keys(params).length > 0) {
-                    taskData.skill_custom_config.params = params;
-                    console.log('使用获取到的参数:', params);
-                  } else {
-                    // 如果无法获取默认参数，则尝试使用已保存的参数
-                    if (this.deviceList[deviceIndex].config && 
-                        this.deviceList[deviceIndex].config[skillKey] && 
-                        this.deviceList[deviceIndex].config[skillKey].customParams) {
-                      // 如果设备配置中已有自定义参数，直接使用
-                      taskData.skill_custom_config.params = { ...this.deviceList[deviceIndex].config[skillKey].customParams };
-                    } else if (config && config.customParams) {
-                      // 兼容旧逻辑，如果配置对象中有自定义参数，使用配置对象中的
-                      taskData.skill_custom_config.params = { ...config.customParams };
+                // 检查是否具有有效的技能类ID
+                if (!taskData.skill_class_id) {
+                  this.$message.error('创建AI任务失败：未找到有效的技能类ID');
+                  this.loading = false;
+                  return;
+                }
+              
+                // 获取技能参数，无论用户是否点击过保存按钮
+                this.getSkillParams(skillInfo ? skillInfo.id : null, skillKey)
+                  .then(params => {
+                    // 添加获取到的参数到任务数据中
+                    if (params && Object.keys(params).length > 0) {
+                        taskData.skill_config.params = params;
+                      console.log('使用获取到的参数:', params);
+                    } else {
+                      // 如果无法获取默认参数，则尝试使用已保存的参数
+                      if (deviceIndex !== -1 && this.deviceList[deviceIndex].config && 
+                          this.deviceList[deviceIndex].config[skillKey] && 
+                          this.deviceList[deviceIndex].config[skillKey].customParams) {
+                        // 如果设备配置中已有自定义参数，直接使用
+                          taskData.skill_config.params = { ...this.deviceList[deviceIndex].config[skillKey].customParams };
+                      } else if (config && config.customParams) {
+                        // 兼容旧逻辑，如果配置对象中有自定义参数，使用配置对象中的
+                          taskData.skill_config.params = { ...config.customParams };
+                      }
                     }
-                  }
-                  
-                  // 继续创建AI任务
-                  this.createAITaskWithParams(taskData, deviceIndex, skillKey, config);
-                })
-                .catch(error => {
-                  console.error('获取技能参数失败:', error);
-                  // 如果获取参数失败，仍然尝试创建AI任务，但使用已有的参数
-                  this.createAITaskWithParams(taskData, deviceIndex, skillKey, config);
-                });
+                    
+                    // 继续创建AI任务
+                    this.createAITaskWithParams(taskData, deviceIndex, skillKey, config);
+                  })
+                  .catch(error => {
+                    console.error('获取技能参数失败:', error);
+                    // 如果获取参数失败，仍然尝试创建AI任务，但使用已有的参数
+                    this.createAITaskWithParams(taskData, deviceIndex, skillKey, config);
+                  });
+              } else {
+                // 更新模式，使用PUT请求更新任务
+                this.updateAITask(taskData, deviceIndex, skillKey, config);
+              }
             } else {
               this.loading = false;
               this.$message.error('未找到设备，保存失败');
@@ -1075,16 +920,31 @@ export default {
                 
                 // 检查当前设备是否已有该技能的自定义配置
                 if (this.currentDeviceId) {
-                  const deviceIndex = this.deviceList.findIndex(device => device.id === this.currentDeviceId);
+                  console.log('检查设备配置，当前设备ID:', this.currentDeviceId);
+                  
+                  // 使用String转换确保类型一致
+                  const deviceIndex = this.deviceList.findIndex(device => {
+                    return String(device.id) === String(this.currentDeviceId);
+                  });
+                  
+                  console.log('查找到的设备索引:', deviceIndex);
+                  
                   if (deviceIndex !== -1 && this.deviceList[deviceIndex].config) {
                     const deviceConfig = this.deviceList[deviceIndex].config;
                     // 尝试使用不同的键名查找配置
                     const skillConfig = deviceConfig[skillDetail.name_zh] || deviceConfig[skillDetail.name];
                     
+                    console.log('找到技能配置:', skillConfig ? '是' : '否');
+                    
                     if (skillConfig && skillConfig.customParams) {
                       // 如果有自定义参数，优先使用
+                      console.log('使用已存在的自定义参数');
                       this.skillDetailData.params = { ...skillConfig.customParams };
+                    } else {
+                      console.log('没有找到已存在的自定义参数，使用默认参数');
                     }
+                  } else {
+                    console.log('没有找到设备或设备没有配置对象，使用默认参数');
                   }
                 }
             } else {
@@ -1144,7 +1004,17 @@ export default {
 
       // 如果当前正在配置技能，则同步更新到技能配置中
       if (this.currentSkill && this.currentDeviceId) {
-        const deviceIndex = this.deviceList.findIndex(device => device.id === this.currentDeviceId);
+        console.log('准备保存技能参数，当前设备ID:', this.currentDeviceId);
+        console.log('设备列表长度:', this.deviceList.length);
+        
+        // 使用String转换确保类型一致
+        const deviceIndex = this.deviceList.findIndex(device => {
+          console.log('比较设备:', device.id, typeof device.id, '与', this.currentDeviceId, typeof this.currentDeviceId);
+          return String(device.id) === String(this.currentDeviceId);
+        });
+        
+        console.log('查找到的设备索引:', deviceIndex);
+        
         if (deviceIndex !== -1) {
           // 确保设备有config对象
           if (!this.deviceList[deviceIndex].config) {
@@ -1164,6 +1034,8 @@ export default {
             skillKey = skillInfo.name_zh;
           }
           
+          console.log('使用技能键名:', skillKey);
+          
           // 获取当前配置
           let currentConfig = this.deviceList[deviceIndex].config[skillKey] || {};
           
@@ -1178,9 +1050,20 @@ export default {
           
           this.$message.success('技能参数已保存，将在确认技能配置时应用');
         } else {
-          this.$message.error('未找到设备，无法保存参数');
+          console.error('保存技能参数失败 - 未找到设备:', this.currentDeviceId);
+          
+          // 尽管找不到设备，仍然保存参数到临时位置
+          this.$message.warning('未找到设备，但技能参数已临时保存，将在确认技能配置时应用');
+          
+          // 技能参数仍然保留在this.skillDetailData中，等待后续处理
+          this.skillDetailDialogVisible = false;
+          return;
         }
-        } else {
+      } else {
+        console.warn('技能参数保存 - 缺少必要信息:', { 
+          currentSkill: this.currentSkill, 
+          currentDeviceId: this.currentDeviceId 
+        });
         this.$message.warning('技能参数已临时保存，但未关联到任何设备');
       }
       
@@ -1615,7 +1498,64 @@ export default {
     
     // 开始拖拽点
     startDragPoint(polyIndex, pointIndex, event) {
-      // 实现拖拽逻辑
+      event.stopPropagation(); // 阻止事件冒泡
+      
+      // 保存拖拽的多边形和点的索引
+      this.skillForm.electronicFence.draggedPolygonIndex = polyIndex;
+      this.skillForm.electronicFence.draggedPointIndex = pointIndex;
+      this.skillForm.electronicFence.isDragging = true;
+      
+      // 记录初始位置
+      const initialX = event.clientX;
+      const initialY = event.clientY;
+      
+      // 当前点的初始位置
+      const initialPointX = this.skillForm.electronicFence.points[polyIndex][pointIndex].x;
+      const initialPointY = this.skillForm.electronicFence.points[polyIndex][pointIndex].y;
+      
+      // 获取图像元素和其边界
+      const imageElement = document.querySelector('.fence-image');
+      const rect = imageElement.getBoundingClientRect();
+      
+      // 创建鼠标移动事件处理函数
+      const handleMouseMove = (moveEvent) => {
+        if (!this.skillForm.electronicFence.isDragging) return;
+        
+        moveEvent.preventDefault(); // 防止默认行为
+        
+        // 计算偏移量
+        const offsetX = moveEvent.clientX - initialX;
+        const offsetY = moveEvent.clientY - initialY;
+        
+        // 计算新位置
+        const newX = Math.max(0, Math.min(rect.width, initialPointX + offsetX));
+        const newY = Math.max(0, Math.min(rect.height, initialPointY + offsetY));
+        
+        // 更新点的位置
+        this.skillForm.electronicFence.points[polyIndex][pointIndex] = {
+          x: newX,
+          y: newY
+        };
+        
+        // 刷新视图
+        this.$forceUpdate();
+      };
+      
+      // 创建鼠标松开事件处理函数
+      const handleMouseUp = () => {
+        // 停止拖拽
+        this.skillForm.electronicFence.isDragging = false;
+        this.skillForm.electronicFence.draggedPolygonIndex = -1;
+        this.skillForm.electronicFence.draggedPointIndex = -1;
+        
+        // 移除事件监听器
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+      
+      // 添加事件监听器
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
     },
     
     // 点击围栏上的点
@@ -1625,12 +1565,88 @@ export default {
     
     // 点击当前绘制的围栏上的点
     handleCurrentPointClick(index) {
-      // 处理点击事件
+      // 如果点击的是第一个点，且已经有3个或更多的点，则闭合围栏
+      if (index === 0 && this.skillForm.electronicFence.currentPolygon.length > 2) {
+        this.completeFence();
+        return;
+      }
+      
+      // 对于其他点，询问是否删除
+      this.$confirm('是否删除此点？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.skillForm.electronicFence.currentPolygon.splice(index, 1);
+        // 更新UI
+        this.$forceUpdate();
+      }).catch(() => {});
+    },
+
+    
+    // 处理图像加载错误
+    handleImageError(event) {
+      console.error('图像加载失败事件:', event);
+      this.skillForm.electronicFence.imageLoading = false;
+      
+      // 显示更详细的错误对话框
+      this.$alert('图像加载失败，可能原因：\n1. 摄像头不在线\n2. 摄像头未返回有效图像\n3. 网络问题\n\n请尝试刷新或稍后重试', {
+        title: '图像加载失败',
+        confirmButtonText: '确定',
+        type: 'error',
+        callback: () => {
+          // 清空错误的图像URL
+          if (this.skillForm.electronicFence._blobUrl) {
+            try {
+              URL.revokeObjectURL(this.skillForm.electronicFence._blobUrl);
+            } catch (e) {}
+          }
+          // 设置默认占位图
+          this.skillForm.electronicFence.image = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+        }
+      });
     },
     
     // 点击图像
     handleImageClick(event) {
-      // 处理点击事件
+      // 如果正在绘制围栏，添加点
+      if (this.skillForm.electronicFence.isDrawing) {
+        const rect = event.target.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        // 如果已经有点，检查是否点击了第一个点附近区域来闭合围栏
+        if (this.skillForm.electronicFence.currentPolygon.length > 2) {
+          const firstPoint = this.skillForm.electronicFence.currentPolygon[0];
+          const distance = Math.sqrt(Math.pow(x - firstPoint.x, 2) + Math.pow(y - firstPoint.y, 2));
+          
+          // 如果点击位置距离第一个点很近（40像素内），则闭合围栏
+          // 使用更大的范围使闭合操作更容易
+          if (distance < 40) {
+            this.completeFence();
+            return;
+          }
+        }
+        
+        // 添加点到当前多边形
+        this.skillForm.electronicFence.currentPolygon.push({ x, y });
+        
+        // 当点数大于2时，刷新界面显示闭合提示
+        if (this.skillForm.electronicFence.currentPolygon.length > 2) {
+          // 这里不需要实际创建元素，只需要确保在渲染时能够看到虚线
+          // Vue的响应式系统会处理更新
+          // 通过触发更新来确保组件重新渲染
+          this.$forceUpdate();
+        }
+      } else {
+        // 否则，获取新的截图
+        if (this.currentDeviceId) {
+          // 直接获取最新截图，无需确认
+          this.getAndSetCameraSnapForFence(this.currentDeviceId);
+        } else {
+          this.$message.warning('未选择摄像头，无法获取截图');
+        }
+      }
     },
     
     // 开始绘制围栏
@@ -1742,12 +1758,33 @@ export default {
     // 添加createAITaskWithParams方法来创建AI任务
     createAITaskWithParams(taskData, deviceIndex, skillKey, config) {
       console.log('准备创建AI任务:', taskData);
+      console.log('设备索引:', deviceIndex, '技能键:', skillKey);
       
       // 调用API创建AI任务
       skillAPI.createAITask(taskData)
         .then(response => {
+          console.log('创建AI任务返回数据:', response.data);
+          
+          // 检查不同的返回数据格式
+          let isSuccess = false;
+          let responseData = null;
+          
           if (response.data && response.data.code === 0) {
-            console.log('AI任务创建成功:', response.data);
+            // 标准格式{code: 0, data: ...}
+            isSuccess = true;
+            responseData = response.data.data;
+          } else if (response.data && response.data.id) {
+            // 直接返回任务对象格式，包含id字段
+            isSuccess = true;
+            responseData = response.data;
+          } else if (response.status === 200 || response.status === 201) {
+            // 通过HTTP状态码判断成功
+            isSuccess = true;
+            responseData = response.data;
+          }
+          
+          if (isSuccess) {
+            console.log('AI任务创建成功:', responseData);
             
             // 确保config对象有customParams字段
             if (!config.customParams) {
@@ -1755,12 +1792,17 @@ export default {
             }
             
             // 保存使用的参数到config
-            if (taskData.skill_custom_config && taskData.skill_custom_config.params) {
-              config.customParams = { ...taskData.skill_custom_config.params };
+            if (taskData.skill_config && taskData.skill_config.params) {
+              config.customParams = { ...taskData.skill_config.params };
             }
             
-            // 更新设备的技能配置 - 仅在内存中保存
-            this.$set(this.deviceList[deviceIndex].config, skillKey, config);
+            // 只有当deviceIndex有效时才更新设备的技能配置
+            if (deviceIndex !== -1 && deviceIndex !== undefined && this.deviceList[deviceIndex]) {
+              // 更新设备的技能配置 - 仅在内存中保存
+              this.$set(this.deviceList[deviceIndex].config, skillKey, config);
+            } else {
+              console.log('设备索引无效，跳过在设备列表中保存配置');
+            }
             
             this.$message.success('技能配置保存成功');
             
@@ -1777,9 +1819,9 @@ export default {
             this.refreshCameraDetail(this.currentDeviceId);
             // 刷新关联任务列表
             this.fetchCameraRelatedTasks(this.currentDeviceId);
-        } else {
+          } else {
             console.error('创建AI任务失败:', response.data);
-            this.$message.error('创建AI任务失败：' + (response.data.msg || '未知错误'));
+            this.$message.error('创建AI任务失败：' + (response.data && response.data.msg ? response.data.msg : '未知错误'));
           }
         })
         .catch(error => {
@@ -1869,13 +1911,454 @@ export default {
     
     // 根据预警等级数值获取名称
     getAlertLevelName(level) {
-      const nameMap = {
+      const levelMap = {
         1: '一级预警',
         2: '二级预警',
         3: '三级预警',
         4: '四级预警'
       };
-      return nameMap[level] || `预警(${level})`;
+      
+      // 确保level是数字类型
+      const numLevel = Number(level);
+      
+      // 如果能在映射表中找到对应值，则返回，否则返回默认值'二级预警'
+      return levelMap[numLevel] || '二级预警';
+    },
+
+    // 任务卡片点击处理方法 - 在fetchCameraRelatedTasks方法后添加
+    // 处理任务卡片点击
+    handleTaskClick(task) {
+      if (!task || !task.id) {
+        this.$message.warning('无效的任务信息');
+        return;
+      }
+      
+      // 显示加载提示
+      const loading = this.$loading({
+        lock: true,
+        text: '加载任务详情...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+      
+      // 设置更新模式
+      this.isUpdateMode = true;
+      this.currentTaskId = task.id;
+      
+      // 重要：重置表单内容，避免之前的数据影响
+      this.skillForm = {
+        name: '',  // 确保清空这些字段
+        description: '',
+        status: true,
+        alarmLevel: '二级预警',
+        frequency: {
+          seconds: 3,
+          frames: 1
+        },
+        timeRanges: [
+          {
+            start: new Date(2024, 0, 1, 0, 0),
+            end: new Date(2024, 0, 1, 23, 59)
+          }
+        ],
+        electronicFence: {
+          image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+          points: [],
+          isDrawing: false,
+          triggerMode: 'inside',
+          tempPoints: [],
+          draggedPointIndex: -1,
+          isDragging: false,
+          currentPolygon: [],
+          imageLoading: false
+        }
+      };
+      
+      // 添加延时防止界面卡顿
+      setTimeout(() => {
+        // 加载任务数据
+        this.loadTaskData(task.id)
+          .catch(error => {
+            console.error('加载任务数据出错:', error);
+            this.$message.error('加载任务数据失败: ' + (error.message || '未知错误'));
+            // 关闭加载提示
+            loading.close();
+            // 重置更新模式
+            this.isUpdateMode = false;
+            this.currentTaskId = null;
+          })
+          .finally(() => {
+            // 关闭加载提示
+            loading.close();
+          });
+      }, 100);
+    },
+    
+    // 加载任务数据
+    loadTaskData(taskId) {
+      // 返回Promise以便外部处理错误
+      return new Promise((resolve, reject) => {
+        // 调用接口获取任务详情
+        skillAPI.getAITaskDetail(taskId)
+          .then(response => {
+            // 正确处理不同的数据结构
+            let taskData;
+            if (response.data && response.data.id) {
+              // 直接返回的任务数据
+              taskData = response.data;
+            } else if (response.data && response.data.code === 0 && response.data.data) {
+              // 标准包装格式的任务数据
+              taskData = response.data.data;
+            } else {
+              const error = new Error('数据格式不正确');
+              console.error('任务数据格式不符合预期:', response.data);
+              reject(error);
+              return;
+            }
+            
+            // 检查任务数据是否有效
+            if (!taskData.id) {
+              const error = new Error('无效的任务数据');
+              reject(error);
+              return;
+            }
+            
+            // 设置当前设备ID和技能ID
+            this.currentDeviceId = taskData.camera_id;
+            
+
+
+            // 获取技能信息
+            if (taskData.skill_class_id) {
+              // 查找对应的技能信息
+              skillAPI.getAITaskSkillDetail(taskData.skill_class_id)
+                .then(skillResponse => {
+                  // 处理不同格式的技能数据
+                  let skillData;
+                  if (skillResponse.data && skillResponse.data.data) {
+                    // 标准包装格式
+                    skillData = skillResponse.data.data;
+                  } else if (skillResponse.data && (skillResponse.data.id || skillResponse.data.value || skillResponse.data.name_zh)) {
+                    // 直接返回的技能数据
+                    skillData = skillResponse.data;
+                  } else if (skillResponse.data && skillResponse.data.code === 0 && skillResponse.data.data) {
+                    // 嵌套包装格式
+                    skillData = skillResponse.data.data;
+                  } else {
+                    console.error('技能数据格式不符合预期:', skillResponse.data);
+                    const error = new Error('技能数据格式不正确');
+                    reject(error);
+                    return;
+                  }
+
+                  // 确保技能数据有效
+                  if (!skillData.value && !skillData.name_zh && !skillData.name) {
+                    const error = new Error('技能数据缺少必要字段');
+                    reject(error);
+                    return;
+                  }
+
+                  this.currentSkill = skillData.name || skillData.name_zh;
+                  this.currentSkillInfo = skillData;
+                  
+                  // 填充技能表单数据
+                  this.fillSkillFormFromTask(taskData);
+                  
+                  // 打开技能配置对话框
+                  this.skillDialogVisible = true;
+
+                  
+                  
+                  // 操作成功完成
+                  resolve();
+                })
+                .catch(error => {
+                  console.error('获取技能信息失败:', error);
+                  reject(error);
+                });
+            } else {
+              const error = new Error('任务中缺少技能信息');
+              reject(error);
+            }
+          })
+          .catch(error => {
+            reject(error);
+          });
+      });
+    },
+    
+    // 从任务数据填充表单
+    fillSkillFormFromTask(taskData) {
+      // 清除加载状态
+      this.loading = false;
+      
+      console.log('填充表单前的表单数据:', JSON.stringify(this.skillForm));
+      console.log('从任务中获取的任务名称:', taskData.name);
+      console.log('从任务中获取的任务描述:', taskData.description);
+      
+      // 填充基础信息 - 使用Vue的$set确保响应式更新
+      this.$set(this.skillForm, 'name', taskData.name || '');
+      this.$set(this.skillForm, 'description', taskData.description || '');
+      this.$set(this.skillForm, 'status', taskData.status !== undefined ? taskData.status : true);
+      
+      // 强制刷新表单视图
+      this.$nextTick(() => {
+        console.log('填充表单后的表单数据:', JSON.stringify(this.skillForm));
+        
+        // 强制更新表单
+        if (this.$refs.skillForm) {
+          this.$refs.skillForm.clearValidate();
+        }
+      });
+      
+      // 填充预警等级
+      this.skillForm.alarmLevel = this.getAlertLevelName(taskData.alert_level) || '二级预警';
+      
+      // 填充抽帧频率
+      if (taskData.frame_rate) {
+        if (taskData.frame_rate >= 1) {
+          // 如果帧率大于等于1，表示1秒多帧
+          this.skillForm.frequency.seconds = 1;
+          this.skillForm.frequency.frames = Math.round(taskData.frame_rate);
+        } else {
+          // 如果帧率小于1，表示多秒1帧
+          this.skillForm.frequency.seconds = Math.round(1 / taskData.frame_rate);
+          this.skillForm.frequency.frames = 1;
+        }
+      }
+      
+      // 填充运行时段
+      if (taskData.running_period && taskData.running_period.periods && taskData.running_period.periods.length > 0) {
+        this.skillForm.timeRanges = taskData.running_period.periods.map(period => {
+          const [startHour, startMinute] = period.start.split(':').map(Number);
+          const [endHour, endMinute] = period.end.split(':').map(Number);
+          
+          return {
+            start: new Date(2024, 0, 1, startHour, startMinute),
+            end: new Date(2024, 0, 1, endHour, endMinute)
+          };
+        });
+      } else {
+        // 使用默认时间范围
+        this.skillForm.timeRanges = [
+          {
+            start: new Date(2024, 0, 1, 0, 0),
+            end: new Date(2024, 0, 1, 23, 59)
+          }
+        ];
+      }
+      
+      // 填充电子围栏
+      // 重置围栏数据
+      this.skillForm.electronicFence.points = [];
+      
+      if (taskData.electronic_fence && taskData.electronic_fence.points && taskData.electronic_fence.points.length > 0) {
+        // 判断电子围栏点数据的格式
+        const fencePoints = taskData.electronic_fence.points;
+        
+        console.log('电子围栏原始数据:', JSON.stringify(fencePoints));
+        
+        try {
+          // 如果是二维数组，并且第一层是多边形数组
+          if (Array.isArray(fencePoints) && Array.isArray(fencePoints[0])) {
+            // 遍历每个多边形
+            fencePoints.forEach(polygon => {
+              // 检查多边形点数据格式
+              if (polygon.length > 0) {
+                if (typeof polygon[0] === 'object' && 'x' in polygon[0] && 'y' in polygon[0]) {
+                  // 如果点已经是{x,y}格式，直接添加
+                  this.skillForm.electronicFence.points.push([...polygon]);
+                } else if (Array.isArray(polygon[0])) {
+                  // 如果点是[x,y]格式，转换为{x,y}格式
+                  const formattedPolygon = polygon.map(point => ({ x: point[0], y: point[1] }));
+                  this.skillForm.electronicFence.points.push(formattedPolygon);
+                }
+              }
+            });
+          } else if (Array.isArray(fencePoints)) {
+            // 如果是一维数组，可能是单个多边形的点数组
+            if (fencePoints.length > 0) {
+              if (typeof fencePoints[0] === 'object' && 'x' in fencePoints[0] && 'y' in fencePoints[0]) {
+                // 如果点已经是{x,y}格式，作为一个多边形添加
+                this.skillForm.electronicFence.points.push([...fencePoints]);
+              } else if (Array.isArray(fencePoints[0])) {
+                // 如果点是[x,y]格式，转换为{x,y}格式
+                const formattedPolygon = fencePoints.map(point => ({ x: point[0], y: point[1] }));
+                this.skillForm.electronicFence.points.push(formattedPolygon);
+              }
+            }
+          }
+          
+          console.log('处理后的电子围栏数据:', JSON.stringify(this.skillForm.electronicFence.points));
+        } catch (error) {
+          console.error('电子围栏数据处理错误:', error);
+        }
+        
+        // 设置触发模式
+        this.skillForm.electronicFence.triggerMode = taskData.electronic_fence.trigger_mode || 'inside';
+      }
+      
+      // 获取摄像头截图
+      this.skillForm.electronicFence.imageLoading = true; // 显示加载状态
+      this.getAndSetCameraSnapForFence(taskData.camera_id);
+      
+      // 加载自定义参数
+      if (taskData.skill_config && taskData.skill_config.params) {
+        this.skillDetailData = {
+          params: { ...taskData.skill_config.params }
+        };
+      }
+    },
+
+    // 更新AI任务
+    updateAITask(taskData, deviceIndex, skillKey, config) {
+      console.log('准备更新AI任务:', taskData);
+      console.log('设备索引:', deviceIndex, '技能键:', skillKey);
+      
+      // 调用API更新AI任务
+      skillAPI.updateAITask(this.currentTaskId, taskData)
+        .then(response => {
+          console.log('更新AI任务返回数据:', response.data);
+          
+          // 检查不同的返回数据格式
+          let isSuccess = false;
+          let responseData = null;
+          
+          if (response.data && response.data.code === 0) {
+            // 标准格式{code: 0, data: ...}
+            isSuccess = true;
+            responseData = response.data.data;
+          } else if (response.data && response.data.id) {
+            // 直接返回任务对象格式，包含id字段
+            isSuccess = true;
+            responseData = response.data;
+          } else if (response.status === 200 || response.status === 201) {
+            // 通过HTTP状态码判断成功
+            isSuccess = true;
+            responseData = response.data;
+          }
+          
+          if (isSuccess) {
+            console.log('AI任务更新成功:', responseData);
+            
+            // 确保config对象有customParams字段
+            if (!config.customParams) {
+              config.customParams = {};
+            }
+            
+            // 保存使用的参数到config
+            if (taskData.skill_config && taskData.skill_config.params) {
+              config.customParams = { ...taskData.skill_config.params };
+            }
+            
+            // 只有当deviceIndex有效时才更新设备的技能配置
+            if (deviceIndex !== -1 && deviceIndex !== undefined && this.deviceList[deviceIndex]) {
+              // 更新设备的技能配置 - 仅在内存中保存
+              this.$set(this.deviceList[deviceIndex].config, skillKey, config);
+            } else {
+              console.log('设备索引无效，跳过在设备列表中保存配置');
+            }
+            
+            this.$message.success('任务更新成功');
+            
+            // 刷新摄像头数据获取最新的技能列表
+            this.refreshCameraDetail(this.currentDeviceId);
+            // 刷新关联任务列表
+            this.fetchCameraRelatedTasks(this.currentDeviceId);
+          } else {
+            console.error('更新AI任务失败:', response.data);
+            this.$message.error('更新AI任务失败：' + (response.data && response.data.msg ? response.data.msg : '未知错误'));
+          }
+        })
+        .catch(error => {
+          console.error('更新AI任务出错:', error);
+          this.$message.error('更新AI任务失败：' + (error.message || '服务器错误'));
+        })
+        .finally(() => {
+          this.loading = false;
+          // 重置更新模式
+          this.isUpdateMode = false;
+          this.currentTaskId = null;
+          // 关闭配置技能对话框
+          this.skillDialogVisible = false;
+          
+          // 重置左侧菜单标志
+          this.showLeftSkillMenu = false;
+          
+          // 如果不是从左侧菜单点击的，则重新打开选择技能对话框
+          if (!this.showLeftSkillMenu) {
+            this.skillSelectDialogVisible = true;
+          }
+        });
+    },
+
+    handleClose() {
+      // 如果正在绘制电子围栏，则取消绘制
+      if (this.skillForm.electronicFence.isDrawing) {
+        this.cancelDrawFence();
+      }
+      
+      // 确保所有loading状态被清除
+      this.skillForm.electronicFence.imageLoading = false;
+      
+      // 重置更新模式
+      this.isUpdateMode = false;
+      this.currentTaskId = null;
+      
+      // 关闭可能存在的loading实例
+      try {
+        this.$loading().close();
+      } catch (e) {}
+      
+      // 关闭对话框
+      this.skillDialogVisible = false;
+    },
+    
+    closeSkillDialog() {
+      // 确保所有loading状态被清除
+      this.skillForm.electronicFence.imageLoading = false;
+      
+      // 重置更新模式
+      this.isUpdateMode = false;
+      this.currentTaskId = null;
+      
+      // 关闭可能存在的loading实例
+      try {
+        this.$loading().close();
+      } catch (e) {}
+      
+      // 关闭对话框
+      this.skillDialogVisible = false;
+    },
+
+    // 处理图像加载完成
+    handleImageLoad() {
+      // 如果对话框已经被关闭，直接隐藏加载状态
+      if (!this.skillDialogVisible) {
+        this.skillForm.electronicFence.imageLoading = false;
+        return;
+      }
+      
+      // 延迟关闭加载状态，添加过渡效果
+      setTimeout(() => {
+        // 再次检查对话框是否关闭
+        if (!this.skillDialogVisible) {
+          this.skillForm.electronicFence.imageLoading = false;
+          return;
+        }
+        
+        // 不要直接设置为false，先添加过渡类
+        const loadingEl = document.querySelector('.fence-image-loading');
+        if (loadingEl) {
+          loadingEl.classList.add('fade-out');
+          // 等待过渡效果完成后再隐藏
+          setTimeout(() => {
+            this.skillForm.electronicFence.imageLoading = false;
+          }, 300); // 与CSS过渡时间相匹配
+        } else {
+          this.skillForm.electronicFence.imageLoading = false;
+        }
+      }, 100);
     }
   }
 }

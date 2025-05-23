@@ -220,7 +220,8 @@
               <i class="el-icon-info"></i> 暂无关联任务
             </div>
             <div v-else class="related-tasks-list">
-              <el-card v-for="task in cameraRelatedTasks" :key="task.id" class="task-card">
+              <el-card v-for="task in cameraRelatedTasks" :key="task.id" class="task-card"
+                      @click.native="handleTaskClick(task)">
                 <div class="task-header">
                   <div class="task-name">{{ task.name }}</div>
                   <el-tag size="mini" :type="task.status ? 'success' : 'info'" class="task-status-tag">
@@ -241,12 +242,12 @@
         </el-form>
                   <div slot="footer" class="dialog-footer">
           <el-button @click="closeSkillSelectDialog">取消</el-button>
-          <el-button type="primary" @click="confirmSkillSelect">确定</el-button>
+          <el-button type="primary" @click="closeSkillSelectDialog">确定</el-button>
         </div>
       </el-dialog>
 
       <!-- 配置技能对话框 -->
-      <el-dialog title="配置技能" :visible.sync="skillDialogVisible" width="55%" :close-on-click-modal="false"
+      <el-dialog :title="isUpdateMode ? '更新技能' : '配置技能'" :visible.sync="skillDialogVisible" width="55%" :close-on-click-modal="false"
         :destroy-on-close="false" :modal-append-to-body="true" :append-to-body="true" :show-close="true"
         :lock-scroll="true" custom-class="skill-dialog" center @close="handleClose">
         <div class="current-skill-header" v-if="currentSkill">
@@ -348,8 +349,16 @@
               <div class="fence-wrapper">
                 <div class="fence-preview">
                   <div class="image-editor">
-                    <img :src="skillForm.electronicFence.image" alt="围栏图片" class="fence-image"
-                      @click="handleImageClick">
+                    <img :src="skillForm.electronicFence.image" alt="围栏图片" 
+                      :class="['fence-image', {'loading': skillForm.electronicFence.imageLoading}]"
+                      @click="handleImageClick" @load="handleImageLoad" @error="handleImageError">
+                    
+                    <!-- 图像加载中的状态显示 -->
+                    <div v-if="skillForm.electronicFence.imageLoading" class="fence-image-loading">
+                      <i class="el-icon-loading"></i>
+                      <p>正在加载图像...</p>
+                    </div>
+                    
                     <div class="fence-polygon"
                       v-if="skillForm.electronicFence.points.length > 0 || skillForm.electronicFence.currentPolygon.length > 0">
                       <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
@@ -362,19 +371,58 @@
                           <circle v-for="(point, pointIndex) in polygon" :key="`point-${polyIndex}-${pointIndex}`"
                             :cx="point.x" :cy="point.y" r="8" fill="#fff" stroke="#1890ff" stroke-width="2"
                             @mousedown.prevent="startDragPoint(polyIndex, pointIndex, $event)"
-                            @click.stop="handlePointClick(polyIndex, pointIndex)"
-                            :style="getPointStyle(polyIndex, pointIndex)" />
+                            style="cursor: move; z-index: 100;"
+                            title="拖动调整围栏形状" />
                         </g>
 
                         <!-- 当前正在绘制的围栏 -->
-                        <g
-                          v-if="skillForm.electronicFence.isDrawing && skillForm.electronicFence.currentPolygon.length > 0">
+                        <g v-if="skillForm.electronicFence.isDrawing && skillForm.electronicFence.currentPolygon.length > 0">
+                          <!-- 添加提示线连接最后一个点和第一个点 -->
+                          <polyline v-if="skillForm.electronicFence.currentPolygon.length > 2"
+                            :points="`${skillForm.electronicFence.currentPolygon[skillForm.electronicFence.currentPolygon.length-1].x},${skillForm.electronicFence.currentPolygon[skillForm.electronicFence.currentPolygon.length-1].y} ${skillForm.electronicFence.currentPolygon[0].x},${skillForm.electronicFence.currentPolygon[0].y}`" 
+                            fill="none"
+                            stroke="#4caf50" 
+                            stroke-width="2" 
+                            stroke-dasharray="5,5" />
+                          
                           <polyline v-if="skillForm.electronicFence.currentPolygon.length > 1"
                             :points="formatPolygonPoints(skillForm.electronicFence.currentPolygon)" fill="none"
                             stroke="#f56c6c" stroke-width="2" stroke-dasharray="5,5" />
+                          
+                          <!-- 非第一个点 -->
                           <circle v-for="(point, index) in skillForm.electronicFence.currentPolygon"
-                            :key="`current-${index}`" :cx="point.x" :cy="point.y" r="8" fill="#f56c6c" stroke="#fff"
-                            stroke-width="2" @click.stop="handleCurrentPointClick(index)" style="cursor: pointer;" />
+                            v-if="index !== 0"
+                            :key="`current-${index}`" 
+                            :cx="point.x" 
+                            :cy="point.y" 
+                            r="8" 
+                            fill="#f56c6c" 
+                            stroke="#fff"
+                            stroke-width="2" 
+                            @click.stop="handleCurrentPointClick(index)" 
+                            style="cursor: pointer;" />
+                          
+                          <!-- 添加背景圆圈 -->
+                          <circle v-if="skillForm.electronicFence.currentPolygon.length > 2"
+                            :cx="skillForm.electronicFence.currentPolygon[0].x" 
+                            :cy="skillForm.electronicFence.currentPolygon[0].y" 
+                            r="16" 
+                            fill="none" 
+                            stroke="#4caf50" 
+                            stroke-width="2" 
+                            style="pointer-events: none;" />
+                            
+                          <!-- 第一个点单独渲染，没有hover效果 -->
+                          <circle v-if="skillForm.electronicFence.currentPolygon.length > 0"
+                            :cx="skillForm.electronicFence.currentPolygon[0].x" 
+                            :cy="skillForm.electronicFence.currentPolygon[0].y" 
+                            r="10" 
+                            :fill="skillForm.electronicFence.currentPolygon.length > 2 ? '#4caf50' : '#f56c6c'"
+                            stroke="#fff"
+                            stroke-width="2" 
+                            @click.stop="skillForm.electronicFence.currentPolygon.length > 2 ? completeFence() : null" 
+                            style="cursor: pointer; pointer-events: all;" 
+                            :title="skillForm.electronicFence.currentPolygon.length > 2 ? '点击闭合围栏' : ''" />
                         </g>
                       </svg>
                     </div>
@@ -422,7 +470,7 @@
         </el-form>
         <div slot="footer" class="dialog-footer" style="margin-top: -30px;">
           <el-button @click="closeSkillDialog">取消</el-button>
-          <el-button type="primary" @click="handleConfirm">创建任务</el-button>
+          <el-button type="primary" @click="handleConfirm">{{ isUpdateMode ? '更新任务' : '创建任务' }}</el-button>
         </div>
       </el-dialog>
 
@@ -556,29 +604,10 @@
 
 <script>
 import cameraComponent from './cameraComponents/camera.js'
-
-// 添加这些方法到组件对象
-if (!cameraComponent.methods.closeSkillDialog) {
-  cameraComponent.methods.closeSkillDialog = function() {
-    this.skillDialogVisible = false;
-  }
-}
-
-if (!cameraComponent.methods.handleClose) {
-  cameraComponent.methods.handleClose = function() {
-    // 如果正在绘制电子围栏，则取消绘制
-    if (this.skillForm.electronicFence.isDrawing) {
-      this.cancelDrawFence();
-    }
-    // 关闭对话框
-    this.skillDialogVisible = false;
-  }
-}
-
 export default cameraComponent
 </script>
 
-<style>
+<style scoped>
 @import './cameraComponents/camera.css';
 </style>
 
