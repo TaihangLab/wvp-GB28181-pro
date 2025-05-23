@@ -1,6 +1,9 @@
 <script>
 export default {
   name: "WarningArchives",
+  components: {
+    WarningDetail: () => import('./warningDetail.vue')
+  },
   data() {
     return {
       // 接口定义
@@ -144,7 +147,10 @@ export default {
         timeRange: '',
         description: '',
         image: ''
-      }
+      },
+      // 预警详情相关
+      warningDetailVisible: false,
+      currentWarning: null
     }
   },
   mounted() {
@@ -279,8 +285,35 @@ export default {
     },
     // 查看详情
     showDetail(record) {
-      this.currentDetail = record;
-      this.detailDialogVisible = true;
+      // 根据违规类型生成描述
+      const getDescriptionByType = (type) => {
+        const descriptionMap = {
+          '安全帽识别': '检测到工作人员未佩戴安全帽，存在严重安全隐患，请立即整改并加强安全教育',
+          '工服识别': '发现工作人员未按规定穿着工作服，违反现场作业安全规范，需要立即纠正',
+          '玻璃运输车打卡': '玻璃运输车辆未按规定进行打卡登记，违反车辆管理规定，请督促司机规范操作',
+          '烟火检测': '检测到禁烟区域有吸烟行为，存在火灾隐患，请立即制止并进行安全教育',
+        };
+        return descriptionMap[type] || `检测到${type}违规行为，请及时处理并加强现场管理`;
+      };
+      
+      // 将档案记录转换为预警格式
+      this.currentWarning = {
+        device: record.deviceName,
+        type: record.name,
+        time: record.warningTime,
+        level: record.warningLevel,
+        location: this.archiveInfo.location,
+        description: getDescriptionByType(record.name)
+      };
+      this.warningDetailVisible = true;
+    },
+    // 从预警详情组件处理预警
+    handleWarningFromDetail(warning) {
+      this.$message({
+        message: `正在处理 ${warning.device} 的 ${warning.type} 预警`,
+        type: 'success'
+      });
+      this.warningDetailVisible = false;
     },
     // 处理单条删除
     handleDelete(id) {
@@ -625,44 +658,12 @@ export default {
 
     </div>
 
-    <!-- 详情弹框 -->
-    <el-dialog title="预警详情" :visible.sync="detailDialogVisible" width="30%" :append-to-body="true"
-      custom-class="warning-detail-dialog">
-      <div v-if="currentDetail" class="detail-container">
-        <div class="blue-preview-box detail-image-box">
-          <el-button type="text" class="preview-btn">预警图像</el-button>
-        </div>
-        <div class="detail-info">
-          <div class="detail-item">
-            <span class="label">预警名称：</span>
-            <span class="value">{{ currentDetail.name }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">设备位置：</span>
-            <span class="value">{{ currentDetail.deviceName }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">预警时间：</span>
-            <span class="value">{{ currentDetail.warningTime }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">预警等级：</span>
-            <span class="value">
-              <span class="level-tag" :class="{
-                'level1-tag': currentDetail.warningLevel === 'level1',
-                'level2-tag': currentDetail.warningLevel === 'level2',
-                'level3-tag': currentDetail.warningLevel === 'level3',
-                'level4-tag': currentDetail.warningLevel === 'level4'
-              }">
-                {{ currentDetail.warningLevel === 'level1' ? '一级预警' :
-                  currentDetail.warningLevel === 'level2' ? '二级预警' :
-                    currentDetail.warningLevel === 'level3' ? '三级预警' : '四级预警' }}
-              </span>
-            </span>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
+    <!-- 替换原有的预警详情弹框 -->
+    <WarningDetail 
+      :visible.sync="warningDetailVisible"
+      :warning="currentWarning"
+      @handle-warning="handleWarningFromDetail"
+    />
 
     <!-- 图片预览弹框 -->
     <el-dialog title="预警图片预览" :visible.sync="imagePreviewVisible" width="30%" custom-class="image-preview-dialog">

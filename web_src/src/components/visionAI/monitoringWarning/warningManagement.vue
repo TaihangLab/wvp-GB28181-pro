@@ -1,6 +1,11 @@
 <script>
+import WarningDetail from './warningDetail.vue'
+
 export default {
   name: "WarningManagement",
+  components: {
+    WarningDetail
+  },
   data() {
     return {
       // 定义搜索条件
@@ -34,10 +39,16 @@ export default {
           level: '一级预警',
           time: '2022-12-20 17:02:58',
           status: 'pending',
+          cameraId: 'camera_1',
           deviceInfo: {
             name: '可燃气体',
             position: '0.1 米'
-          }
+          },
+          remark: '',
+          device: '可燃气体',
+          type: 'CH4 超上限预警',
+          location: '油气监控区域',
+          description: '检测到CH4浓度超过安全阈值，当前浓度为1.30%LEL，存在爆炸危险，请立即处理'
         },
         {
           id: '2',
@@ -48,10 +59,16 @@ export default {
           level: '二级预警',
           time: '2022-12-20 17:01:58',
           status: 'processing',
+          cameraId: 'camera_1',
           deviceInfo: {
             name: '一氧化碳',
             position: '1.5 米'
-          }
+          },
+          remark: '',
+          device: '一氧化碳检测器',
+          type: 'CO 浓度预警',
+          location: '作业区域',
+          description: '检测到一氧化碳浓度超标，当前浓度为75ppm，可能对人员造成健康危害'
         },
         {
           id: '3',
@@ -62,10 +79,16 @@ export default {
           level: '三级预警',
           time: '2022-12-20 16:58:32',
           status: 'pending',
+          cameraId: 'camera_2',
           deviceInfo: {
             name: '硫化氢',
             position: '2.0 米'
-          }
+          },
+          remark: '',
+          device: '硫化氢检测器',
+          type: 'H2S 浓度预警',
+          location: '储罐区域',
+          description: '检测到硫化氢浓度异常，当前浓度为10ppm，请注意通风和人员防护'
         },
         {
           id: '4',
@@ -76,10 +99,16 @@ export default {
           level: '一级预警',
           time: '2022-12-20 16:55:12',
           status: 'pending',
+          cameraId: 'camera_1',
           deviceInfo: {
             name: '火焰探测器',
             position: '管道区域'
-          }
+          },
+          remark: '',
+          device: '火焰探测器',
+          type: '火焰探测器预警',
+          location: '管道区域',
+          description: '火焰探测器检测到火焰信号，置信度85%，存在火灾风险，请立即确认并处理'
         },
         {
           id: '5',
@@ -89,11 +118,17 @@ export default {
           unit: '°C',
           level: '二级预警',
           time: '2022-12-20 16:50:22',
-          status: 'processing',
+          status: 'completed',
+          cameraId: 'camera_2',
           deviceInfo: {
             name: '温度传感器',
             position: '储罐区'
-          }
+          },
+          remark: '已检查温度传感器，调整了冷却系统参数',
+          device: '温度传感器',
+          type: '温度超限预警',
+          location: '储罐区域',
+          description: '温度传感器检测到温度超过安全限值，当前温度85°C，可能影响设备安全运行'
         },
         {
           id: '6',
@@ -104,10 +139,16 @@ export default {
           level: '一级预警',
           time: '2022-12-20 16:45:18',
           status: 'pending',
+          cameraId: 'camera_3',
           deviceInfo: {
             name: '压力传感器',
             position: '管道接口'
-          }
+          },
+          remark: '',
+          device: '压力传感器',
+          type: '压力超限预警',
+          location: '管道接口',
+          description: '压力传感器检测到管道压力超过安全限值，当前压力2.5MPa，存在爆管风险'
         }
       ],
       
@@ -136,13 +177,66 @@ export default {
       // 导出数据相关
       exportDialogVisible: false,
       exportFormat: 'csv',
-      exportLoading: false
+      exportLoading: false,
+      
+      // 添加备注对话框
+      remarkDialogVisible: false,
+      currentWarningId: '',
+      remarkForm: {
+        remark: '',
+        handler: '',
+        solution: ''
+      },
+      
+      // 上报确认对话框
+      reportDialogVisible: false,
+      reportWarningId: '',
+      
+      // 归档确认对话框
+      archiveDialogVisible: false,
+      archiveWarningId: '',
+      
+      // 档案管理数据
+      archivesList: [
+        {
+          id: 'archive_1',
+          name: '油气行业默认档案',
+          cameraId: 'camera_1',
+          cameraName: '可燃气体监控点',
+          isDefault: true,
+          createTime: '2022-12-01 10:00:00'
+        },
+        {
+          id: 'archive_2', 
+          name: '储罐区专项档案',
+          cameraId: 'camera_2',
+          cameraName: '储罐区监控点',
+          isDefault: false,
+          createTime: '2022-12-05 14:30:00'
+        }
+      ],
+      selectedArchiveId: '',
+      currentCameraId: 'camera_1',
+      
+      // 创建新档案对话框
+      createArchiveDialogVisible: false,
+      newArchiveForm: {
+        name: '',
+        description: ''
+      },
+      
+      // 预警详情对话框
+      warningDetailVisible: false,
+      currentWarningDetail: null
     }
   },
   computed: {
     // 根据筛选条件过滤的预警列表
     filteredWarningList() {
       let list = [...this.warningList]
+      
+      // 过滤掉已归档的预警（已归档的预警不在预警管理页面显示）
+      list = list.filter(item => item.status !== 'archived')
       
       // 按开始日期过滤
       if (this.searchForm.startDate) {
@@ -187,7 +281,7 @@ export default {
         list = list.filter(item => item.level === levelMap[this.searchForm.warningLevel])
       }
       
-      // 如果是只看预警中事件
+      // 如果是只看预警中事件（未处理的）
       if (this.filterType === 'pending') {
         return list.filter(item => item.status === 'pending')
       }
@@ -199,6 +293,16 @@ export default {
     currentPageData() {
       // 这里模拟每页12条数据，实际项目中可能需要结合分页组件
       return this.filteredWarningList.slice(0, 12)
+    },
+    
+    // 当前摄像头可用的档案列表
+    availableArchives() {
+      return this.archivesList.filter(archive => archive.cameraId === this.currentCameraId)
+    },
+    
+    // 当前摄像头的默认档案
+    defaultArchive() {
+      return this.availableArchives.find(archive => archive.isDefault)
     }
   },
   watch: {
@@ -260,14 +364,28 @@ export default {
         // 更新本地数据状态
         const index = this.warningList.findIndex(item => item.id === id)
         if (index !== -1) {
-          if (action === 'process') {
-            this.warningList[index].status = 'processing'
-            this.$message.success('已开始处理预警')
-          } else if (action === 'complete') {
+          if (action === 'markProcessed') {
+            // 标记为已处理
             this.warningList[index].status = 'completed'
-            this.$message.success('预警已完结')
+            this.$message.success('已标记为已处理')
+          } else if (action === 'remark') {
+            // 添加备注
+            this.currentWarningId = id
+            this.remarkDialogVisible = true
+            return // 不关闭loading，等备注保存后再关闭
           } else if (action === 'report') {
-            this.$message.success('预警已上报')
+            // 上报
+            this.reportWarningId = id
+            this.reportDialogVisible = true
+            return // 不关闭loading，等确认后再关闭
+          } else if (action === 'archive') {
+            // 归档 - 需要选择档案
+            this.archiveWarningId = id
+            // 获取当前预警的摄像头信息（实际项目中从预警数据获取）
+            this.currentCameraId = this.warningList[index].cameraId || 'camera_1'
+            this.initArchiveSelection()
+            this.archiveDialogVisible = true
+            return // 不关闭loading，等确认后再关闭
           }
         }
         
@@ -281,6 +399,140 @@ export default {
         this.$message.error('处理预警失败')
       } finally {
         this.loading = false
+      }
+    },
+    
+    // 初始化归档选择
+    initArchiveSelection() {
+      // 自动选择默认档案（如果存在）
+      if (this.defaultArchive) {
+        this.selectedArchiveId = this.defaultArchive.id
+      } else {
+        // 如果没有默认档案，则准备创建
+        this.selectedArchiveId = ''
+      }
+    },
+    
+    // 确认归档
+    async confirmArchive() {
+      try {
+        let targetArchiveId = this.selectedArchiveId
+        
+        // 如果没有选择档案且没有默认档案，自动创建默认档案
+        if (!targetArchiveId && !this.defaultArchive) {
+          targetArchiveId = await this.createDefaultArchive()
+        }
+        
+        if (!targetArchiveId) {
+          this.$message.warning('请选择或创建档案')
+          return
+        }
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // 更新预警状态为已归档
+        const index = this.warningList.findIndex(item => item.id === this.archiveWarningId)
+        if (index !== -1) {
+          this.warningList[index].status = 'archived'
+          this.warningList[index].archiveId = targetArchiveId
+          this.warningList[index].archiveTime = new Date().toLocaleString()
+        }
+        
+        // 如果在选中列表中，也移除
+        const selectedIndex = this.selectedWarnings.indexOf(this.archiveWarningId)
+        if (selectedIndex !== -1) {
+          this.selectedWarnings.splice(selectedIndex, 1)
+        }
+        
+        this.$message.success('预警已成功归档')
+        this.closeArchiveDialog()
+      } catch (error) {
+        console.error('归档失败:', error)
+        this.$message.error('归档失败')
+      }
+    },
+    
+    // 自动创建默认档案
+    async createDefaultArchive() {
+      try {
+        // 模拟API调用创建默认档案
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        const newArchive = {
+          id: `archive_${Date.now()}`,
+          name: `${this.getCurrentCameraName()}默认档案`,
+          cameraId: this.currentCameraId,
+          cameraName: this.getCurrentCameraName(),
+          isDefault: true,
+          createTime: new Date().toLocaleString()
+        }
+        
+        this.archivesList.push(newArchive)
+        this.$message.success('已自动创建默认档案')
+        
+        return newArchive.id
+      } catch (error) {
+        console.error('创建默认档案失败:', error)
+        this.$message.error('创建默认档案失败')
+        return null
+      }
+    },
+    
+    // 获取当前摄像头名称
+    getCurrentCameraName() {
+      // 实际项目中应该从摄像头数据中获取
+      const cameraNames = {
+        'camera_1': '可燃气体监控点',
+        'camera_2': '储罐区监控点',
+        'camera_3': '管道接口监控点'
+      }
+      return cameraNames[this.currentCameraId] || '监控点'
+    },
+    
+    // 显示创建新档案对话框
+    showCreateArchiveDialog() {
+      this.createArchiveDialogVisible = true
+    },
+    
+    // 创建新档案
+    async createNewArchive() {
+      if (!this.newArchiveForm.name.trim()) {
+        this.$message.warning('请输入档案名称')
+        return
+      }
+      
+      try {
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        const newArchive = {
+          id: `archive_${Date.now()}`,
+          name: this.newArchiveForm.name,
+          cameraId: this.currentCameraId,
+          cameraName: this.getCurrentCameraName(),
+          isDefault: false,
+          description: this.newArchiveForm.description,
+          createTime: new Date().toLocaleString()
+        }
+        
+        this.archivesList.push(newArchive)
+        this.selectedArchiveId = newArchive.id
+        
+        this.$message.success('档案创建成功')
+        this.closeCreateArchiveDialog()
+      } catch (error) {
+        console.error('创建档案失败:', error)
+        this.$message.error('创建档案失败')
+      }
+    },
+    
+    // 关闭创建档案对话框
+    closeCreateArchiveDialog() {
+      this.createArchiveDialogVisible = false
+      this.newArchiveForm = {
+        name: '',
+        description: ''
       }
     },
     
@@ -335,15 +587,15 @@ export default {
         // 模拟API调用处理时间
         await new Promise(resolve => setTimeout(resolve, 800))
         
-        // 更新所有选中项的状态
+        // 更新所有选中项的状态为已处理
         for (const id of this.selectedWarnings) {
           const index = this.warningList.findIndex(item => item.id === id)
           if (index !== -1 && this.warningList[index].status === 'pending') {
-            this.warningList[index].status = 'processing'
+            this.warningList[index].status = 'completed'
           }
         }
         
-        this.$message.success(`已批量处理 ${this.selectedWarnings.length} 项预警`)
+        this.$message.success(`已批量标记 ${this.selectedWarnings.length} 项预警为已处理`)
         this.selectedWarnings = []
       } catch (error) {
         console.error('批量处理失败:', error)
@@ -481,6 +733,96 @@ export default {
       if (level === '二级预警') return 'level-2-text'
       if (level === '三级预警') return 'level-3-text'
       return ''
+    },
+    
+    // 保存备注
+    async saveRemark() {
+      if (!this.remarkForm.remark.trim()) {
+        this.$message.warning('请输入处理意见')
+        return
+      }
+      
+      try {
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // 更新本地数据
+        const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
+        if (index !== -1) {
+          // 构建完整的备注内容
+          let remarkContent = `处理意见：${this.remarkForm.remark}`
+          if (this.remarkForm.handler.trim()) {
+            remarkContent += `\n责任人：${this.remarkForm.handler}`
+          }
+          if (this.remarkForm.solution.trim()) {
+            remarkContent += `\n处置方式：${this.remarkForm.solution}`
+          }
+          
+          this.warningList[index].remark = remarkContent
+        }
+        
+        this.$message.success('备注已保存')
+        this.closeRemarkDialog()
+      } catch (error) {
+        console.error('保存备注失败:', error)
+        this.$message.error('保存备注失败')
+      }
+    },
+    
+    // 关闭备注对话框
+    closeRemarkDialog() {
+      this.remarkDialogVisible = false
+      this.currentWarningId = ''
+      this.remarkForm = {
+        remark: '',
+        handler: '',
+        solution: ''
+      }
+    },
+    
+    // 确认上报
+    async confirmReport() {
+      try {
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        this.$message({
+          message: '预警已上报',
+          type: 'success',
+          duration: 2000
+        })
+        
+        this.closeReportDialog()
+      } catch (error) {
+        console.error('上报失败:', error)
+        this.$message.error('上报失败')
+      }
+    },
+    
+    // 关闭上报对话框
+    closeReportDialog() {
+      this.reportDialogVisible = false
+      this.reportWarningId = ''
+    },
+    
+    // 关闭归档对话框
+    closeArchiveDialog() {
+      this.archiveDialogVisible = false
+      this.archiveWarningId = ''
+      this.selectedArchiveId = ''
+    },
+    
+    // 显示预警详情
+    showWarningDetail(item) {
+      this.currentWarningDetail = item
+      this.warningDetailVisible = true
+    },
+    
+    // 处理预警详情对话框中的事件
+    handleWarningFromDetail(warning) {
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'markProcessed')
+      }
     }
   }
 }
@@ -488,28 +830,6 @@ export default {
 
 <template>
   <div class="warning-management-container" v-loading="loading">
-    <!-- 左侧目录 -->
-    <div class="directory-sidebar">
-      <div class="search-box">
-        <el-input
-          v-model="searchDirectory"
-          placeholder="输入组织名称搜索"
-          prefix-icon="el-icon-search"
-          clearable
-        />
-      </div>
-      <div class="directory-list">
-        <div
-          v-for="dir in directories"
-          :key="dir.id"
-          :class="['directory-item', { active: dir.selected }]"
-        >
-          {{ dir.name }}
-        </div>
-      </div>
-    </div>
-
-    <!-- 右侧内容区 -->
     <div class="content-area">
       <!-- 搜索和筛选区域 -->
       <div class="search-filter-area">
@@ -536,8 +856,7 @@ export default {
               @change="handleSearch"
             >
               <el-option label="待处理" value="pending" />
-              <el-option label="处理中" value="processing" />
-              <el-option label="已完成" value="completed" />
+              <el-option label="已处理" value="completed" />
             </el-select>
           </div>
           
@@ -641,16 +960,21 @@ export default {
                 getBorderClass(item.level), 
                 { 'selected': selectedWarnings.includes(item.id) }
               ]"
-              @click="toggleSelect(item.id)"
+              @click="showWarningDetail(item)"
             >
               <div class="warning-value-tag">
                 <span class="value-number">{{ item.value }}</span>
                 <span class="value-unit">{{ item.unit }}</span>
               </div>
               
-              <!-- 添加选中标记 -->
-              <div class="select-mark" v-if="selectedWarnings.includes(item.id)">
-                <i class="el-icon-check"></i>
+              <!-- 右上角选择框 -->
+              <div class="select-checkbox" @click.stop="toggleSelect(item.id)">
+                <el-checkbox 
+                  :value="selectedWarnings.includes(item.id)"
+                  @change="toggleSelect(item.id)"
+                  size="mini"
+                >
+                </el-checkbox>
               </div>
               
               <div class="warning-image" :class="getLevelClass(item.level)">
@@ -678,6 +1002,11 @@ export default {
                       {{ item.level }}
                     </span>
                   </div>
+                  <div class="info-item">
+                    <span class="label">处理备注：</span>
+                    <div class="remark-content" v-if="item.remark">{{ item.remark }}</div>
+                    <div class="remark-empty" v-else>未添加备注</div>
+                  </div>
                   <div class="info-item time-item">
                     <span class="time">{{ item.time }}</span>
                   </div>
@@ -689,22 +1018,33 @@ export default {
                       type="primary" 
                       size="small" 
                       plain
-                      @click.stop="handleWarning(item.id, 'process')"
-                    >处理</el-button>
+                      @click.stop="handleWarning(item.id, 'markProcessed')"
+                    >未处理</el-button>
                   </template>
-                  <template v-else-if="item.status === 'processing'">
-                    <el-button 
-                      class="complete-btn" 
-                      size="small" 
-                      plain
-                      @click.stop="handleWarning(item.id, 'complete')"
-                    >完结</el-button>
+                  <template v-else-if="item.status === 'completed'">
+                    <span class="status-text processed">已处理</span>
                   </template>
+                  
+                  <el-button 
+                    class="remark-btn" 
+                    size="small" 
+                    plain
+                    @click.stop="handleWarning(item.id, 'remark')"
+                  >备注</el-button>
+                  
                   <el-button 
                     class="report-btn" 
                     size="small" 
                     @click.stop="handleWarning(item.id, 'report')"
                   >上报</el-button>
+                  
+                  <el-button 
+                    class="archive-btn" 
+                    size="small" 
+                    type="danger"
+                    plain
+                    @click.stop="handleWarning(item.id, 'archive')"
+                  >归档</el-button>
                 </div>
               </div>
             </div>
@@ -739,6 +1079,198 @@ export default {
         <el-button type="primary" @click="confirmExport" :loading="exportLoading">确认导出</el-button>
       </span>
     </el-dialog>
+    
+    <!-- 添加备注对话框 -->
+    <el-dialog
+      title="添加备注"
+      :visible.sync="remarkDialogVisible"
+      width="40%"
+      center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <el-form :model="remarkForm" label-width="80px">
+        <el-form-item label="处理意见" required>
+          <el-input
+            v-model="remarkForm.remark"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入处理意见、处置情况等"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="责任人">
+          <el-input
+            v-model="remarkForm.handler"
+            placeholder="请输入责任人姓名"
+            maxlength="50"
+          />
+        </el-form-item>
+        <el-form-item label="处置方式">
+          <el-input
+            v-model="remarkForm.solution"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入具体的处置方式"
+            maxlength="300"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="closeRemarkDialog">取 消</el-button>
+        <el-button type="primary" @click="saveRemark">保 存</el-button>
+      </span>
+    </el-dialog>
+    
+    <!-- 上报确认对话框 -->
+    <el-dialog
+      title="上报确认"
+      :visible.sync="reportDialogVisible"
+      width="25%"
+      center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <div class="dialog-content">
+        <i class="el-icon-warning" style="color: #E6A23C; font-size: 24px; margin-right: 8px;"></i>
+        <span>确认要上报这条预警吗？</span>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="closeReportDialog">取 消</el-button>
+        <el-button type="primary" @click="confirmReport">确认上报</el-button>
+      </span>
+    </el-dialog>
+    
+    <!-- 归档确认对话框 -->
+    <el-dialog
+      title="归档预警"
+      :visible.sync="archiveDialogVisible"
+      width="40%"
+      center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <div class="archive-dialog-content">
+        <div class="archive-info">
+          <i class="el-icon-folder" style="color: #E6A23C; font-size: 24px; margin-right: 8px;"></i>
+          <span>请选择要归档到的档案：</span>
+        </div>
+        
+        <div class="archive-selection">
+          <el-form label-width="80px">
+            <el-form-item label="选择档案">
+              <el-select 
+                v-model="selectedArchiveId" 
+                placeholder="请选择档案"
+                style="width: 100%"
+                :disabled="availableArchives.length === 0"
+              >
+                <el-option
+                  v-for="archive in availableArchives"
+                  :key="archive.id"
+                  :label="archive.name + (archive.isDefault ? ' (默认)' : '')"
+                  :value="archive.id"
+                >
+                  <span style="float: left">{{ archive.name }}</span>
+                  <span style="float: right; color: #8492a6; font-size: 13px">
+                    {{ archive.isDefault ? '默认档案' : '自定义档案' }}
+                  </span>
+                </el-option>
+              </el-select>
+            </el-form-item>
+            
+            <el-form-item v-if="availableArchives.length === 0">
+              <el-alert
+                title="当前摄像头位置没有可用档案"
+                description="系统将自动创建默认档案进行归档"
+                type="info"
+                :closable="false"
+                show-icon
+              />
+            </el-form-item>
+            
+            <el-form-item>
+              <el-button 
+                type="text" 
+                icon="el-icon-plus"
+                @click="showCreateArchiveDialog"
+                style="padding: 0;"
+              >
+                创建新档案
+              </el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+        
+        <div class="archive-tip">
+          <el-alert
+            title="归档说明"
+            description="归档后，预警将从实时预警页面和预警管理页面移除，仅可在预警档案中查看。"
+            type="warning"
+            :closable="false"
+            show-icon
+          />
+        </div>
+      </div>
+      
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="closeArchiveDialog">取 消</el-button>
+        <el-button type="danger" @click="confirmArchive">确认归档</el-button>
+      </span>
+    </el-dialog>
+    
+    <!-- 创建新档案对话框 -->
+    <el-dialog
+      title="创建新档案"
+      :visible.sync="createArchiveDialogVisible"
+      width="35%"
+      center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <el-form :model="newArchiveForm" label-width="80px">
+        <el-form-item label="档案名称" required>
+          <el-input
+            v-model="newArchiveForm.name"
+            placeholder="请输入档案名称"
+            maxlength="50"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="档案描述">
+          <el-input
+            v-model="newArchiveForm.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入档案描述（可选）"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-alert
+            :title="`档案将关联到：${getCurrentCameraName()}`"
+            type="info"
+            :closable="false"
+            show-icon
+          />
+        </el-form-item>
+      </el-form>
+      
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="closeCreateArchiveDialog">取 消</el-button>
+        <el-button type="primary" @click="createNewArchive">创建档案</el-button>
+      </span>
+    </el-dialog>
+    
+    <!-- 预警详情对话框 -->
+    <WarningDetail
+      :visible.sync="warningDetailVisible"
+      :warning="currentWarningDetail"
+      @handle-warning="handleWarningFromDetail"
+    />
   </div>
 </template>
 
@@ -973,6 +1505,30 @@ export default {
   color: #606266;
 }
 
+.remark-content {
+  color: #606266;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 4px;
+  padding: 6px 8px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  white-space: pre-line;
+  max-height: 60px;
+  overflow-y: auto;
+}
+
+.remark-empty {
+  color: #c0c4cc;
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 4px;
+  padding: 6px 8px;
+  background-color: #fafafa;
+  border-radius: 4px;
+  border: 1px dashed #e4e7ed;
+}
+
 .warning-level {
   font-weight: 500;
 }
@@ -988,13 +1544,16 @@ export default {
 
 .warning-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   border-top: 1px solid #ebeef5;
   padding-top: 10px;
 }
 
 .warning-footer .el-button {
-  margin-left: 8px;
+  margin: 0;
 }
 
 .report-btn {
@@ -1005,6 +1564,28 @@ export default {
 .complete-btn {
   color: #67c23a;
   border-color: #67c23a;
+}
+
+.remark-btn {
+  color: #409eff;
+  border-color: #409eff;
+}
+
+.archive-btn {
+  color: #f56c6c;
+  border-color: #f56c6c;
+}
+
+.status-text {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.status-text.processed {
+  color: #67c23a;
+  background-color: #f0f9ff;
+  border: 1px solid #67c23a;
 }
 
 /* 等级样式 */
@@ -1143,20 +1724,47 @@ export default {
   box-shadow: 0 0 0 2px #409eff, 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.select-mark {
+.select-checkbox {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 1;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: #409eff;
-  color: #fff;
+  z-index: 10;
+  width: 24px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.select-checkbox:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+  opacity: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.warning-card:hover .select-checkbox {
+  opacity: 0.9;
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.warning-card.selected .select-checkbox {
+  opacity: 1;
+  background-color: rgba(64, 158, 255, 0.1);
+  border: 1px solid rgba(64, 158, 255, 0.3);
+}
+
+.select-checkbox .el-checkbox {
+  transform: scale(0.9);
+}
+
+.select-checkbox .el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #409eff;
+  border-color: #409eff;
 }
 
 /* 没有数据时的提示样式 */
@@ -1188,5 +1796,33 @@ export default {
 .el-col {
   padding-left: 6px !important;
   padding-right: 6px !important;
+}
+
+/* 对话框内容样式 */
+.dialog-content {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+}
+
+/* 归档对话框样式 */
+.archive-dialog-content {
+  padding: 10px 0;
+}
+
+.archive-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.archive-selection {
+  margin-bottom: 20px;
+}
+
+.archive-tip {
+  margin-top: 10px;
 }
 </style>
