@@ -2293,27 +2293,35 @@ export default {
     },
 
     handleClose() {
-      // 如果正在绘制电子围栏，则取消绘制
-      if (this.skillForm.electronicFence.isDrawing) {
-        this.cancelDrawFence();
-      }
-      
-      // 确保所有loading状态被清除
-      this.skillForm.electronicFence.imageLoading = false;
-      
-      // 重置更新模式
-      this.isUpdateMode = false;
-      this.currentTaskId = null;
-      
-      // 关闭可能存在的loading实例
-      try {
-        this.$loading().close();
-      } catch (e) {}
-      
-      // 关闭对话框
-      this.skillDialogVisible = false;
+      this.closeSkillDialog();
+      this.resetDeviceForm();
+      this.fetchCameraList();
     },
-    
+
+    // 删除AI任务
+    handleDeleteTask() {
+      this.$confirm('确认删除该AI任务吗？删除后无法恢复', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        skillAPI.deleteAITask(this.currentTaskId).then(response => {
+          if (response.data.success) {
+            this.$message.success('删除成功');
+            this.handleClose();
+            this.fetchCameraRelatedTasks(this.currentDeviceId);
+          } else {
+            this.$message.error(response.data.message || '删除失败');
+          }
+        }).catch(error => {
+          console.error('删除AI任务失败:', error);
+          this.$message.error('删除失败：' + ((error.response && error.response.data && error.response.data.message) || '未知错误'));
+        });
+      }).catch(() => {
+        // 取消删除操作
+      });
+    },
+
     closeSkillDialog() {
       // 确保所有loading状态被清除
       this.skillForm.electronicFence.imageLoading = false;
