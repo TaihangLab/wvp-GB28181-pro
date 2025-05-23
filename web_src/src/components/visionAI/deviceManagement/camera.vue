@@ -468,9 +468,10 @@
             </div>
           </el-form-item>
         </el-form>
-        <div slot="footer" class="dialog-footer" style="margin-top: -30px;">
-          <el-button @click="closeSkillDialog">取消</el-button>
-          <el-button type="primary" @click="handleConfirm">{{ isUpdateMode ? '更新任务' : '创建任务' }}</el-button>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="handleClose">取 消</el-button>
+          <el-button type="danger" v-if="isUpdateMode" @click="handleDeleteTask">删 除</el-button>
+          <el-button type="primary" @click="handleConfirm">确 定</el-button>
         </div>
       </el-dialog>
 

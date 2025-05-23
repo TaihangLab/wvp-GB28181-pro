@@ -533,6 +533,16 @@ export const skillAPI = {
     }
     console.log('更新AI任务请求数据:', taskData);
     return visionAIAxios.put(`/api/v1/ai-tasks/${taskId}`, taskData);
+  },
+
+  // 删除AI任务
+  deleteAITask(taskId) {
+    if (!taskId) {
+      console.error('删除AI任务失败: 缺少任务ID');
+      return Promise.reject(new Error('缺少任务ID'));
+    }
+    console.log('删除AI任务:', taskId);
+    return visionAIAxios.delete(`/api/v1/ai-tasks/${taskId}`);
   }
 };
 
