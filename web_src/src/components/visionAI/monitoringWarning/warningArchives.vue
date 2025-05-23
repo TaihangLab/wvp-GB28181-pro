@@ -662,6 +662,7 @@ export default {
     <WarningDetail 
       :visible.sync="warningDetailVisible"
       :warning="currentWarning"
+      source="warningArchives"
       @handle-warning="handleWarningFromDetail"
     />
 

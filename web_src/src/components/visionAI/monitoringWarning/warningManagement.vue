@@ -236,7 +236,7 @@ export default {
       let list = [...this.warningList]
       
       // 过滤掉已归档的预警（已归档的预警不在预警管理页面显示）
-      list = list.filter(item => item.status !== 'archived')
+      list = list.filter(item => item.status !== 'archived' && !item.isFalseAlarm)
       
       // 按开始日期过滤
       if (this.searchForm.startDate) {
@@ -386,6 +386,13 @@ export default {
             this.initArchiveSelection()
             this.archiveDialogVisible = true
             return // 不关闭loading，等确认后再关闭
+          } else if (action === 'falseAlarm') {
+            // 误报 - 自动归档到默认档案
+            this.archiveWarningId = id
+            // 获取当前预警的摄像头信息（实际项目中从预警数据获取）
+            this.currentCameraId = this.warningList[index].cameraId || 'camera_1'
+            await this.handleFalseAlarmArchive()
+            return // 不关闭loading，等归档完成后再关闭
           }
         }
         
@@ -867,6 +874,51 @@ export default {
         '三级预警': '三级'
       }
       return levelMap[level] || '未知'
+    },
+    
+    // 处理误报事件
+    async handleFalseAlarmArchive() {
+      try {
+        let targetArchiveId = null
+        
+        // 查找或创建默认档案
+        const existingDefaultArchive = this.availableArchives.find(archive => archive.isDefault)
+        if (existingDefaultArchive) {
+          targetArchiveId = existingDefaultArchive.id
+        } else {
+          // 如果没有默认档案，自动创建
+          targetArchiveId = await this.createDefaultArchive()
+        }
+        
+        if (!targetArchiveId) {
+          this.$message.error('无法创建默认档案')
+          return
+        }
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // 更新本地数据
+        const index = this.warningList.findIndex(item => item.id === this.archiveWarningId)
+        if (index !== -1) {
+          this.warningList[index].status = 'archived'
+          this.warningList[index].archiveId = targetArchiveId
+          this.warningList[index].archiveTime = new Date().toLocaleString()
+          this.warningList[index].isFalseAlarm = true // 标记为误报
+        }
+        
+        // 如果在选中列表中，也移除
+        const selectedIndex = this.selectedWarnings.indexOf(this.archiveWarningId)
+        if (selectedIndex !== -1) {
+          this.selectedWarnings.splice(selectedIndex, 1)
+        }
+        
+        this.$message.success('误报已自动归档到默认档案')
+        this.archiveWarningId = ''
+      } catch (error) {
+        console.error('误报归档失败:', error)
+        this.$message.error('误报归档失败')
+      }
     }
   }
 }
@@ -988,15 +1040,11 @@ export default {
       
       <!-- 预警卡片列表 -->
       <div class="warning-cards-container">
-        <el-row :gutter="12">
-          <el-col 
+        <div class="warning-cards-grid">
+          <div 
             v-for="item in filteredWarningList" 
             :key="item.id" 
-            :xs="24" 
-            :sm="12" 
-            :md="8" 
-            :lg="6" 
-            :xl="4"
+            class="warning-col"
           >
             <div 
               class="warning-card" 
@@ -1053,31 +1101,45 @@ export default {
                   <template v-if="item.status === 'pending'">
                     <el-button 
                       type="primary" 
-                      size="small" 
+                      size="mini" 
                       plain
                       @click.stop="handleWarning(item.id, 'markProcessed')"
                     >未处理</el-button>
                   </template>
                   <template v-else-if="item.status === 'completed'">
-                    <span class="status-text processed">已处理</span>
+                    <el-button 
+                      type="success" 
+                      size="mini" 
+                      plain
+                      disabled
+                      class="processed-btn"
+                    >已处理</el-button>
                   </template>
                   
                   <el-button 
                     class="remark-btn" 
-                    size="small" 
+                    size="mini" 
                     plain
                     @click.stop="handleWarning(item.id, 'remark')"
                   >备注</el-button>
                   
                   <el-button 
                     class="report-btn" 
-                    size="small" 
+                    size="mini" 
                     @click.stop="handleWarning(item.id, 'report')"
                   >上报</el-button>
                   
                   <el-button 
+                    class="false-alarm-btn" 
+                    size="mini" 
+                    type="warning"
+                    plain
+                    @click.stop="handleWarning(item.id, 'falseAlarm')"
+                  >误报</el-button>
+                  
+                  <el-button 
                     class="archive-btn" 
-                    size="small" 
+                    size="mini" 
                     type="danger"
                     plain
                     @click.stop="handleWarning(item.id, 'archive')"
@@ -1085,8 +1147,8 @@ export default {
                 </div>
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </div>
+        </div>
         
         <!-- 没有数据时的提示 -->
         <div class="no-data" v-if="filteredWarningList.length === 0">
@@ -1306,6 +1368,7 @@ export default {
     <WarningDetail
       :visible.sync="warningDetailVisible"
       :warning="currentWarningDetail"
+      source="warningManagement"
       @handle-warning="handleWarningFromDetail"
       @handle-report="handleReportFromDetail"
       @handle-archive="handleArchiveFromDetail"
@@ -1442,20 +1505,30 @@ export default {
   padding: 1px 1px 0 1px;
 }
 
+.warning-cards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 16px;
+  margin: 0;
+}
+
+.warning-col {
+  width: calc(16.3% - 8px);
+  margin: 0;
+}
+
 .warning-card {
-  height: 100%;
+  height: 320px;
   background: #fff;
   border-radius: 6px;
   overflow: hidden;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
-  margin-bottom: 16px;
+  margin-bottom: 0;
   position: relative;
   transition: all 0.25s;
   border-top: 3px solid transparent;
   width: 100%;
-  max-width: 320px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .warning-card:hover {
@@ -1536,7 +1609,7 @@ export default {
 }
 
 .warning-image {
-  height: 140px;
+  height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1603,9 +1676,10 @@ export default {
   padding: 6px 8px;
   background-color: #f5f7fa;
   border-radius: 4px;
-  white-space: pre-line;
-  max-height: 60px;
-  overflow-y: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .remark-empty {
@@ -1617,6 +1691,10 @@ export default {
   background-color: #fafafa;
   border-radius: 4px;
   border: 1px dashed #e4e7ed;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .warning-level {
@@ -1637,13 +1715,16 @@ export default {
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
   border-top: 1px solid #ebeef5;
-  padding-top: 10px;
+  padding-top: 8px;
 }
 
 .warning-footer .el-button {
   margin: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  min-width: auto;
 }
 
 .report-btn {
@@ -1659,6 +1740,11 @@ export default {
 .remark-btn {
   color: #409eff;
   border-color: #409eff;
+}
+
+.false-alarm-btn {
+  color: #e6a23c;
+  border-color: #e6a23c;
 }
 
 .archive-btn {
@@ -1741,6 +1827,10 @@ export default {
     flex-direction: column;
   }
   
+  .warning-col {
+    width: calc(20% - 12.8px);
+  }
+  
   .directory-sidebar {
     width: 100%;
     height: auto;
@@ -1798,9 +1888,23 @@ export default {
     margin-right: 0;
   }
   
+  .warning-col {
+    width: calc(33.33% - 10.67px);
+  }
+  
   .warning-management-container {
     height: auto;
     min-height: calc(100vh - 60px);
+  }
+}
+
+@media (max-width: 480px) {
+  .warning-col {
+    width: calc(50% - 8px);
+  }
+  
+  .warning-cards-grid {
+    gap: 12px;
   }
 }
 
@@ -1875,17 +1979,6 @@ export default {
 
 .no-data p {
   font-size: 14px;
-}
-
-/* 调整行间距 */
-.el-row {
-  margin-left: -6px !important;
-  margin-right: -6px !important;
-}
-
-.el-col {
-  padding-left: 6px !important;
-  padding-right: 6px !important;
 }
 
 /* 对话框内容样式 */

@@ -73,8 +73,8 @@
         </div>
       </div>
     </div>
-    <span slot="footer" class="dialog-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-      <div class="left-buttons" style="display: flex; gap: 10px;">
+    <span slot="footer" class="dialog-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;" v-if="source !== 'warningArchives'">
+      <div class="left-buttons" style="display: flex; gap: 10px;" v-if="source === 'realTimeMonitoring'">
         <el-button 
           type="warning" 
           @click="handleReport" 
@@ -94,7 +94,7 @@
         </el-button>
       </div>
       
-      <div class="right-buttons" style="display: flex; gap: 10px;">
+      <div class="right-buttons" :style="source === 'warningManagement' ? 'margin-left: auto; display: flex; gap: 10px;' : 'display: flex; gap: 10px;'">
         <el-button type="success" @click="handleWarning" style="padding: 10px 20px;">
           <i class="el-icon-check" style="margin-right: 5px;"></i>
           处理
@@ -119,6 +119,13 @@ export default {
     warning: {
       type: Object,
       default: null
+    },
+    source: {
+      type: String,
+      default: 'warningManagement', // 默认为预警管理页面
+      validator: function (value) {
+        return ['realTimeMonitoring', 'warningManagement', 'warningArchives'].indexOf(value) !== -1
+      }
     }
   },
   data() {
