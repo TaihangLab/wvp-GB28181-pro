@@ -636,7 +636,6 @@ export default {
         设备名称: item.deviceInfo.name,
         预警位置: item.deviceInfo.position,
         预警等级: item.level,
-        预警值: `${item.value} ${item.unit}`,
         预警时间: item.time,
         状态: item.status === 'pending' ? '待处理' : 
               item.status === 'processing' ? '处理中' : '已完成'
@@ -823,6 +822,51 @@ export default {
       if (warning && warning.id) {
         this.handleWarning(warning.id, 'markProcessed')
       }
+    },
+    
+    // 处理预警详情对话框中的上报事件
+    handleReportFromDetail(warning) {
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'report')
+      }
+    },
+    
+    // 处理预警详情对话框中的归档事件
+    handleArchiveFromDetail(warning) {
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'archive')
+      }
+    },
+    
+    // 获取预警类型文本
+    getWarningTypeText(type) {
+      const typeMap = {
+        '未戴安全帽': '安全违规',
+        '未穿工作服': '安全违规',
+        '闲杂人员': '人员违规',
+        '吸烟': '消防违规',
+        '安全帽识别': '安全违规',
+        '工服识别': '安全违规',
+        '玻璃运输车打卡': '车辆违规',
+        '烟火检测': '消防违规',
+        'CH4 超上限预警': '气体检测预警',
+        'CO 浓度预警': '气体检测预警',
+        'H2S 浓度预警': '气体检测预警',
+        '火焰探测器预警': '消防预警',
+        '温度超限预警': '环境监测预警',
+        '压力超限预警': '设备监测预警'
+      };
+      return typeMap[type] || '其他预警';
+    },
+    
+    // 获取预警等级标签文本
+    getLevelBadgeText(level) {
+      const levelMap = {
+        '一级预警': '一级',
+        '二级预警': '二级',
+        '三级预警': '三级'
+      }
+      return levelMap[level] || '未知'
     }
   }
 }
@@ -962,9 +1006,8 @@ export default {
               ]"
               @click="showWarningDetail(item)"
             >
-              <div class="warning-value-tag">
-                <span class="value-number">{{ item.value }}</span>
-                <span class="value-unit">{{ item.unit }}</span>
+              <div class="warning-level-badge" :class="getLevelClass(item.level)">
+                <span class="level-badge-text">{{ getLevelBadgeText(item.level) }}</span>
               </div>
               
               <!-- 右上角选择框 -->
@@ -990,17 +1033,11 @@ export default {
                 <div class="info-list">
                   <div class="info-item">
                     <span class="label">设备名称：</span>
-                    <span class="value">{{ item.deviceInfo.name }}</span>
+                    <span class="value">{{ item.device || item.deviceInfo.name }}</span>
                   </div>
                   <div class="info-item">
-                    <span class="label">预警位置：</span>
-                    <span class="value">{{ item.deviceInfo.position }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">预警等级：</span>
-                    <span class="warning-level" :class="getLevelTextClass(item.level)">
-                      {{ item.level }}
-                    </span>
+                    <span class="label">违规位置：</span>
+                    <span class="value">{{ item.location || item.deviceInfo.position || '未知位置' }}</span>
                   </div>
                   <div class="info-item">
                     <span class="label">处理备注：</span>
@@ -1270,6 +1307,8 @@ export default {
       :visible.sync="warningDetailVisible"
       :warning="currentWarningDetail"
       @handle-warning="handleWarningFromDetail"
+      @handle-report="handleReportFromDetail"
+      @handle-archive="handleArchiveFromDetail"
     />
   </div>
 </template>
@@ -1423,26 +1462,77 @@ export default {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
-.warning-value-tag {
+.warning-level-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 1;
-  background: rgba(0, 0, 0, 0.6);
+  top: 0;
+  left: 0;
+  z-index: 10;
   color: #fff;
-  padding: 3px 8px;
-  border-radius: 3px;
-  font-size: 12px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 0 0 4px 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  min-width: 35px;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 100%, 0 100%);
 }
 
-.value-number {
-  font-size: 14px;
-  font-weight: 600;
+.warning-level-badge::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 0;
+  height: 0;
+  border-top: 10px solid;
+  border-bottom: 10px solid;
+  border-left: 4px solid;
+  border-right: 0;
+  border-top-color: inherit;
+  border-bottom-color: inherit;
+  border-left-color: inherit;
 }
 
-.value-unit {
-  font-size: 12px;
-  margin-left: 2px;
+.warning-level-badge.level-1-bg {
+  background: linear-gradient(135deg, #ff4757 0%, #e74c3c 100%);
+}
+
+.warning-level-badge.level-1-bg::after {
+  border-top-color: #e74c3c;
+  border-bottom-color: #e74c3c;
+  border-left-color: #e74c3c;
+}
+
+.warning-level-badge.level-2-bg {
+  background: linear-gradient(135deg, #ffa502 0%, #e67e22 100%);
+}
+
+.warning-level-badge.level-2-bg::after {
+  border-top-color: #e67e22;
+  border-bottom-color: #e67e22;
+  border-left-color: #e67e22;
+}
+
+.warning-level-badge.level-3-bg {
+  background: linear-gradient(135deg, #3742fa 0%, #2f3542 100%);
+}
+
+.warning-level-badge.level-3-bg::after {
+  border-top-color: #2f3542;
+  border-bottom-color: #2f3542;
+  border-left-color: #2f3542;
+}
+
+.level-badge-text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
 }
 
 .warning-image {

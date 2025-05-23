@@ -32,7 +32,11 @@
           </div>
           <div class="info-item" style="display: flex; margin-bottom: 15px; line-height: 1.6;">
             <span class="label" style="color: #606266; width: 90px; flex-shrink: 0; font-weight: 500;">违规位置：</span>
-            <span class="value" style="color: #303133; font-weight: 500; background: rgba(103, 194, 58, 0.1); padding: 0 8px; border-radius: 4px;">{{ warning.location || '未知位置' }}</span>
+            <span class="value" style="color: #303133; font-weight: 500; background: rgba(103, 194, 58, 0.1); padding: 0 8px; border-radius: 4px;">{{ warning.location || (warning.deviceInfo && warning.deviceInfo.position) || '未知位置' }}</span>
+          </div>
+          <div class="info-item" style="display: flex; margin-bottom: 15px; line-height: 1.6;" v-if="warning.remark">
+            <span class="label" style="color: #606266; width: 90px; flex-shrink: 0; font-weight: 500;">处理备注：</span>
+            <span class="value" style="color: #67c23a; font-weight: 500; background: rgba(103, 194, 58, 0.1); padding: 0 8px; border-radius: 4px;">{{ warning.remark }}</span>
           </div>
           <div class="info-item" style="display: flex; line-height: 1.6;">
             <span class="label" style="color: #606266; width: 90px; flex-shrink: 0; font-weight: 500; align-self: flex-start;">预警描述：</span>
@@ -69,12 +73,37 @@
         </div>
       </div>
     </div>
-    <span slot="footer" class="dialog-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
-      <el-button @click="closeDialog" style="padding: 10px 20px;">关闭</el-button>
-      <el-button type="success" @click="handleWarning" style="padding: 10px 20px;">
-        <i class="el-icon-check" style="margin-right: 5px;"></i>
-        立即处理
-      </el-button>
+    <span slot="footer" class="dialog-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+      <div class="left-buttons" style="display: flex; gap: 10px;">
+        <el-button 
+          type="warning" 
+          @click="handleReport" 
+          style="padding: 10px 20px;"
+        >
+          <i class="el-icon-upload" style="margin-right: 5px;"></i>
+          上报
+        </el-button>
+        <el-button 
+          type="danger" 
+          plain
+          @click="handleArchive" 
+          style="padding: 10px 20px;"
+        >
+          <i class="el-icon-folder" style="margin-right: 5px;"></i>
+          归档
+        </el-button>
+      </div>
+      
+      <div class="right-buttons" style="display: flex; gap: 10px;">
+        <el-button type="success" @click="handleWarning" style="padding: 10px 20px;">
+          <i class="el-icon-check" style="margin-right: 5px;"></i>
+          处理
+        </el-button>
+        <el-button type="primary" @click="closeDialog" style="padding: 10px 20px;">
+          <i class="el-icon-close" style="margin-right: 5px;"></i>
+          关闭
+        </el-button>
+      </div>
     </span>
   </el-dialog>
 </template>
@@ -121,8 +150,25 @@ export default {
       this.$emit('handle-warning', this.warning);
       this.closeDialog();
     },
+    // 处理上报
+    handleReport() {
+      this.$emit('handle-report', this.warning);
+      this.closeDialog();
+    },
+    // 处理归档
+    handleArchive() {
+      this.$emit('handle-archive', this.warning);
+      this.closeDialog();
+    },
     // 获取预警等级文字
     getWarningLevelText(level) {
+      // 支持中文等级格式
+      if (level === '一级预警') return '一级';
+      if (level === '二级预警') return '二级';
+      if (level === '三级预警') return '三级';
+      if (level === '四级预警') return '四级';
+      
+      // 支持英文等级格式
       const levelMap = {
         'level1': '一级',
         'level2': '二级',
@@ -143,6 +189,13 @@ export default {
     },
     // 获取预警等级颜色
     getWarningLevelColor(level) {
+      // 支持中文等级格式
+      if (level === '一级预警') return '#f56c6c';
+      if (level === '二级预警') return '#e6a23c';
+      if (level === '三级预警') return '#409EFF';
+      if (level === '四级预警') return '#67c23a';
+      
+      // 支持英文等级格式
       const colorMap = {
         'level1': '#f56c6c',
         'level2': '#e6a23c',
