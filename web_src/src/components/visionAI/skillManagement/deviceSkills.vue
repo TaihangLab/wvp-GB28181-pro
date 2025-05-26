@@ -321,37 +321,44 @@
               </div>
             </div>
             
-            <div class="info-card" v-if="currentSkill.instances && currentSkill.instances.length > 0">
+            <div class="info-card" v-if="currentSkill.aiTasks && currentSkill.aiTasks.length > 0">
               <div class="info-card-header">
                 <i class="el-icon-s-operation"></i>
-                <span>技能实例</span>
+                <span>AI任务列表</span>
               </div>
               <div class="info-card-content">
                 <div class="skill-instances-container">
                   <div class="instances-wrapper">
                     <div class="instance-item" 
-                      v-for="instance in currentSkill.instances" 
-                      :key="instance.id"
-                      @click="showInstanceDevices(instance)">
+                      v-for="task in currentSkill.aiTasks" 
+                      :key="task.id">
                       <div class="instance-header">
-                        <h4>{{ instance.name }}</h4>
-                        <el-tag :type="instance.status ? 'success' : 'info'" size="mini" class="status-tag">
-                          {{ instance.status ? '已启用' : '未启用' }}
+                        <h4>{{ task.name }}</h4>
+                        <el-tag :type="task.status ? 'success' : 'info'" size="mini" class="status-tag">
+                          {{ task.status ? '运行中' : '已停止' }}
                         </el-tag>
                       </div>
                       <div class="instance-info">
                         <div class="info-row-small">
-                          <span class="info-label-small">类型：</span>
-                          <span class="info-value-small">{{ instance.type || currentSkill.type }}</span>
+                          <span class="info-label-small">关联摄像头：</span>
+                          <span class="info-value-small">{{ task.camera_info ? task.camera_info.name : '-' }}</span>
                         </div>
                         <div class="info-row-small">
-                          <span class="info-label-small">关联设备：</span>
-                          <span class="info-value-small">{{ instance.device_count || 0 }}</span>
+                          <span class="info-label-small">摄像头位置：</span>
+                          <span class="info-value-small">{{ task.camera_info ? task.camera_info.location : '-' }}</span>
+                        </div>
+                        <div class="info-row-small">
+                          <span class="info-label-small">创建时间：</span>
+                          <span class="info-value-small">{{ formatDateTime(task.created_at) }}</span>
+                        </div>
+                        <div class="info-row-small">
+                          <span class="info-label-small">更新时间：</span>
+                          <span class="info-value-small">{{ formatDateTime(task.updated_at) }}</span>
                         </div>
                       </div>
                       <div class="instance-desc">
-                        <p :title="instance.description || '这是更新后的技能实例描述'">
-                          {{ instance.description || '这是更新后的技能实例描述' }}
+                        <p :title="task.description">
+                          {{ task.description || '暂无任务描述' }}
                         </p>
                       </div>
                     </div>
@@ -450,37 +457,44 @@
               </div>
             </div>
             
-            <div class="info-card" v-if="currentSkill.instances && currentSkill.instances.length > 0">
+            <div class="info-card" v-if="currentSkill.aiTasks && currentSkill.aiTasks.length > 0">
               <div class="info-card-header">
                 <i class="el-icon-s-operation"></i>
-                <span>技能实例</span>
+                <span>AI任务列表</span>
               </div>
               <div class="info-card-content">
                 <div class="skill-instances-container">
                   <div class="instances-wrapper">
                     <div class="instance-item" 
-                      v-for="instance in currentSkill.instances" 
-                      :key="instance.id"
-                      @click="showInstanceDevices(instance)">
+                      v-for="task in currentSkill.aiTasks" 
+                      :key="task.id">
                       <div class="instance-header">
-                        <h4>{{ instance.name }}</h4>
-                        <el-tag :type="instance.status ? 'success' : 'info'" size="mini" class="status-tag">
-                          {{ instance.status ? '已启用' : '未启用' }}
+                        <h4>{{ task.name }}</h4>
+                        <el-tag :type="task.status ? 'success' : 'info'" size="mini" class="status-tag">
+                          {{ task.status ? '运行中' : '已停止' }}
                         </el-tag>
                       </div>
                       <div class="instance-info">
                         <div class="info-row-small">
-                          <span class="info-label-small">类型：</span>
-                          <span class="info-value-small">{{ instance.type || currentSkill.type }}</span>
+                          <span class="info-label-small">关联摄像头：</span>
+                          <span class="info-value-small">{{ task.camera_info ? task.camera_info.name : '-' }}</span>
                         </div>
                         <div class="info-row-small">
-                          <span class="info-label-small">关联设备：</span>
-                          <span class="info-value-small">{{ instance.device_count || 0 }}</span>
+                          <span class="info-label-small">摄像头位置：</span>
+                          <span class="info-value-small">{{ task.camera_info ? task.camera_info.location : '-' }}</span>
+                        </div>
+                        <div class="info-row-small">
+                          <span class="info-label-small">创建时间：</span>
+                          <span class="info-value-small">{{ formatDateTime(task.created_at) }}</span>
+                        </div>
+                        <div class="info-row-small">
+                          <span class="info-label-small">更新时间：</span>
+                          <span class="info-value-small">{{ formatDateTime(task.updated_at) }}</span>
                         </div>
                       </div>
                       <div class="instance-desc">
-                        <p :title="instance.description || '这是更新后的技能实例描述'">
-                          {{ instance.description || '这是更新后的技能实例描述' }}
+                        <p :title="task.description">
+                          {{ task.description || '暂无任务描述' }}
                         </p>
                       </div>
                     </div>
@@ -788,7 +802,7 @@ export default {
       this.skillsList = skillsData.map(skill => {
         // 计算关联设备总数
         const deviceCount = skill.total_device_count || 0;
-        
+
         // 获取模型信息
         const models = skill.model_info ? skill.model_info.map(model => model[1]) : [];
         
@@ -805,7 +819,6 @@ export default {
           models: models,
           createTime: skill.created_at,
           updateTime: skill.updated_at,
-          instances: skill.instances || []
         };
       });
       
@@ -818,14 +831,14 @@ export default {
       try {
         // 加载详细数据
         const response = await skillAPI.getSkillDetail(skill.id);
-        
         if (response.data.code === 0) {
           this.currentSkill = {
             ...skill,
-            instances: response.data.data.instances || [],
+            aiTasks: response.data.data.ai_tasks || [],
             deviceCount: response.data.data.total_device_count || 0,
             models: response.data.data.model_info ? response.data.data.model_info.map(model => model[1]) : []
           };
+
           this.detailsDialogVisible = true;
         } else {
           // 保留错误信息但简化
@@ -1183,13 +1196,12 @@ export default {
         if (response.data.code === 0) {
           // 更新当前技能的所有数据
           const skill = response.data.data;
-          
           this.currentSkill = {
             ...this.currentSkill,
             name_zh: skill.name_zh,
             description: skill.description,
             image_url: skill.image_url,
-            instances: skill.instances || [],
+            aiTasks: skill.ai_tasks || [],
             deviceCount: skill.total_device_count || 0,
             models: skill.model_info ? skill.model_info.map(model => model[1]) : []
           };
@@ -1256,44 +1268,6 @@ export default {
       }
     },
     
-    // 显示实例关联设备列表
-    async showInstanceDevices(instance) {
-      this.currentInstance = instance;
-      this.deviceDialogTitle = `${instance.name}`;
-      this.devicesDialogVisible = true;
-      this.loadingDevices = true;
-      this.relatedDevices = [];
-      
-      try {
-        // 调用获取技能实例关联设备的API
-        if (instance.id) {
-          const response = await skillAPI.getSkillInstanceDevices(instance.id);
-          
-          if (response.data && response.data.code === 0) {
-            // 直接使用返回的数据，响应拦截器已处理格式转换
-            this.relatedDevices = response.data.data;
-            
-            // 检查设备数据是否有效
-            if (this.relatedDevices.length === 0) {
-              console.log('该技能实例没有关联设备');
-            } else {
-              console.log('获取到实例关联设备数据:', this.relatedDevices.length, '条');
-            }
-          } else {
-            this.$message.error((response.data && response.data.msg) || '获取实例关联设备失败');
-          }
-        } else {
-          this.$message.warning('实例ID不存在，无法获取关联设备');
-          this.relatedDevices = [];
-        }
-      } catch (error) {
-        console.error('获取实例关联设备失败:', error);
-        this.$message.error('获取实例关联设备列表失败，请检查网络连接');
-      } finally {
-        this.loadingDevices = false;
-      }
-    },
-
     // 清空搜索内容
     clearSearch() {
       this.tempSearchQuery = '';
@@ -1316,6 +1290,53 @@ export default {
       this.pageSize = size;
       this.currentPage = 1; // 重置到第一页
       this.fetchSkills();
+    },
+
+    // 格式化日期时间
+    formatDateTime(dateTimeStr) {
+      if (!dateTimeStr) return '-';
+      
+      try {
+        const date = new Date(dateTimeStr);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+      } catch (error) {
+        console.error('日期格式化失败:', error);
+        return dateTimeStr;
+      }
+    },
+
+    // 显示技能实例关联的设备列表
+    async showInstanceDevices(instance) {
+      // 设置对话框标题
+      this.deviceDialogTitle = `${instance.name} - 关联设备`;
+      this.devicesDialogVisible = true;
+      this.loadingDevices = true;
+      this.relatedDevices = [];
+      this.currentInstance = instance;
+      
+      try {
+        // 获取技能实例关联设备列表
+        const response = await skillAPI.getSkillInstanceDevices(instance.id);
+        
+        if (response.data.code === 0) {
+          // 处理设备数据
+          this.relatedDevices = response.data.data;
+          // 不需要再次映射，因为在VisionAIService.js中已经处理好了数据格式
+        } else {
+          this.$message.error(response.data.msg || '获取关联设备失败');
+        }
+      } catch (error) {
+        console.error('获取技能实例关联设备失败:', error);
+        this.$message.error('获取关联设备列表失败，请检查网络连接');
+      } finally {
+        this.loadingDevices = false;
+      }
     },
   }
 }
