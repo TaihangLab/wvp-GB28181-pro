@@ -12,12 +12,13 @@ WEB VIDEO PLATFORM是一个基于GB28181-2016标准实现的开箱即用的网�
 
 流媒体服务基于@夏楚 ZLMediaKit [https://github.com/ZLMediaKit/ZLMediaKit](https://github.com/ZLMediaKit/ZLMediaKit)   
 播放器使用@dexter jessibuca [https://github.com/langhuihui/jessibuca/tree/v3](https://github.com/langhuihui/jessibuca/tree/v3)  
-前端页面基于@Kyle MediaServerUI [https://gitee.com/kkkkk5G/MediaServerUI](https://gitee.com/kkkkk5G/MediaServerUI) 进行修改.
+播放器使用@Numberwolf-Yanlong h265web.js [https://github.com/numberwolf/h265web.js](https://github.com/numberwolf/h265web.js)  
+前端页面基于vue-admin-template构建 [https://github.com/PanJiaChen/vue-admin-template?tab=readme-ov-file](https://github.com/PanJiaChen/vue-admin-template?tab=readme-ov-file)  
 
 # 应用场景：
 支持浏览器无插件播放摄像头视频。
 支持国标设备(摄像机、平台、NVR等)设备接入
-支持非国标(onvif, rtsp, rtmp，直播设备等等)设备接入，充分利旧。
+支持rtsp, rtmp，直播设备设备接入，充分利旧。
 支持国标级联。多平台级联。跨网视频预览。
 支持跨网网闸平台互联。
 
@@ -29,19 +30,31 @@ ZLM使用文档 [https://github.com/ZLMediaKit/ZLMediaKit](https://github.com/ZL
 # 付费社群
 [![社群](doc/_media/shequ.png "shequ")](https://t.zsxq.com/0d8VAD3Dm)
 > 收费是为了提供更好的服务，也是对作者更大的激励。加入星球的用户三天后可以私信我留下微信号，我会拉大家入群。加入三天内不满意可以直接自行推出,星球会直接退款给大家。
-> 星球还提供了基于主线master分支的打包, 会随时更新。
 
-# gitee同步仓库
+> 星球还提供了包括闭源的全功能试用包, 会随时更新。
+
+# gitee仓库
 https://gitee.com/pan648540858/wvp-GB28181-pro.git
 
 # 截图
-![index](doc/_media/index.png "index.png")
-![2](doc/_media/2.png "2.png")
-![3](doc/_media/3.png "3.png")
-![3-1](doc/_media/3-1.png "3-1.png")
-![3-2](doc/_media/3-2.png "3-2.png")
-![build_1](https://images.gitee.com/uploads/images/2022/0304/101919_ee5b8c79_1018729.png "2022-03-04_10-13.png")
-![运维中心](doc/_media/log.jpg "log.jpg")
+<table>
+    <tr>
+        <td ><center><img src="doc/_media/1.png" >登录页面 </center></td>
+        <td ><center><img src="doc/_media/2.png" >首页</center></td>
+    </tr>
+    <tr>
+        <td ><center><img src="doc/_media/3.png" >分屏播放 </center></td>
+        <td ><center><img src="doc/_media/4.png" >国标设备列表</center></td>
+    </tr>
+    <tr>
+        <td ><center><img src="doc/_media/5.png" >行政区划管理 </center></td>
+        <td ><center><img src="doc/_media/8.png" >业务分组管理</center></td>
+    </tr>
+    <tr>
+        <td ><center><img src="doc/_media/6.png" >录制计划</center></td>
+        <td ><center><img src="doc/_media/7.png" >平台信息</center></td>
+    </tr>
+</table>
 
 # 功能特性
 - [X] 集成web界面
@@ -112,15 +125,13 @@ https://gitee.com/pan648540858/wvp-GB28181-pro.git
 - [X] 支持跨域请求，支持前后端分离部署
 - [X] 支持Mysql，Postgresql，金仓等数据库
 - [X] 支持录制计划, 根据设定的时间对通道进行录制. 暂不支持将录制的内容转发到国标上级
-- [X] 支持Onvif, 目前付费提供, 永久免费试用包在知识星球获取
-- [X] 支持国标28181-2022协议, 目前付费提供, 永久免费试用包在知识星球获取
 - [X] 支持国标信令集群
 
 
-# 非开源的内容
-- [X] ONVIF设备的接入，支持点播，云台控制，国标级联点播，自动点播。试用安装包以及使用教程: [知识星球](https://t.zsxq.com/10WAnH2MP)，没有使用时间限制，需要源码可以星球私信我或者邮箱联系。
-- [X] 支持部标1078+808协议，支持点播，云台控制，录像回放，位置上报，自动点播。
-- [X] 支持国标28181-2022协议，支持巡航轨迹查询，PTZ精准控制，存储卡格式化，设备软件升级，OSD配置，h265+aac，支持辅码流，录像倒放等。具体的功能列表可在[知识星球](https://t.zsxq.com/18GXkpkqs)查看，试用安装包: [知识星球](https://t.zsxq.com/UJ6V3)，没有使用时间限制，需要源码可以星球私信我或者邮箱联系。
+# 闭源内容
+- [X] 支持ONVIF协议，设备检索，支持点播，云台控制，国标级联点播，自动点播等。
+- [X] 支持部标1078+808协议，支持点播，云台控制，录像回放，位置上报，自动点播等。
+- [X] 支持国标28181-2022协议，支持巡航轨迹查询，PTZ精准控制，存储卡格式化，设备软件升级，OSD配置，h265+aac，支持辅码流，录像倒放等。
 
 
 # 授权协议
@@ -131,19 +142,14 @@ https://gitee.com/pan648540858/wvp-GB28181-pro.git
 [知识星球](https://t.zsxq.com/0d8VAD3Dm)专栏列表：，
 - [使用入门系列一：WVP-PRO能做什么](https://t.zsxq.com/0dLguVoSp)
 
-有偿技术支持，请发送邮件到648540858@qq.com
+有偿技术支持，一对一开发辅导，闭源内容合作请发送邮件到648540858@qq.com咨询
 
 # 致谢
 感谢作者[夏楚](https://github.com/xia-chu) 提供这么棒的开源流媒体服务框架,并在开发过程中给予支持与帮助。     
-感谢作者[dexter langhuihui](https://github.com/langhuihui) 开源这么好用的WEB播放器。     
-感谢作者[Kyle](https://gitee.com/kkkkk5G) 开源了好用的前端页面     
+感谢作者[dexter langhuihui](https://github.com/langhuihui)和[Numberwolf-Yanlong](https://github.com/numberwolf/h265web.js) 开源这么好用的WEB播放器。      
 感谢各位大佬的赞助以及对项目的指正与帮助。包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：  
 [lawrencehj](https://github.com/lawrencehj) [Smallwhitepig](https://github.com/Smallwhitepig) [swwhaha](https://github.com/swwheihei)
 [hotcoffie](https://github.com/hotcoffie) [xiaomu](https://github.com/nikmu) [TristingChen](https://github.com/TristingChen)
 [chenparty](https://github.com/chenparty) [Hotleave](https://github.com/hotleave) [ydwxb](https://github.com/ydwxb)
 [ydpd](https://github.com/ydpd) [szy833](https://github.com/szy833) [ydwxb](https://github.com/ydwxb) [Albertzhu666](https://github.com/Albertzhu666)
 [mk1990](https://github.com/mk1990) [SaltFish001](https://github.com/SaltFish001)
-
-同时感谢JetBrains对开源项目的支持，本项目使用IntelliJ IDEA开发与调试：
-
-![JetBrains](https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA_icon.svg?_ga=2.143694769.529214288.1712023294-439039083.1711422571&_gl=1*102dv9n*_ga*NDM5MDM5MDgzLjE3MTE0MjI1NzE.*_ga_9J976DJZ68*MTcxMjEyNjg4NC45LjEuMTcxMjEyNzc2My4zMy4wLjA.)

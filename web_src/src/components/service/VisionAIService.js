@@ -496,20 +496,6 @@ export const skillAPI = {
     return visionAIAxios.get(`/api/v1/skill-classes/${skillClassId}/devices`);
   },
 
-  /**
-   * 获取技能实例关联的设备列表
-   * @param {string|number} instanceId - 技能实例ID
-   * @returns {Promise} 包含设备列表的Promise对象
-   * 返回的设备数据包含: name(设备名称), camera_uuid(设备ID), location(位置), status(状态)
-   */
-  getSkillInstanceDevices(instanceId) {
-    if (!instanceId) {
-      console.error('获取技能实例关联设备失败: 缺少实例ID');
-      return Promise.reject(new Error('缺少技能实例ID'));
-    }
-
-    return visionAIAxios.get(`/api/v1/skill-instances/${instanceId}/devices`);
-  },
 
   // 获取AI任务技能详情
   getAITaskSkillDetail(skillClassId) {

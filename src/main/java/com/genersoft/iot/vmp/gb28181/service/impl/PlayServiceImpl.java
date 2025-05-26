@@ -28,6 +28,7 @@ import com.genersoft.iot.vmp.media.event.media.MediaDepartureEvent;
 import com.genersoft.iot.vmp.media.event.media.MediaNotFoundEvent;
 import com.genersoft.iot.vmp.media.service.IMediaServerService;
 import com.genersoft.iot.vmp.media.zlm.dto.StreamAuthorityInfo;
+import com.genersoft.iot.vmp.service.ICloudRecordService;
 import com.genersoft.iot.vmp.service.IReceiveRtpServerService;
 import com.genersoft.iot.vmp.service.ISendRtpServerService;
 import com.genersoft.iot.vmp.service.bean.*;
@@ -339,7 +340,7 @@ public class PlayServiceImpl implements IPlayService {
         InviteInfo inviteInfoInCatch = inviteStreamService.getInviteInfoByDeviceAndChannel(InviteSessionType.PLAY, channel.getId());
         if (inviteInfoInCatch != null ) {
             if (inviteInfoInCatch.getStreamInfo() == null) {
-                // 释放生成的ssrc，使用上一次申请的322
+                // 释放生成的ssrc，使用上一次申请的
 
                 ssrcFactory.releaseSsrc(mediaServerItem.getId(), ssrc);
                 // 点播发起了但是尚未成功, 仅注册回调等待结果即可
@@ -1047,8 +1048,8 @@ public class PlayServiceImpl implements IPlayService {
                     null);
             return;
         }
-        log.info("[录像下载] deviceId: {}, channelId: {}, 下载速度：{}, 收流端口：{}, 收流模式：{}, SSRC: {}({}), SSRC校验：{}",
-                device.getDeviceId(), channel.getDeviceId(), downloadSpeed, ssrcInfo.getPort(), device.getStreamMode(),
+        log.info("[录像下载] deviceId: {}, channelId: {}, 开始时间： {}, 结束时间： {}， 下载速度：{}, 收流端口：{}, 收流模式：{}, SSRC: {}({}), SSRC校验：{}",
+                device.getDeviceId(), channel.getDeviceId(), startTime, endTime, downloadSpeed, ssrcInfo.getPort(), device.getStreamMode(),
                 ssrcInfo.getSsrc(), String.format("%08x", Long.parseLong(ssrcInfo.getSsrc())).toUpperCase(),
                 device.isSsrcCheck());
 
