@@ -236,7 +236,7 @@ export default {
       let list = [...this.warningList]
       
       // 过滤掉已归档的预警（已归档的预警不在预警管理页面显示）
-      list = list.filter(item => item.status !== 'archived')
+      list = list.filter(item => item.status !== 'archived' && !item.isFalseAlarm)
       
       // 按开始日期过滤
       if (this.searchForm.startDate) {
@@ -386,6 +386,13 @@ export default {
             this.initArchiveSelection()
             this.archiveDialogVisible = true
             return // 不关闭loading，等确认后再关闭
+          } else if (action === 'falseAlarm') {
+            // 误报 - 自动归档到默认档案
+            this.archiveWarningId = id
+            // 获取当前预警的摄像头信息（实际项目中从预警数据获取）
+            this.currentCameraId = this.warningList[index].cameraId || 'camera_1'
+            await this.handleFalseAlarmArchive()
+            return // 不关闭loading，等归档完成后再关闭
           }
         }
         
@@ -636,7 +643,6 @@ export default {
         设备名称: item.deviceInfo.name,
         预警位置: item.deviceInfo.position,
         预警等级: item.level,
-        预警值: `${item.value} ${item.unit}`,
         预警时间: item.time,
         状态: item.status === 'pending' ? '待处理' : 
               item.status === 'processing' ? '处理中' : '已完成'
@@ -823,6 +829,96 @@ export default {
       if (warning && warning.id) {
         this.handleWarning(warning.id, 'markProcessed')
       }
+    },
+    
+    // 处理预警详情对话框中的上报事件
+    handleReportFromDetail(warning) {
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'report')
+      }
+    },
+    
+    // 处理预警详情对话框中的归档事件
+    handleArchiveFromDetail(warning) {
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'archive')
+      }
+    },
+    
+    // 获取预警类型文本
+    getWarningTypeText(type) {
+      const typeMap = {
+        '未戴安全帽': '安全违规',
+        '未穿工作服': '安全违规',
+        '闲杂人员': '人员违规',
+        '吸烟': '消防违规',
+        '安全帽识别': '安全违规',
+        '工服识别': '安全违规',
+        '玻璃运输车打卡': '车辆违规',
+        '烟火检测': '消防违规',
+        'CH4 超上限预警': '气体检测预警',
+        'CO 浓度预警': '气体检测预警',
+        'H2S 浓度预警': '气体检测预警',
+        '火焰探测器预警': '消防预警',
+        '温度超限预警': '环境监测预警',
+        '压力超限预警': '设备监测预警'
+      };
+      return typeMap[type] || '其他预警';
+    },
+    
+    // 获取预警等级标签文本
+    getLevelBadgeText(level) {
+      const levelMap = {
+        '一级预警': '一级',
+        '二级预警': '二级',
+        '三级预警': '三级'
+      }
+      return levelMap[level] || '未知'
+    },
+    
+    // 处理误报事件
+    async handleFalseAlarmArchive() {
+      try {
+        let targetArchiveId = null
+        
+        // 查找或创建默认档案
+        const existingDefaultArchive = this.availableArchives.find(archive => archive.isDefault)
+        if (existingDefaultArchive) {
+          targetArchiveId = existingDefaultArchive.id
+        } else {
+          // 如果没有默认档案，自动创建
+          targetArchiveId = await this.createDefaultArchive()
+        }
+        
+        if (!targetArchiveId) {
+          this.$message.error('无法创建默认档案')
+          return
+        }
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // 更新本地数据
+        const index = this.warningList.findIndex(item => item.id === this.archiveWarningId)
+        if (index !== -1) {
+          this.warningList[index].status = 'archived'
+          this.warningList[index].archiveId = targetArchiveId
+          this.warningList[index].archiveTime = new Date().toLocaleString()
+          this.warningList[index].isFalseAlarm = true // 标记为误报
+        }
+        
+        // 如果在选中列表中，也移除
+        const selectedIndex = this.selectedWarnings.indexOf(this.archiveWarningId)
+        if (selectedIndex !== -1) {
+          this.selectedWarnings.splice(selectedIndex, 1)
+        }
+        
+        this.$message.success('误报已自动归档到默认档案')
+        this.archiveWarningId = ''
+      } catch (error) {
+        console.error('误报归档失败:', error)
+        this.$message.error('误报归档失败')
+      }
     }
   }
 }
@@ -944,15 +1040,11 @@ export default {
       
       <!-- 预警卡片列表 -->
       <div class="warning-cards-container">
-        <el-row :gutter="12">
-          <el-col 
+        <div class="warning-cards-grid">
+          <div 
             v-for="item in filteredWarningList" 
             :key="item.id" 
-            :xs="24" 
-            :sm="12" 
-            :md="8" 
-            :lg="6" 
-            :xl="4"
+            class="warning-col"
           >
             <div 
               class="warning-card" 
@@ -962,9 +1054,8 @@ export default {
               ]"
               @click="showWarningDetail(item)"
             >
-              <div class="warning-value-tag">
-                <span class="value-number">{{ item.value }}</span>
-                <span class="value-unit">{{ item.unit }}</span>
+              <div class="warning-level-badge" :class="getLevelClass(item.level)">
+                <span class="level-badge-text">{{ getLevelBadgeText(item.level) }}</span>
               </div>
               
               <!-- 右上角选择框 -->
@@ -990,17 +1081,11 @@ export default {
                 <div class="info-list">
                   <div class="info-item">
                     <span class="label">设备名称：</span>
-                    <span class="value">{{ item.deviceInfo.name }}</span>
+                    <span class="value">{{ item.device || item.deviceInfo.name }}</span>
                   </div>
                   <div class="info-item">
-                    <span class="label">预警位置：</span>
-                    <span class="value">{{ item.deviceInfo.position }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">预警等级：</span>
-                    <span class="warning-level" :class="getLevelTextClass(item.level)">
-                      {{ item.level }}
-                    </span>
+                    <span class="label">违规位置：</span>
+                    <span class="value">{{ item.location || item.deviceInfo.position || '未知位置' }}</span>
                   </div>
                   <div class="info-item">
                     <span class="label">处理备注：</span>
@@ -1016,31 +1101,45 @@ export default {
                   <template v-if="item.status === 'pending'">
                     <el-button 
                       type="primary" 
-                      size="small" 
+                      size="mini" 
                       plain
                       @click.stop="handleWarning(item.id, 'markProcessed')"
                     >未处理</el-button>
                   </template>
                   <template v-else-if="item.status === 'completed'">
-                    <span class="status-text processed">已处理</span>
+                    <el-button 
+                      type="success" 
+                      size="mini" 
+                      plain
+                      disabled
+                      class="processed-btn"
+                    >已处理</el-button>
                   </template>
                   
                   <el-button 
                     class="remark-btn" 
-                    size="small" 
+                    size="mini" 
                     plain
                     @click.stop="handleWarning(item.id, 'remark')"
                   >备注</el-button>
                   
                   <el-button 
                     class="report-btn" 
-                    size="small" 
+                    size="mini" 
                     @click.stop="handleWarning(item.id, 'report')"
                   >上报</el-button>
                   
                   <el-button 
+                    class="false-alarm-btn" 
+                    size="mini" 
+                    type="warning"
+                    plain
+                    @click.stop="handleWarning(item.id, 'falseAlarm')"
+                  >误报</el-button>
+                  
+                  <el-button 
                     class="archive-btn" 
-                    size="small" 
+                    size="mini" 
                     type="danger"
                     plain
                     @click.stop="handleWarning(item.id, 'archive')"
@@ -1048,8 +1147,8 @@ export default {
                 </div>
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </div>
+        </div>
         
         <!-- 没有数据时的提示 -->
         <div class="no-data" v-if="filteredWarningList.length === 0">
@@ -1269,7 +1368,10 @@ export default {
     <WarningDetail
       :visible.sync="warningDetailVisible"
       :warning="currentWarningDetail"
+      source="warningManagement"
       @handle-warning="handleWarningFromDetail"
+      @handle-report="handleReportFromDetail"
+      @handle-archive="handleArchiveFromDetail"
     />
   </div>
 </template>
@@ -1403,50 +1505,111 @@ export default {
   padding: 1px 1px 0 1px;
 }
 
+.warning-cards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 16px;
+  margin: 0;
+}
+
+.warning-col {
+  width: calc(16.3% - 8px);
+  margin: 0;
+}
+
 .warning-card {
-  height: 100%;
+  height: 320px;
   background: #fff;
   border-radius: 6px;
   overflow: hidden;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
-  margin-bottom: 16px;
+  margin-bottom: 0;
   position: relative;
   transition: all 0.25s;
   border-top: 3px solid transparent;
   width: 100%;
-  max-width: 320px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .warning-card:hover {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
-.warning-value-tag {
+.warning-level-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 1;
-  background: rgba(0, 0, 0, 0.6);
+  top: 0;
+  left: 0;
+  z-index: 10;
   color: #fff;
-  padding: 3px 8px;
-  border-radius: 3px;
-  font-size: 12px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 0 0 4px 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  min-width: 35px;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 100%, 0 100%);
 }
 
-.value-number {
-  font-size: 14px;
-  font-weight: 600;
+.warning-level-badge::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 0;
+  height: 0;
+  border-top: 10px solid;
+  border-bottom: 10px solid;
+  border-left: 4px solid;
+  border-right: 0;
+  border-top-color: inherit;
+  border-bottom-color: inherit;
+  border-left-color: inherit;
 }
 
-.value-unit {
-  font-size: 12px;
-  margin-left: 2px;
+.warning-level-badge.level-1-bg {
+  background: linear-gradient(135deg, #ff4757 0%, #e74c3c 100%);
+}
+
+.warning-level-badge.level-1-bg::after {
+  border-top-color: #e74c3c;
+  border-bottom-color: #e74c3c;
+  border-left-color: #e74c3c;
+}
+
+.warning-level-badge.level-2-bg {
+  background: linear-gradient(135deg, #ffa502 0%, #e67e22 100%);
+}
+
+.warning-level-badge.level-2-bg::after {
+  border-top-color: #e67e22;
+  border-bottom-color: #e67e22;
+  border-left-color: #e67e22;
+}
+
+.warning-level-badge.level-3-bg {
+  background: linear-gradient(135deg, #3742fa 0%, #2f3542 100%);
+}
+
+.warning-level-badge.level-3-bg::after {
+  border-top-color: #2f3542;
+  border-bottom-color: #2f3542;
+  border-left-color: #2f3542;
+}
+
+.level-badge-text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
 }
 
 .warning-image {
-  height: 140px;
+  height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1513,9 +1676,10 @@ export default {
   padding: 6px 8px;
   background-color: #f5f7fa;
   border-radius: 4px;
-  white-space: pre-line;
-  max-height: 60px;
-  overflow-y: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .remark-empty {
@@ -1527,6 +1691,10 @@ export default {
   background-color: #fafafa;
   border-radius: 4px;
   border: 1px dashed #e4e7ed;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .warning-level {
@@ -1547,13 +1715,16 @@ export default {
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
   border-top: 1px solid #ebeef5;
-  padding-top: 10px;
+  padding-top: 8px;
 }
 
 .warning-footer .el-button {
   margin: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  min-width: auto;
 }
 
 .report-btn {
@@ -1569,6 +1740,11 @@ export default {
 .remark-btn {
   color: #409eff;
   border-color: #409eff;
+}
+
+.false-alarm-btn {
+  color: #e6a23c;
+  border-color: #e6a23c;
 }
 
 .archive-btn {
@@ -1651,6 +1827,10 @@ export default {
     flex-direction: column;
   }
   
+  .warning-col {
+    width: calc(20% - 12.8px);
+  }
+  
   .directory-sidebar {
     width: 100%;
     height: auto;
@@ -1708,9 +1888,23 @@ export default {
     margin-right: 0;
   }
   
+  .warning-col {
+    width: calc(33.33% - 10.67px);
+  }
+  
   .warning-management-container {
     height: auto;
     min-height: calc(100vh - 60px);
+  }
+}
+
+@media (max-width: 480px) {
+  .warning-col {
+    width: calc(50% - 8px);
+  }
+  
+  .warning-cards-grid {
+    gap: 12px;
   }
 }
 
@@ -1785,17 +1979,6 @@ export default {
 
 .no-data p {
   font-size: 14px;
-}
-
-/* 调整行间距 */
-.el-row {
-  margin-left: -6px !important;
-  margin-right: -6px !important;
-}
-
-.el-col {
-  padding-left: 6px !important;
-  padding-right: 6px !important;
 }
 
 /* 对话框内容样式 */

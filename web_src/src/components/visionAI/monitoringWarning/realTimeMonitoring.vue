@@ -160,6 +160,7 @@
     <WarningDetail 
       :visible.sync="warningDetailVisible"
       :warning="currentWarning"
+      source="realTimeMonitoring"
       @handle-warning="handleWarningFromDialog"
     />
   </div>
