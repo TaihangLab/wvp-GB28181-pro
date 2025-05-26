@@ -178,7 +178,7 @@ public class UserSetting {
     /**
      *    登录超时时间(分钟)，
      */
-    private long loginTimeout = 30;
+    private long loginTimeout = 60;
 
     /**
      * jwk文件路径，若不指定则使用resources目录下的jwk.json
@@ -194,6 +194,15 @@ public class UserSetting {
      * 按需发送推流设备位置， 默认发送移动位置订阅时如果位置不变则不发送， 设置为false按照国标间隔持续发送
      */
     private boolean sendPositionOnDemand = true;
+
+    /**
+     * 部分设备会在短时间内发送大量注册， 导致协议栈内存溢出， 开启此项可以防止这部分设备注册， 避免服务崩溃，但是会降低系统性能， 描述如下
+     * 默认值为 true。
+     * 将此设置为 false 会使 Stack 在 Server Transaction 进入 TERMINATED 状态后关闭服务器套接字。
+     * 这允许服务器防止客户端发起的基于 TCP 的拒绝服务攻击（即发起数百个客户端事务）。
+     * 如果为 true（默认作），则堆栈将保持套接字打开，以便以牺牲线程和内存资源为代价来最大化性能 - 使自身容易受到 DOS 攻击。
+     */
+    private boolean sipCacheServerConnections = true;
 
 
 
