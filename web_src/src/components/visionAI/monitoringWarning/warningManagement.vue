@@ -257,12 +257,7 @@ export default {
       selectedArchiveId: '',
       currentCameraId: 'camera_1',
       
-      // 创建新档案对话框
-      createArchiveDialogVisible: false,
-      newArchiveForm: {
-        name: '',
-        description: ''
-      },
+
       
       // 预警详情对话框
       warningDetailVisible: false,
@@ -320,7 +315,8 @@ export default {
         const levelMap = {
           'level1': '一级预警',
           'level2': '二级预警',
-          'level3': '三级预警'
+          'level3': '三级预警',
+          'level4': '四级预警'
         }
         list = list.filter(item => item.level === levelMap[this.searchForm.warningLevel])
       }
@@ -560,51 +556,7 @@ export default {
       return cameraNames[this.currentCameraId] || '监控点'
     },
     
-    // 显示创建新档案对话框
-    showCreateArchiveDialog() {
-      this.createArchiveDialogVisible = true
-    },
-    
-    // 创建新档案
-    async createNewArchive() {
-      if (!this.newArchiveForm.name.trim()) {
-        this.$message.warning('请输入档案名称')
-        return
-      }
-      
-      try {
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 300))
-        
-        const newArchive = {
-          id: `archive_${Date.now()}`,
-          name: this.newArchiveForm.name,
-          cameraId: this.currentCameraId,
-          cameraName: this.getCurrentCameraName(),
-          isDefault: false,
-          description: this.newArchiveForm.description,
-          createTime: new Date().toLocaleString()
-        }
-        
-        this.archivesList.push(newArchive)
-        this.selectedArchiveId = newArchive.id
-        
-        this.$message.success('档案创建成功')
-        this.closeCreateArchiveDialog()
-      } catch (error) {
-        console.error('创建档案失败:', error)
-        this.$message.error('创建档案失败')
-      }
-    },
-    
-    // 关闭创建档案对话框
-    closeCreateArchiveDialog() {
-      this.createArchiveDialogVisible = false
-      this.newArchiveForm = {
-        name: '',
-        description: ''
-      }
-    },
+
     
     // 全选/取消全选
     handleSelectAll() {
@@ -1081,32 +1033,16 @@ export default {
           
           <div class="select-wrapper">
             <el-select 
-              v-model="searchForm.warningType" 
-              placeholder="全部预警类型" 
-              size="small"
-              clearable
-              @change="handleSearch"
-            >
-              <el-option label="全部" value="" />
-              <el-option label="超限预警" value="overflow" />
-              <el-option label="浓度预警" value="concentration" />
-              <el-option label="温度预警" value="temperature" />
-              <el-option label="压力预警" value="pressure" />
-            </el-select>
-          </div>
-          
-          <div class="select-wrapper">
-            <el-select 
               v-model="searchForm.warningLevel" 
-              placeholder="全部预警等级" 
+              placeholder="预警等级" 
               size="small"
               clearable
               @change="handleSearch"
             >
-              <el-option label="全部" value="" />
               <el-option label="一级预警" value="level1" />
               <el-option label="二级预警" value="level2" />
               <el-option label="三级预警" value="level3" />
+              <el-option label="四级预警" value="level4" />
             </el-select>
           </div>
           
@@ -1142,7 +1078,7 @@ export default {
               size="small" 
               :class="{ active: filterType === 'pending' }"
               @click="filterType = filterType === 'pending' ? 'all' : 'pending'; handleSearch()"
-            >仅查看预警中事件</el-button>
+            >仅查看未处理事件</el-button>
           </div>
           
           <div class="action-buttons">
@@ -1223,11 +1159,11 @@ export default {
                 <div class="warning-footer">
                   <template v-if="item.status === 'pending'">
                     <el-button 
-                      type="primary" 
+                      type="success" 
                       size="mini" 
                       plain
                       @click.stop="handleWarning(item.id, 'markProcessed')"
-                    >未处理</el-button>
+                    >处理</el-button>
                   </template>
                   <template v-else-if="item.status === 'completed'">
                     <el-button 
@@ -1415,16 +1351,7 @@ export default {
               />
             </el-form-item>
             
-            <el-form-item>
-              <el-button 
-                type="text" 
-                icon="el-icon-plus"
-                @click="showCreateArchiveDialog"
-                style="padding: 0;"
-              >
-                创建新档案
-              </el-button>
-            </el-form-item>
+
           </el-form>
         </div>
         
@@ -1445,49 +1372,7 @@ export default {
       </span>
     </el-dialog>
     
-    <!-- 创建新档案对话框 -->
-    <el-dialog
-      title="创建新档案"
-      :visible.sync="createArchiveDialogVisible"
-      width="35%"
-      center
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-    >
-      <el-form :model="newArchiveForm" label-width="80px">
-        <el-form-item label="档案名称" required>
-          <el-input
-            v-model="newArchiveForm.name"
-            placeholder="请输入档案名称"
-            maxlength="50"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item label="档案描述">
-          <el-input
-            v-model="newArchiveForm.description"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入档案描述（可选）"
-            maxlength="200"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-alert
-            :title="`档案将关联到：${getCurrentCameraName()}`"
-            type="info"
-            :closable="false"
-            show-icon
-          />
-        </el-form-item>
-      </el-form>
-      
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="closeCreateArchiveDialog">取 消</el-button>
-        <el-button type="primary" @click="createNewArchive">创建档案</el-button>
-      </span>
-    </el-dialog>
+
     
     <!-- 预警详情对话框 -->
     <WarningDetail
