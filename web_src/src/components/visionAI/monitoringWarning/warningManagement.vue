@@ -18,15 +18,48 @@ export default {
         warningLevel: ''
       },
       
-      // 左侧目录数据
-      directories: [
+      // 左侧位置数据
+      locationList: [
         {
-          id: '1',
-          name: '油气行业',
+          id: 'all',
+          name: '全部位置',
+          count: 0, // 动态计算
           selected: true
+        },
+        {
+          id: 'oil_gas_area',
+          name: '油气监控区域',
+          count: 0,
+          selected: false
+        },
+        {
+          id: 'work_area',
+          name: '作业区域',
+          count: 0,
+          selected: false
+        },
+        {
+          id: 'storage_area',
+          name: '储罐区域',
+          count: 0,
+          selected: false
+        },
+        {
+          id: 'pipeline_area',
+          name: '管道区域',
+          count: 0,
+          selected: false
+        },
+        {
+          id: 'pipeline_interface',
+          name: '管道接口',
+          count: 0,
+          selected: false
         }
-        // 可以添加更多目录
       ],
+      
+      // 当前选中的位置
+      selectedLocationId: 'all',
       
       // 预警列表数据
       warningList: [
@@ -48,6 +81,7 @@ export default {
           device: '可燃气体',
           type: 'CH4 超上限预警',
           location: '油气监控区域',
+          locationId: 'oil_gas_area',
           description: '检测到CH4浓度超过安全阈值，当前浓度为1.30%LEL，存在爆炸危险，请立即处理'
         },
         {
@@ -68,6 +102,7 @@ export default {
           device: '一氧化碳检测器',
           type: 'CO 浓度预警',
           location: '作业区域',
+          locationId: 'work_area',
           description: '检测到一氧化碳浓度超标，当前浓度为75ppm，可能对人员造成健康危害'
         },
         {
@@ -88,6 +123,7 @@ export default {
           device: '硫化氢检测器',
           type: 'H2S 浓度预警',
           location: '储罐区域',
+          locationId: 'storage_area',
           description: '检测到硫化氢浓度异常，当前浓度为10ppm，请注意通风和人员防护'
         },
         {
@@ -108,6 +144,7 @@ export default {
           device: '火焰探测器',
           type: '火焰探测器预警',
           location: '管道区域',
+          locationId: 'pipeline_area',
           description: '火焰探测器检测到火焰信号，置信度85%，存在火灾风险，请立即确认并处理'
         },
         {
@@ -128,6 +165,7 @@ export default {
           device: '温度传感器',
           type: '温度超限预警',
           location: '储罐区域',
+          locationId: 'storage_area',
           description: '温度传感器检测到温度超过安全限值，当前温度85°C，可能影响设备安全运行'
         },
         {
@@ -148,6 +186,7 @@ export default {
           device: '压力传感器',
           type: '压力超限预警',
           location: '管道接口',
+          locationId: 'pipeline_interface',
           description: '压力传感器检测到管道压力超过安全限值，当前压力2.5MPa，存在爆管风险'
         }
       ],
@@ -238,6 +277,11 @@ export default {
       // 过滤掉已归档的预警（已归档的预警不在预警管理页面显示）
       list = list.filter(item => item.status !== 'archived' && !item.isFalseAlarm)
       
+      // 按位置过滤
+      if (this.selectedLocationId && this.selectedLocationId !== 'all') {
+        list = list.filter(item => item.locationId === this.selectedLocationId)
+      }
+      
       // 按开始日期过滤
       if (this.searchForm.startDate) {
         list = list.filter(item => new Date(item.time) >= new Date(this.searchForm.startDate))
@@ -287,6 +331,25 @@ export default {
       }
       
       return list
+    },
+    
+    // 计算各位置的预警数量
+    locationListWithCount() {
+      const list = this.warningList.filter(item => item.status !== 'archived' && !item.isFalseAlarm)
+      
+      return this.locationList.map(location => {
+        let count = 0
+        if (location.id === 'all') {
+          count = list.length
+        } else {
+          count = list.filter(item => item.locationId === location.id).length
+        }
+        
+        return {
+          ...location,
+          count
+        }
+      })
     },
     
     // 当前页的数据
@@ -845,6 +908,13 @@ export default {
       }
     },
     
+    // 处理预警详情对话框中的误报事件
+    handleFalseAlarmFromDetail(warning) {
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'falseAlarm')
+      }
+    },
+    
     // 获取预警类型文本
     getWarningTypeText(type) {
       const typeMap = {
@@ -919,6 +989,37 @@ export default {
         console.error('误报归档失败:', error)
         this.$message.error('误报归档失败')
       }
+    },
+    
+    // 选择位置
+    selectLocation(locationId) {
+      // 如果点击的是当前已选中的位置，则不做任何操作
+      if (this.selectedLocationId === locationId) {
+        return
+      }
+      
+      this.selectedLocationId = locationId
+      
+      // 更新位置列表的选中状态
+      this.locationList.forEach(location => {
+        location.selected = location.id === locationId
+      })
+      
+      // 清空选中项
+      this.selectedWarnings = []
+      
+      // 重置筛选状态
+      this.filterType = 'all'
+      
+      // 提示当前查看的位置
+      const selectedLocation = this.locationList.find(location => location.id === locationId)
+      if (selectedLocation) {
+        if (locationId === 'all') {
+          this.$message.success(`正在查看所有位置的预警信息`)
+        } else {
+          this.$message.success(`正在查看"${selectedLocation.name}"的预警信息`)
+        }
+      }
     }
   }
 }
@@ -926,6 +1027,28 @@ export default {
 
 <template>
   <div class="warning-management-container" v-loading="loading">
+    <!-- 左侧位置区域 -->
+    <div class="location-sidebar">
+      <div class="location-header">
+        <h3>位置区域</h3>
+      </div>
+      
+      <div class="location-list">
+        <div 
+          v-for="location in locationListWithCount" 
+          :key="location.id"
+          class="location-item"
+          :class="{ active: selectedLocationId === location.id }"
+          @click="selectLocation(location.id)"
+        >
+          <div class="location-content">
+            <div class="location-name">{{ location.name }}</div>
+            <div class="location-count">{{ location.count }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="content-area">
       <!-- 搜索和筛选区域 -->
       <div class="search-filter-area">
@@ -1152,8 +1275,10 @@ export default {
         
         <!-- 没有数据时的提示 -->
         <div class="no-data" v-if="filteredWarningList.length === 0">
-          <i class="el-icon-warning-outline"></i>
-          <p>暂无符合条件的预警数据</p>
+          <i class="el-icon-folder-opened"></i>
+          <p v-if="selectedLocationId === 'all'">暂无预警数据</p>
+          <p v-else>该位置暂无预警数据</p>
+          <span class="no-data-tip">可尝试切换其他位置或调整筛选条件</span>
         </div>
       </div>
     </div>
@@ -1372,6 +1497,7 @@ export default {
       @handle-warning="handleWarningFromDetail"
       @handle-report="handleReportFromDetail"
       @handle-archive="handleArchiveFromDetail"
+      @handle-false-alarm="handleFalseAlarmFromDetail"
     />
   </div>
 </template>
@@ -1381,46 +1507,123 @@ export default {
   display: flex;
   height: calc(100vh - 60px);
   background: #f5f7fa;
+  padding: 0;
 }
 
-/* 左侧目录样式 */
-.directory-sidebar {
-  width: 180px;
+/* 左侧位置区域样式 */
+.location-sidebar {
+  width: 200px;
   background: #fff;
-  border-right: 1px solid #ebeef5;
+  border-radius: 8px;
+  margin: 16px 0 16px 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-.search-box {
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+.location-header {
+  padding: 20px 16px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #ebeef5;
 }
 
-.directory-list {
+.location-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  text-align: left;
+  position: relative;
+  padding-left: 12px;
+}
+
+.location-header h3::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(135deg, #409eff 0%, #36a3f7 100%);
+  border-radius: 2px;
+}
+
+.location-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 12px 8px;
 }
 
-.directory-item {
-  padding: 12px 16px;
+.location-item {
   cursor: pointer;
-  color: #606266;
-  font-size: 14px;
-  transition: all 0.2s;
-  border-left: 3px solid transparent;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  position: relative;
+  background: #fff;
 }
 
-.directory-item:hover {
+.location-item:last-child {
+  margin-bottom: 0;
+}
+
+.location-item:hover {
   background-color: #f5f7fa;
-  color: #409eff;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
 }
 
-.directory-item.active {
-  background-color: #ecf5ff;
+.location-item.active {
+  background: linear-gradient(135deg, #409eff 0%, #36a3f7 100%);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  transform: translateX(4px);
+}
+
+.location-content {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.location-name {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.location-item.active .location-name {
+  color: #fff;
+  font-weight: 600;
+}
+
+.location-count {
+  background: #f0f2f5;
+  color: #606266;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  min-width: 20px;
+  text-align: center;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 1px solid #e4e7ed;
+}
+
+.location-item:hover .location-count {
+  background: #ecf5ff;
   color: #409eff;
-  border-left: 3px solid #409eff;
+  border-color: #c6e2ff;
+}
+
+.location-item.active .location-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 /* 右侧内容区样式 */
@@ -1428,7 +1631,7 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 16px 16px 16px 8px;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -1514,12 +1717,12 @@ export default {
 }
 
 .warning-col {
-  width: calc(16.3% - 8px);
+  width: calc(20% - 12.8px);
   margin: 0;
 }
 
 .warning-card {
-  height: 320px;
+  height: 360px;
   background: #fff;
   border-radius: 6px;
   overflow: hidden;
@@ -1609,7 +1812,7 @@ export default {
 }
 
 .warning-image {
-  height: 120px;
+  height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1634,7 +1837,7 @@ export default {
 }
 
 .warning-content {
-  padding: 12px;
+  padding: 14px;
 }
 
 .warning-title {
@@ -1654,7 +1857,7 @@ export default {
 
 .info-item {
   display: flex;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1717,7 +1920,7 @@ export default {
   flex-wrap: wrap;
   gap: 4px;
   border-top: 1px solid #ebeef5;
-  padding-top: 8px;
+  padding-top: 10px;
 }
 
 .warning-footer .el-button {
@@ -1828,32 +2031,71 @@ export default {
   }
   
   .warning-col {
-    width: calc(20% - 12.8px);
+    width: calc(25% - 12px);
   }
   
-  .directory-sidebar {
+  .location-sidebar {
     width: 100%;
     height: auto;
-    border-right: none;
-    border-bottom: 1px solid #ebeef5;
+    margin: 0 0 16px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
   
-  .directory-list {
+  .location-header {
+    padding: 16px 20px 12px;
+    background: #f8f9fa;
+    text-align: center;
+  }
+  
+  .location-header h3 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  
+  .location-list {
     display: flex;
     overflow-x: auto;
-    padding: 8px 16px;
+    padding: 12px 16px;
+    gap: 8px;
   }
   
-  .directory-item {
-    padding: 8px 16px;
+  .location-item {
+    margin-bottom: 0;
+    border-radius: 20px;
     white-space: nowrap;
-    border-left: none;
-    border-bottom: 3px solid transparent;
+    min-width: auto;
+    flex-shrink: 0;
+    transform: none;
   }
   
-  .directory-item.active {
-    border-left: none;
-    border-bottom: 3px solid #409eff;
+  .location-item:hover {
+    transform: translateY(-2px);
+  }
+  
+  .location-item.active {
+    background: linear-gradient(135deg, #409eff 0%, #36a3f7 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.25);
+  }
+  
+  .location-content {
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .location-name {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  
+  .location-count {
+    margin-left: 0;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 8px;
   }
   
   .date-picker-wrapper {
@@ -1889,7 +2131,7 @@ export default {
   }
   
   .warning-col {
-    width: calc(33.33% - 10.67px);
+    width: calc(50% - 8px);
   }
   
   .warning-management-container {
@@ -1967,18 +2209,29 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 0;
+  padding: 80px 20px;
   color: #909399;
+  text-align: center;
 }
 
 .no-data i {
-  font-size: 48px;
-  margin-bottom: 16px;
+  font-size: 64px;
+  margin-bottom: 20px;
   color: #dcdfe6;
+  opacity: 0.6;
 }
 
 .no-data p {
-  font-size: 14px;
+  font-size: 16px;
+  margin: 0 0 8px 0;
+  color: #606266;
+  font-weight: 500;
+}
+
+.no-data-tip {
+  font-size: 13px;
+  color: #909399;
+  opacity: 0.8;
 }
 
 /* 对话框内容样式 */

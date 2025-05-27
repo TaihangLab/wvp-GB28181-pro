@@ -147,7 +147,7 @@
             </div>
             <div class="warning-actions">
               <el-button size="mini" type="primary" plain @click="viewWarningDetail(warning)">查看详情</el-button>
-              <el-button size="mini" type="success" plain @click="handleWarning(warning)">处理</el-button>
+              <el-button size="mini" type="success" plain @click="handleWarningFromList(warning)">处理</el-button>
             </div>
           </div>
         </div>
@@ -162,6 +162,9 @@
       :warning="currentWarning"
       source="realTimeMonitoring"
       @handle-warning="handleWarningFromDialog"
+      @handle-report="handleReportFromDialog"
+      @handle-archive="handleArchiveFromDialog"
+      @handle-false-alarm="handleFalseAlarmFromDialog"
     />
   </div>
 </template>
@@ -243,6 +246,12 @@ export default {
       ],
       warningDetailVisible: false,
       currentWarning: null,
+      
+      // 添加预警管理相关的数据属性
+      archivesList: [],
+      currentCameraId: '',
+      archiveWarningId: '',
+      reportWarningId: '',
     }
   },
   computed: {
@@ -281,6 +290,18 @@ export default {
           return newGroup;
         })
         .filter(group => group !== null);
+    },
+    
+    // 可用档案列表
+    availableArchives() {
+      return this.archivesList.filter(archive => 
+        archive.cameraId === this.currentCameraId || archive.isDefault
+      );
+    },
+    
+    // 默认档案
+    defaultArchive() {
+      return this.availableArchives.find(archive => archive.isDefault);
     }
   },
   mounted() {
@@ -302,6 +323,9 @@ export default {
     
     // 初始化视频URL和提示信息数组
     this.initVideoArrays();
+    
+    // 初始化档案列表
+    this.initArchivesList();
     
     // 初始化后延迟刷新布局
     this.$nextTick(() => {
@@ -348,6 +372,37 @@ export default {
       // 初始化9个空位置用于视频URL和提示信息
       this.videoUrl = Array(9).fill('');
       this.videoTip = Array(9).fill('');
+    },
+    
+    // 初始化档案列表
+    initArchivesList() {
+      // 模拟一些档案数据
+      this.archivesList = [
+        {
+          id: 'archive_default_1',
+          name: '可燃气体监控点默认档案',
+          cameraId: 'camera_1',
+          cameraName: '可燃气体监控点',
+          isDefault: true,
+          createTime: '2023-01-15 10:30:00'
+        },
+        {
+          id: 'archive_default_2',
+          name: '储罐区监控点默认档案',
+          cameraId: 'camera_2',
+          cameraName: '储罐区监控点',
+          isDefault: true,
+          createTime: '2023-01-15 10:30:00'
+        },
+        {
+          id: 'archive_custom_1',
+          name: '重要预警专用档案',
+          cameraId: 'camera_1',
+          cameraName: '可燃气体监控点',
+          isDefault: false,
+          createTime: '2023-02-20 14:20:00'
+        }
+      ];
     },
     // 生成网格数量
     generateGrids() {
@@ -673,25 +728,214 @@ export default {
       this.currentWarning = warning;
       this.warningDetailVisible = true;
     },
-    // 处理预警
-    handleWarning(warning) {
+    // 处理预警（原有方法，保持兼容性）
+    handleWarningOld(warning) {
       this.$message({
         message: `正在处理 ${warning.device} 的 ${warning.type} 预警`,
         type: 'success'
       });
       // 这里可以添加处理预警的逻辑
     },
+    
+    // 从预警列表处理预警 - 使用统一的处理逻辑
+    handleWarningFromList(warning) {
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'markProcessed');
+      }
+    },
     // 从对话框处理预警
     handleWarningFromDialog(warning) {
-      if (warning) {
-        this.handleWarning(warning);
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'markProcessed');
       }
+    },
+    // 处理预警事件 - 复制预警管理页面的核心逻辑
+    async handleWarning(id, action) {
+      try {
+        this.loading = true;
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 更新本地数据状态
+        const index = this.warningList.findIndex(item => item.id === id);
+        if (index !== -1) {
+          if (action === 'markProcessed') {
+            // 标记为已处理
+            this.warningList[index].status = 'completed';
+            this.$message.success('已标记为已处理');
+          } else if (action === 'report') {
+            // 上报
+            this.reportWarningId = id;
+            this.warningList[index].status = 'reported';
+            this.$message.success('预警已成功上报');
+          } else if (action === 'archive') {
+            // 归档 - 需要选择档案
+            this.archiveWarningId = id;
+            // 获取当前预警的摄像头信息（实际项目中从预警数据获取）
+            this.currentCameraId = this.warningList[index].cameraId || 'camera_1';
+            await this.handleArchiveProcess();
+            return; // 不关闭loading，等归档完成后再关闭
+          } else if (action === 'falseAlarm') {
+            // 误报 - 自动归档到默认档案
+            this.archiveWarningId = id;
+            // 获取当前预警的摄像头信息（实际项目中从预警数据获取）
+            this.currentCameraId = this.warningList[index].cameraId || 'camera_1';
+            await this.handleFalseAlarmArchive();
+            return; // 不关闭loading，等归档完成后再关闭
+          }
+        }
+      } catch (error) {
+        console.error('处理失败:', error);
+        this.$message.error('处理预警失败');
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    // 处理上报事件
+    handleReportFromDialog(warning) {
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'report');
+      }
+    },
+    
+    // 处理归档事件
+    handleArchiveFromDialog(warning) {
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'archive');
+      }
+    },
+    
+    // 处理误报事件
+    handleFalseAlarmFromDialog(warning) {
+      if (warning && warning.id) {
+        this.handleWarning(warning.id, 'falseAlarm');
+      }
+    },
+    
+    // 处理归档流程
+    async handleArchiveProcess() {
+      try {
+        let targetArchiveId = null;
+        
+        // 查找默认档案
+        const existingDefaultArchive = this.availableArchives.find(archive => archive.isDefault);
+        if (existingDefaultArchive) {
+          targetArchiveId = existingDefaultArchive.id;
+        } else {
+          // 如果没有默认档案，自动创建
+          targetArchiveId = await this.createDefaultArchive();
+        }
+        
+        if (!targetArchiveId) {
+          this.$message.error('无法创建默认档案');
+          return;
+        }
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 更新预警状态为已归档
+        const index = this.warningList.findIndex(item => item.id === this.archiveWarningId);
+        if (index !== -1) {
+          this.warningList[index].status = 'archived';
+          this.warningList[index].archiveId = targetArchiveId;
+          this.warningList[index].archiveTime = new Date().toLocaleString();
+          // 从实时预警列表中移除已归档的预警
+          this.warningList.splice(index, 1);
+        }
+        
+        this.$message.success('预警已成功归档');
+        this.archiveWarningId = '';
+      } catch (error) {
+        console.error('归档失败:', error);
+        this.$message.error('归档失败');
+      }
+    },
+    
+    // 处理误报事件 - 复制预警管理页面的逻辑
+    async handleFalseAlarmArchive() {
+      try {
+        let targetArchiveId = null;
+        
+        // 查找或创建默认档案
+        const existingDefaultArchive = this.availableArchives.find(archive => archive.isDefault);
+        if (existingDefaultArchive) {
+          targetArchiveId = existingDefaultArchive.id;
+        } else {
+          // 如果没有默认档案，自动创建
+          targetArchiveId = await this.createDefaultArchive();
+        }
+        
+        if (!targetArchiveId) {
+          this.$message.error('无法创建默认档案');
+          return;
+        }
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // 更新本地数据
+        const index = this.warningList.findIndex(item => item.id === this.archiveWarningId);
+        if (index !== -1) {
+          this.warningList[index].status = 'archived';
+          this.warningList[index].archiveId = targetArchiveId;
+          this.warningList[index].archiveTime = new Date().toLocaleString();
+          this.warningList[index].isFalseAlarm = true; // 标记为误报
+          // 从实时预警列表中移除误报预警
+          this.warningList.splice(index, 1);
+        }
+        
+        this.$message.success('误报已自动归档到默认档案');
+        this.archiveWarningId = '';
+      } catch (error) {
+        console.error('误报归档失败:', error);
+        this.$message.error('误报归档失败');
+      }
+    },
+    
+    // 自动创建默认档案
+    async createDefaultArchive() {
+      try {
+        // 模拟API调用创建默认档案
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const newArchive = {
+          id: `archive_${Date.now()}`,
+          name: `${this.getCurrentCameraName()}默认档案`,
+          cameraId: this.currentCameraId,
+          cameraName: this.getCurrentCameraName(),
+          isDefault: true,
+          createTime: new Date().toLocaleString()
+        };
+        
+        this.archivesList.push(newArchive);
+        this.$message.success('已自动创建默认档案');
+        
+        return newArchive.id;
+      } catch (error) {
+        console.error('创建默认档案失败:', error);
+        this.$message.error('创建默认档案失败');
+        return null;
+      }
+    },
+    
+    // 获取当前摄像头名称
+    getCurrentCameraName() {
+      // 实际项目中应该从摄像头数据中获取
+      const cameraNames = {
+        'camera_1': '可燃气体监控点',
+        'camera_2': '储罐区监控点',
+        'camera_3': '管道接口监控点'
+      };
+      return cameraNames[this.currentCameraId] || '监控点';
     },
     // 跳转到更多预警页面
     goToMoreWarnings() {
-      // 可以跳转到更详细的预警管理页面
-      this.$message.info('跳转到更多预警页面');
-      // this.$router.push('/warning-management');
+      // 跳转到预警管理页面
+      this.$router.push({
+        path: '/monitoring/warningManage'
+      });
     },
     // 获取预警图标
     getWarningIcon(level) {
