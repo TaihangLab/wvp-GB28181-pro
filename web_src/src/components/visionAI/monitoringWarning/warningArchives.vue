@@ -129,7 +129,13 @@ export default {
         name: '',
         deviceName: '',
         warningLevel: '',
-        description: ''
+        warningType: '',
+        location: '',
+        remark: '',
+        description: '',
+        warningTime: [],
+        violationImage: '',
+        violationVideo: ''
       },
       // 对话框控制
       editDialogVisible: false,
@@ -164,8 +170,13 @@ export default {
     },
     // 显示图片预览
     showImagePreview(row) {
-      this.currentPreviewImage = row.image;
-      this.imagePreviewVisible = true;
+      const imageUrl = row.violationImage || row.image;
+      if (imageUrl) {
+        this.currentPreviewImage = imageUrl;
+        this.imagePreviewVisible = true;
+      } else {
+        this.$message.warning('该预警暂无图片');
+      }
     },
     // 初始化数据
     initData() {
@@ -202,6 +213,38 @@ export default {
         '工服识别',
         '安全帽识别',
         '玻璃运输车打卡'
+      ];
+
+      const warningTypes = [
+        '安全违规',
+        '安全违规',
+        '安全违规',
+        '车辆违规',
+        '消防违规',
+        '安全违规',
+        '安全违规',
+        '安全违规',
+        '车辆违规'
+      ];
+
+      const locations = [
+        '厂区A10车间东区',
+        '废水处理站入口',
+        '东15风机房',
+        '储产区域A20',
+        'EF两区特检测区'
+      ];
+
+      const remarks = [
+        '已现场提醒，工人已佩戴安全帽',
+        '已督促整改，现已规范穿着',
+        '已加强现场监督管理',
+        '车辆已完成打卡登记',
+        '已清理现场，加强禁烟宣传',
+        '',
+        '现场已整改完毕',
+        '',
+        ''
       ];
       
       // 根据档案ID决定生成多少条数据
@@ -242,10 +285,26 @@ export default {
           image: this.getPreviewImage(),
           deviceName: deviceName,
           warningTime: warningTime,
-          warningLevel: i % 4 === 0 ? 'level1' : (i % 4 === 1 ? 'level2' : (i % 4 === 2 ? 'level3' : 'level4'))
+          warningLevel: i % 4 === 0 ? 'level1' : (i % 4 === 1 ? 'level2' : (i % 4 === 2 ? 'level3' : 'level4')),
+          warningType: warningTypes[(i - 1) % warningTypes.length] || '其他违规',
+          location: locations[(i - 1) % locations.length] || archive.location,
+          remark: remarks[(i - 1) % remarks.length] || '',
+          description: this.getDescriptionByType(warningNames[(i - 1) % warningNames.length]),
+          violationImage: this.getPreviewImage(),
+          violationVideo: ''
         });
       }
       return data;
+    },
+    // 根据预警类型生成默认描述
+    getDescriptionByType(type) {
+      const descriptionMap = {
+        '安全帽识别': '检测到工作人员未佩戴安全帽，存在严重安全隐患，请立即整改并加强安全教育',
+        '工服识别': '发现工作人员未按规定穿着工作服，违反现场作业安全规范，需要立即纠正',
+        '玻璃运输车打卡': '玻璃运输车辆未按规定进行打卡登记，违反车辆管理规定，请督促司机规范操作',
+        '烟火检测': '检测到禁烟区域有吸烟行为，存在火灾隐患，请立即制止并进行安全教育',
+      };
+      return descriptionMap[type] || `检测到${type}违规行为，请及时处理并加强现场管理`;
     },
     // 切换到指定档案
     switchToArchive(archiveId) {
@@ -285,25 +344,16 @@ export default {
     },
     // 查看详情
     showDetail(record) {
-      // 根据违规类型生成描述
-      const getDescriptionByType = (type) => {
-        const descriptionMap = {
-          '安全帽识别': '检测到工作人员未佩戴安全帽，存在严重安全隐患，请立即整改并加强安全教育',
-          '工服识别': '发现工作人员未按规定穿着工作服，违反现场作业安全规范，需要立即纠正',
-          '玻璃运输车打卡': '玻璃运输车辆未按规定进行打卡登记，违反车辆管理规定，请督促司机规范操作',
-          '烟火检测': '检测到禁烟区域有吸烟行为，存在火灾隐患，请立即制止并进行安全教育',
-        };
-        return descriptionMap[type] || `检测到${type}违规行为，请及时处理并加强现场管理`;
-      };
-      
       // 将档案记录转换为预警格式
       this.currentWarning = {
+        id: record.id,
         device: record.deviceName,
         type: record.name,
         time: record.warningTime,
         level: record.warningLevel,
-        location: this.archiveInfo.location,
-        description: getDescriptionByType(record.name)
+        location: record.location || this.archiveInfo.location,
+        remark: record.remark,
+        description: record.description || this.getDescriptionByType(record.name)
       };
       this.warningDetailVisible = true;
     },
@@ -395,25 +445,44 @@ export default {
         name: '',
         deviceName: '',
         warningLevel: '',
-        description: ''
+        warningType: '',
+        location: '',
+        remark: '',
+        description: '',
+        warningTime: [],
+        violationImage: '',
+        violationVideo: ''
       };
     },
     // 提交新预警
     submitNewWarning() {
-      if (!this.addForm.name || !this.addForm.deviceName || !this.addForm.warningLevel) {
-        this.$message.warning('请填写必要的信息');
+      // 验证时间段数组
+      const isTimeValid = this.addForm.warningTime && Array.isArray(this.addForm.warningTime) && this.addForm.warningTime.length === 2;
+      
+      if (!this.addForm.name || !this.addForm.deviceName || !this.addForm.warningLevel || !isTimeValid || !this.addForm.warningType || !this.addForm.location) {
+        this.$message.warning('请填写必要的信息（预警名称、设备名称、预警等级、预警时间、预警类型、违规位置）');
         return;
       }
 
       const newId = this.allArchiveList.length > 0 ? Math.max(...this.allArchiveList.map(item => item.id)) + 1 : 1;
+
+      // 将日期格式从 "YYYY-MM-DD HH:mm:ss" 转换为 "YYYY/MM/DD HH:mm:ss-YYYY/MM/DD HH:mm:ss"
+      const startTime = this.addForm.warningTime[0].replace(/-/g, '/');
+      const endTime = this.addForm.warningTime[1].replace(/-/g, '/');
+      const formattedWarningTime = `${startTime}-${endTime}`;
 
       const newRecord = {
         id: newId,
         name: this.addForm.name,
         deviceName: this.addForm.deviceName,
         warningLevel: this.addForm.warningLevel,
-        image: this.getPreviewImage(),
-        warningTime: new Date().toLocaleString(),
+        warningType: this.addForm.warningType,
+        location: this.addForm.location,
+        remark: this.addForm.remark,
+        image: this.addForm.violationImage || this.getPreviewImage(),
+        warningTime: formattedWarningTime,
+        violationImage: this.addForm.violationImage,
+        violationVideo: this.addForm.violationVideo,
         description: this.addForm.description
       };
 
@@ -521,6 +590,75 @@ export default {
       } else if (this.addArchiveDialogVisible) {
         this.newArchiveForm.image = '';
       }
+    },
+    // 处理违规截图上传
+    beforeImageUpload(file) {
+      // 检查文件类型
+      const isImage = file.type.indexOf('image/') === 0;
+      if (!isImage) {
+        this.$message.error('只能上传图片文件!');
+        return false;
+      }
+      
+      // 检查文件大小，限制为2MB
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        this.$message.error('图片不能超过2MB!');
+        return false;
+      }
+      
+      return true;
+    },
+    // 处理违规截图上传成功
+    handleImageUploadSuccess(response, file) {
+      // 实际项目中应从服务器响应中获取图片URL
+      // 这里使用本地文件预览URL作为演示
+      const imageUrl = URL.createObjectURL(file.raw);
+      
+      this.addForm.violationImage = imageUrl;
+      
+      this.$message.success('违规截图上传成功');
+    },
+    // 处理违规截图移除
+    removeImage() {
+      this.addForm.violationImage = '';
+    },
+    // 预览图片
+    previewImage(imageUrl) {
+      this.currentPreviewImage = imageUrl;
+      this.imagePreviewVisible = true;
+    },
+    // 处理视频片段上传
+    beforeVideoUpload(file) {
+      // 检查文件类型
+      const isVideo = file.type.indexOf('video/') === 0;
+      if (!isVideo) {
+        this.$message.error('只能上传视频文件!');
+        return false;
+      }
+      
+      // 检查文件大小，限制为10MB
+      const isLt10M = file.size / 1024 / 1024 < 10;
+      if (!isLt10M) {
+        this.$message.error('视频不能超过10MB!');
+        return false;
+      }
+      
+      return true;
+    },
+    // 处理视频片段上传成功
+    handleVideoUploadSuccess(response, file) {
+      // 实际项目中应从服务器响应中获取视频URL
+      // 这里使用本地文件预览URL作为演示
+      const videoUrl = URL.createObjectURL(file.raw);
+      
+      this.addForm.violationVideo = videoUrl;
+      
+      this.$message.success('视频片段上传成功');
+    },
+    // 处理视频片段移除
+    removeVideo() {
+      this.addForm.violationVideo = '';
     }
   }
 }
@@ -613,8 +751,11 @@ export default {
           <el-table-column label="预警图片" width="100" align="center">
             <template slot-scope="scope">
               <div class="preview-image-cell">
-                <div class="mini-blue-box" @click="showImagePreview(scope.row)">
-                  <span>预警图片</span>
+                <div class="mini-image-preview" @click="showImagePreview(scope.row)">
+                  <div class="mini-blue-box">
+                    <i class="el-icon-picture-outline"></i>
+                    <span>预警图片</span>
+                  </div>
                 </div>
               </div>
             </template>
@@ -667,10 +808,11 @@ export default {
     />
 
     <!-- 图片预览弹框 -->
-    <el-dialog title="预警图片预览" :visible.sync="imagePreviewVisible" width="30%" custom-class="image-preview-dialog">
-      <div class="image-preview-container" v-if="currentPreviewImage">
-        <div class="blue-preview-box preview-image-full">
-          <el-button type="text" class="preview-btn">预警图像</el-button>
+    <el-dialog title="预警图片预览" :visible.sync="imagePreviewVisible" width="50%" custom-class="image-preview-dialog">
+      <div class="image-preview-wrapper">
+        <div class="preview-blue-box">
+          <i class="el-icon-picture-outline"></i>
+          <p>预警图片</p>
         </div>
       </div>
     </el-dialog>
@@ -699,25 +841,144 @@ export default {
     </el-dialog>
 
     <!-- 添加预警弹框 -->
-    <el-dialog title="添加预警" :visible.sync="addDialogVisible" width="30%" custom-class="add-warning-dialog">
+    <el-dialog title="添加预警" :visible.sync="addDialogVisible" width="50%" custom-class="add-warning-dialog">
       <el-form :model="addForm" label-width="100px" class="add-form">
-        <el-form-item label="预警名称" required>
-          <el-input v-model="addForm.name" placeholder="请输入预警名称"></el-input>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="预警名称" required>
+              <el-input v-model="addForm.name" placeholder="请输入预警名称"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="设备名称" required>
+              <el-input v-model="addForm.deviceName" placeholder="请输入设备名称"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="预警等级" required>
+              <el-select v-model="addForm.warningLevel" placeholder="请选择预警等级" style="width: 100%">
+                <el-option label="一级预警" value="level1"></el-option>
+                <el-option label="二级预警" value="level2"></el-option>
+                <el-option label="三级预警" value="level3"></el-option>
+                <el-option label="四级预警" value="level4"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="预警类型" required>
+              <el-select v-model="addForm.warningType" placeholder="请选择预警类型" style="width: 100%">
+                <el-option label="安全违规" value="安全违规"></el-option>
+                <el-option label="人员违规" value="人员违规"></el-option>
+                <el-option label="消防违规" value="消防违规"></el-option>
+                <el-option label="车辆违规" value="车辆违规"></el-option>
+                <el-option label="其他违规" value="其他违规"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="违规位置" required>
+              <el-input v-model="addForm.location" placeholder="请输入违规位置"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="预警时间" required>
+              <el-date-picker
+                v-model="addForm.warningTime"
+                type="datetimerange"
+                range-separator="至"
+                start-placeholder="开始时间"
+                end-placeholder="结束时间"
+                style="width: 100%"
+                format="yyyy-MM-dd HH:mm:ss"
+                value-format="yyyy-MM-dd HH:mm:ss">
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-form-item label="处理备注">
+          <el-input v-model="addForm.remark" placeholder="请输入处理备注"></el-input>
         </el-form-item>
-        <el-form-item label="设备位置" required>
-          <el-input v-model="addForm.deviceName" placeholder="请输入设备位置"></el-input>
+        
+        <el-form-item label="预警描述">
+          <el-input type="textarea" v-model="addForm.description" rows="3" placeholder="请输入预警详细描述"></el-input>
         </el-form-item>
-        <el-form-item label="预警等级" required>
-          <el-select v-model="addForm.warningLevel" placeholder="请选择预警等级" style="width: 100%">
-            <el-option label="一级预警" value="level1"></el-option>
-            <el-option label="二级预警" value="level2"></el-option>
-            <el-option label="三级预警" value="level3"></el-option>
-            <el-option label="四级预警" value="level4"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注描述">
-          <el-input type="textarea" v-model="addForm.description" rows="4" placeholder="请输入备注描述"></el-input>
-        </el-form-item>
+        
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="违规截图">
+              <div class="upload-container">
+                <el-upload
+                  class="violation-image-uploader"
+                  :action="uploadAction"
+                  :headers="uploadHeaders"
+                  :show-file-list="false"
+                  :before-upload="beforeImageUpload"
+                  :on-success="handleImageUploadSuccess"
+                  :on-error="handleUploadError">
+                  <div v-if="addForm.violationImage" class="image-preview-container">
+                    <img :src="addForm.violationImage" class="uploaded-image" />
+                    <div class="image-overlay">
+                      <div class="overlay-actions">
+                        <el-button type="text" size="mini" @click.stop="previewImage(addForm.violationImage)">
+                          <i class="el-icon-view"></i> 预览
+                        </el-button>
+                        <el-button type="text" size="mini" @click.stop="removeImage">
+                          <i class="el-icon-delete"></i> 删除
+                        </el-button>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="upload-dragger">
+                    <div class="upload-icon">
+                      <i class="el-icon-picture-outline"></i>
+                    </div>
+                    <div class="upload-title">点击上传违规截图</div>
+                    <div class="upload-tip">支持 JPG、PNG 格式，大小不超过 2MB</div>
+                  </div>
+                </el-upload>
+              </div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="视频片段">
+              <div class="upload-container">
+                <el-upload
+                  class="violation-video-uploader"
+                  :action="uploadAction"
+                  :headers="uploadHeaders"
+                  :show-file-list="false"
+                  :before-upload="beforeVideoUpload"
+                  :on-success="handleVideoUploadSuccess"
+                  :on-error="handleUploadError">
+                  <div v-if="addForm.violationVideo" class="video-preview-container">
+                    <video :src="addForm.violationVideo" class="uploaded-video" controls></video>
+                    <div class="video-overlay">
+                      <div class="overlay-actions">
+                        <el-button type="text" size="mini" @click.stop="removeVideo">
+                          <i class="el-icon-delete"></i> 删除
+                        </el-button>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="upload-dragger">
+                    <div class="upload-icon">
+                      <i class="el-icon-video-camera-solid"></i>
+                    </div>
+                    <div class="upload-title">点击上传视频片段</div>
+                    <div class="upload-tip">支持 MP4、AVI 格式，大小不超过 10MB</div>
+                  </div>
+                </el-upload>
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="addDialogVisible = false" class="cancel-btn">取 消</el-button>
@@ -846,8 +1107,55 @@ export default {
   text-align: center;
 }
 
-.image-link {
-  color: #409eff;
+.mini-image-preview {
+  width: 80px;
+  height: 50px;
+  margin: 0 auto;
+  cursor: pointer;
+  border-radius: 4px;
+  overflow: hidden;
+  transition: all 0.2s;
+  border: 1px solid #dcdfe6;
+}
+
+.mini-image-preview:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.mini-blue-box {
+  width: 80px;
+  height: 50px;
+  background: linear-gradient(135deg, #e6f4ff 0%, #bae7ff 50%, #91d5ff 100%);
+  border: 1px solid #d1e9ff;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  cursor: pointer;
+  font-size: 10px;
+  color: #0066cc;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+}
+
+.mini-blue-box:hover {
+  background: linear-gradient(135deg, #d4edff 0%, #a3d5ff 50%, #7cb8e8 100%);
+  color: #0052a3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.25);
+}
+
+.mini-blue-box i {
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.mini-blue-box span {
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 /* 预警等级标签 */
@@ -1048,33 +1356,61 @@ export default {
 }
 
 /* 预览图片蓝色框 */
-.blue-preview-box {
+.preview-blue-box {
   width: 100%;
-  height: 150px;
-  background-color: #ecf5ff;
-  border-radius: 4px;
+  height: 400px;
+  background: linear-gradient(135deg, #e6f4ff 0%, #bae7ff 30%, #91d5ff 70%, #69c0ff 100%);
+  border: 2px solid #d1e9ff;
+  border-radius: 12px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-.archive-image-container {
-  width: 100%;
-  height: 150px;
-  border-radius: 4px;
+  color: #0066cc;
+  box-shadow: 
+    0 8px 32px rgba(64, 158, 255, 0.2),
+    inset 0 2px 16px rgba(255, 255, 255, 0.3);
+  position: relative;
   overflow: hidden;
-  border: 1px solid #ebeef5;
 }
 
-.archive-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.preview-blue-box::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  animation: shimmer 3s ease-in-out infinite;
 }
 
-.preview-btn {
-  color: #409eff;
-  font-size: 14px;
+.preview-blue-box i {
+  font-size: 80px;
+  margin-bottom: 20px;
+  opacity: 0.8;
+  z-index: 1;
+  position: relative;
+}
+
+.preview-blue-box p {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  z-index: 1;
+  position: relative;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+    opacity: 0.1;
+  }
 }
 
 /* 详情蓝色框 */
@@ -1118,6 +1454,7 @@ export default {
 
 .edit-archive-btn {
   width: 100%;
+  border-radius: 4px;
 }
 
 /* 弹窗通用样式 */
@@ -1189,21 +1526,46 @@ export default {
 
 /* 图片预览对话框 */
 ::v-deep .image-preview-dialog .el-dialog {
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
-.image-preview-container {
-  text-align: center;
-  background-color: #f9f9f9;
+.image-preview-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
   padding: 20px;
-  border-radius: 4px;
 }
 
-.preview-image-full {
-  width: 100%;
-  height: 300px;
+.preview-image {
+  max-width: 100%;
+  max-height: 500px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   object-fit: contain;
+}
+
+.no-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: #909399;
+}
+
+.no-image-placeholder i {
+  font-size: 48px;
+  margin-bottom: 12px;
+  color: #c0c4cc;
+}
+
+.no-image-placeholder p {
+  margin: 0;
+  font-size: 14px;
 }
 
 /* 编辑档案弹窗 */
@@ -1267,146 +1629,199 @@ export default {
 }
 
 /* 表格中预警图片小蓝框 */
+.preview-image-cell {
+  text-align: center;
+}
+
+.mini-image-preview {
+  width: 80px;
+  height: 50px;
+  margin: 0 auto;
+  cursor: pointer;
+  border-radius: 4px;
+  overflow: hidden;
+  transition: all 0.2s;
+  border: 1px solid #dcdfe6;
+}
+
+.mini-image-preview:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
 .mini-blue-box {
   width: 80px;
   height: 50px;
-  background-color: #ecf5ff;
-  border-radius: 4px;
+  background: linear-gradient(135deg, #e6f4ff 0%, #bae7ff 50%, #91d5ff 100%);
+  border: 1px solid #d1e9ff;
+  border-radius: 6px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
   cursor: pointer;
-  font-size: 12px;
-  color: #409eff;
-  transition: all 0.2s;
+  font-size: 10px;
+  color: #0066cc;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
 }
 
 .mini-blue-box:hover {
-  background-color: #d9ecff;
-  color: #1890ff;
+  background: linear-gradient(135deg, #d4edff 0%, #a3d5ff 50%, #7cb8e8 100%);
+  color: #0052a3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.25);
+}
+
+.mini-blue-box i {
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.mini-blue-box span {
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 /* 上传组件样式 */
 .upload-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  width: 100%;
 }
 
-.avatar-uploader {
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
+.violation-image-uploader,
+.violation-video-uploader {
+  width: 100%;
+}
+
+.violation-image-uploader .el-upload,
+.violation-video-uploader .el-upload {
+  width: 100%;
+  height: 180px;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  width: 178px;
-  height: 178px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
-.avatar-uploader:hover {
-  border-color: #409EFF;
-}
-
-.avatar-uploader-icon {
-  font-size: 28px;
-  color: #8c939d;
-  width: 178px;
-  height: 178px;
-  line-height: 178px;
-  text-align: center;
-}
-
-.avatar {
-  width: 178px;
-  height: 178px;
-  display: block;
-  object-fit: cover;
-}
-
-.remove-image {
-  color: #f56c6c;
-  margin-top: 8px;
-}
-
-
-.blue-upload-box {
+.upload-dragger {
   width: 100%;
-  height: 100%;
-  border-radius: 4px;
-  background-color: #ecf5ff;
+  height: 180px;
+  border: 2px dashed #dcdfe6;
+  border-radius: 8px;
+  background-color: #fafafa;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  transition: all 0.3s ease;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.upload-dragger:hover {
+  border-color: #409eff;
+  background-color: #f0f9ff;
+}
+
+.upload-icon {
+  margin-bottom: 12px;
+}
+
+.upload-icon i {
+  font-size: 48px;
+  color: #c0c4cc;
+  transition: color 0.3s ease;
+}
+
+.upload-dragger:hover .upload-icon i {
   color: #409eff;
-  transition: all 0.3s;
-  border: 1px dashed #d9ecff;
 }
 
-.blue-upload-box:hover {
-  background-color: #d9ecff;
-}
-
-.blue-upload-box i {
-  font-size: 32px;
+.upload-title {
+  font-size: 16px;
+  color: #606266;
   margin-bottom: 8px;
+  font-weight: 500;
 }
 
-.upload-text {
-  font-size: 14px;
+.upload-tip {
+  font-size: 12px;
+  color: #909399;
+  text-align: center;
+  line-height: 1.4;
 }
 
-.image-preview {
+.image-preview-container,
+.video-preview-container {
   width: 100%;
-  height: 100%;
+  height: 180px;
   position: relative;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
+  background-color: #000;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
-.uploaded-image {
+.uploaded-image,
+.uploaded-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.9;
+  border-radius: 8px;
 }
 
-.image-actions {
+.image-overlay,
+.video-overlay {
   position: absolute;
   top: 0;
+  left: 0;
   right: 0;
   bottom: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.2);
+  background: linear-gradient(to bottom, 
+    transparent 0%, 
+    transparent 60%, 
+    rgba(0, 0, 0, 0.3) 80%, 
+    rgba(0, 0, 0, 0.6) 100%);
   display: flex;
+  align-items: flex-end;
   justify-content: center;
-  align-items: center;
-  gap: 20px;
+  padding: 16px;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.3s ease;
 }
 
-.image-preview:hover .image-actions {
+.image-preview-container:hover .image-overlay,
+.video-preview-container:hover .video-overlay {
   opacity: 1;
 }
 
-.image-actions i {
-  color: #fff;
-  font-size: 22px;
-  cursor: pointer;
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 50%;
-  padding: 10px;
-  transition: all 0.2s;
+.overlay-actions {
+  display: flex;
+  gap: 12px;
 }
 
-.image-actions i:hover {
-  transform: scale(1.1);
-  background-color: rgba(0, 0, 0, 0.5);
+.overlay-actions .el-button {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 6px;
+  color: #606266;
+  padding: 8px 12px;
+  font-size: 12px;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.overlay-actions .el-button:hover {
+  background-color: #409eff;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(64, 158, 255, 0.3);
+}
+
+.overlay-actions .el-button i {
+  margin-right: 4px;
 }
 
 /* 档案详情 */
@@ -1474,5 +1889,38 @@ export default {
 .edit-archive-btn {
   width: 100%;
   border-radius: 4px;
+}
+
+/* 时间段选择器样式优化 */
+::v-deep .el-date-editor--datetimerange {
+  width: 100% !important;
+}
+
+::v-deep .el-date-editor--datetimerange .el-range-separator {
+  width: 30px;
+  text-align: center;
+  color: #606266;
+  font-weight: 500;
+}
+
+::v-deep .el-date-editor--datetimerange .el-range-input {
+  background-color: transparent;
+  border: 0;
+  color: #606266;
+  font-size: 14px;
+  line-height: 28px;
+  outline: none;
+  display: inline-block;
+  width: 39%;
+  text-align: center;
+}
+
+::v-deep .el-date-editor--datetimerange .el-range__icon {
+  font-size: 14px;
+  color: #c0c4cc;
+  float: left;
+  width: 25px;
+  margin-left: 7px;
+  text-align: center;
 }
 </style>

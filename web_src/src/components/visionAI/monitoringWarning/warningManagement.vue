@@ -222,9 +222,7 @@ export default {
       remarkDialogVisible: false,
       currentWarningId: '',
       remarkForm: {
-        remark: '',
-        handler: '',
-        solution: ''
+        remark: ''
       },
       
       // 上报确认对话框
@@ -771,13 +769,7 @@ export default {
         const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
         if (index !== -1) {
           // 构建完整的备注内容
-          let remarkContent = `处理意见：${this.remarkForm.remark}`
-          if (this.remarkForm.handler.trim()) {
-            remarkContent += `\n责任人：${this.remarkForm.handler}`
-          }
-          if (this.remarkForm.solution.trim()) {
-            remarkContent += `\n处置方式：${this.remarkForm.solution}`
-          }
+          let remarkContent = this.remarkForm.remark
           
           this.warningList[index].remark = remarkContent
         }
@@ -795,9 +787,7 @@ export default {
       this.remarkDialogVisible = false
       this.currentWarningId = ''
       this.remarkForm = {
-        remark: '',
-        handler: '',
-        solution: ''
+        remark: ''
       }
     },
     
@@ -1116,7 +1106,7 @@ export default {
               <div class="warning-level-badge" :class="getLevelClass(item.level)">
                 <span class="level-badge-text">{{ getLevelBadgeText(item.level) }}</span>
               </div>
-              
+            
               <!-- 右上角选择框 -->
               <div class="select-checkbox" @click.stop="toggleSelect(item.id)">
                 <el-checkbox 
@@ -1244,7 +1234,7 @@ export default {
     <el-dialog
       title="添加备注"
       :visible.sync="remarkDialogVisible"
-      width="40%"
+      width="30%"
       center
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -1255,25 +1245,8 @@ export default {
             v-model="remarkForm.remark"
             type="textarea"
             :rows="4"
-            placeholder="请输入处理意见、处置情况等"
+            placeholder="请输入处理意见"
             maxlength="500"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item label="责任人">
-          <el-input
-            v-model="remarkForm.handler"
-            placeholder="请输入责任人姓名"
-            maxlength="50"
-          />
-        </el-form-item>
-        <el-form-item label="处置方式">
-          <el-input
-            v-model="remarkForm.solution"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入具体的处置方式"
-            maxlength="300"
             show-word-limit
           />
         </el-form-item>
