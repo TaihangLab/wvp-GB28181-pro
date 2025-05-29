@@ -91,36 +91,39 @@
           <i class="el-icon-close" style="margin-right: 5px;"></i>
           误报
         </el-button>
-        <el-button type="success" @click="handleWarning" style="padding: 10px 20px;">
-          <i class="el-icon-check" style="margin-right: 5px;"></i>
-          处理
-        </el-button>
-        <el-button @click="closeDialog" style="padding: 10px 20px;">
-          关闭
-        </el-button>
+        <template v-if="warning && warning.status === 'completed'">
+          <el-button type="success" disabled style="padding: 10px 20px;">
+            <i class="el-icon-check" style="margin-right: 5px;"></i>
+            已处理
+          </el-button>
+        </template>
+        <template v-else>
+          <el-button type="success" @click="handleWarning" style="padding: 10px 20px;">
+            <i class="el-icon-check" style="margin-right: 5px;"></i>
+            处理
+          </el-button>
+        </template>
       </template>
       <!-- 预警管理页面只显示处理和关闭按钮 -->
       <template v-else-if="source === 'warningManagement'">
-        <el-button type="success" @click="handleWarning" style="padding: 10px 20px;">
-          <i class="el-icon-check" style="margin-right: 5px;"></i>
-          立即处理
-        </el-button>
-        <el-button @click="closeDialog" style="padding: 10px 20px;">
-          关闭
-        </el-button>
       </template>
       <!-- 预警档案页面只显示关闭按钮 -->
       <template v-else-if="source === 'warningArchives'">
-        <el-button @click="closeDialog" style="padding: 10px 20px;">
-          关闭
-        </el-button>
       </template>
       <!-- 默认情况显示处理和关闭按钮 -->
       <template v-else>
-        <el-button type="success" @click="handleWarning" style="padding: 10px 20px;">
-          <i class="el-icon-check" style="margin-right: 5px;"></i>
-          立即处理
-        </el-button>
+        <template v-if="warning && warning.status === 'completed'">
+          <el-button type="success" disabled style="padding: 10px 20px;">
+            <i class="el-icon-check" style="margin-right: 5px;"></i>
+            已处理
+          </el-button>
+        </template>
+        <template v-else>
+          <el-button type="success" @click="handleWarning" style="padding: 10px 20px;">
+            <i class="el-icon-check" style="margin-right: 5px;"></i>
+            处理
+          </el-button>
+        </template>
         <el-button @click="closeDialog" style="padding: 10px 20px;">
           关闭
         </el-button>
@@ -192,16 +195,7 @@
               />
             </el-form-item>
             
-            <el-form-item>
-              <el-button 
-                type="text" 
-                icon="el-icon-plus"
-                @click="showCreateArchiveDialog"
-                style="padding: 0;"
-              >
-                创建新档案
-              </el-button>
-            </el-form-item>
+
           </el-form>
         </div>
         
@@ -222,49 +216,7 @@
       </span>
     </el-dialog>
 
-    <!-- 创建档案对话框 -->
-    <el-dialog
-      title="创建新档案"
-      :visible.sync="createArchiveDialogVisible"
-      width="35%"
-      center
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-    >
-      <el-form :model="newArchiveForm" label-width="80px">
-        <el-form-item label="档案名称" required>
-          <el-input
-            v-model="newArchiveForm.name"
-            placeholder="请输入档案名称"
-            maxlength="50"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item label="档案描述">
-          <el-input
-            v-model="newArchiveForm.description"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入档案描述（可选）"
-            maxlength="200"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-alert
-            :title="`档案将关联到：${getCurrentCameraName()}`"
-            type="info"
-            :closable="false"
-            show-icon
-          />
-        </el-form-item>
-      </el-form>
-      
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="closeCreateArchiveDialog">取 消</el-button>
-        <el-button type="primary" @click="createNewArchive">创建档案</el-button>
-      </span>
-    </el-dialog>
+
   </div>
 </template>
 
@@ -297,12 +249,7 @@ export default {
       // 上报相关
       reportDialogVisible: false,
       reportWarningId: '',
-      // 创建档案相关
-      createArchiveDialogVisible: false,
-      newArchiveForm: {
-        name: '',
-        description: ''
-      }
+
     }
   },
   watch: {
@@ -389,9 +336,10 @@ export default {
         
         if (action === 'markProcessed') {
           // 标记为已处理
+          this.warning.status = 'completed';
           this.$message.success('已标记为已处理');
           this.$emit('handle-warning', this.warning);
-          this.closeDialog();
+          // 不立即关闭对话框，让用户看到状态变化
         } else if (action === 'report') {
           // 上报
           this.reportWarningId = this.warning.id;
@@ -542,51 +490,7 @@ export default {
       return cameraNames[this.currentCameraId] || '监控点';
     },
     
-    // 显示创建新档案对话框
-    showCreateArchiveDialog() {
-      this.createArchiveDialogVisible = true;
-    },
-    
-    // 创建新档案
-    async createNewArchive() {
-      if (!this.newArchiveForm.name.trim()) {
-        this.$message.warning('请输入档案名称');
-        return;
-      }
-      
-      try {
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        const newArchive = {
-          id: `archive_${Date.now()}`,
-          name: this.newArchiveForm.name,
-          cameraId: this.currentCameraId,
-          cameraName: this.getCurrentCameraName(),
-          isDefault: false,
-          description: this.newArchiveForm.description,
-          createTime: new Date().toLocaleString()
-        };
-        
-        this.archivesList.push(newArchive);
-        this.selectedArchiveId = newArchive.id;
-        
-        this.$message.success('档案创建成功');
-        this.closeCreateArchiveDialog();
-      } catch (error) {
-        console.error('创建档案失败:', error);
-        this.$message.error('创建档案失败');
-      }
-    },
-    
-    // 关闭创建档案对话框
-    closeCreateArchiveDialog() {
-      this.createArchiveDialogVisible = false;
-      this.newArchiveForm = {
-        name: '',
-        description: ''
-      };
-    },
+
     
     // 处理误报事件 - 复制预警管理页面的逻辑
     async handleFalseAlarmArchive() {
@@ -622,6 +526,12 @@ export default {
     },
     // 获取预警等级文字
     getWarningLevelText(level) {
+      // 如果已经是中文格式，直接返回等级部分
+      if (level && level.includes('预警')) {
+        return level.replace('预警', '');
+      }
+      
+      // 如果是英文格式，转换为中文
       const levelMap = {
         'level1': '一级',
         'level2': '二级',
@@ -632,6 +542,18 @@ export default {
     },
     // 获取预警图标
     getWarningIcon(level) {
+      // 如果是中文格式，转换为对应图标
+      if (level && level.includes('预警')) {
+        const chineseIconMap = {
+          '一级预警': 'el-icon-warning',
+          '二级预警': 'el-icon-warning-outline',
+          '三级预警': 'el-icon-warning-outline',
+          '四级预警': 'el-icon-warning-outline'
+        };
+        return chineseIconMap[level] || 'el-icon-warning';
+      }
+      
+      // 如果是英文格式，使用原有映射
       const iconMap = {
         'level1': 'el-icon-warning',
         'level2': 'el-icon-warning-outline',
@@ -642,6 +564,18 @@ export default {
     },
     // 获取预警等级颜色
     getWarningLevelColor(level) {
+      // 如果是中文格式，转换为对应颜色
+      if (level && level.includes('预警')) {
+        const chineseColorMap = {
+          '一级预警': '#f56c6c',
+          '二级预警': '#e6a23c',
+          '三级预警': '#409EFF',
+          '四级预警': '#67c23a'
+        };
+        return chineseColorMap[level] || '#f56c6c';
+      }
+      
+      // 如果是英文格式，使用原有映射
       const colorMap = {
         'level1': '#f56c6c',
         'level2': '#e6a23c',

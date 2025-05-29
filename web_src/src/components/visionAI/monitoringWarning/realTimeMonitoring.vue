@@ -147,7 +147,12 @@
             </div>
             <div class="warning-actions">
               <el-button size="mini" type="primary" plain @click="viewWarningDetail(warning)">查看详情</el-button>
-              <el-button size="mini" type="success" plain @click="handleWarningFromList(warning)">处理</el-button>
+              <template v-if="warning.status === 'completed'">
+                <el-button size="mini" type="success" plain disabled>已处理</el-button>
+              </template>
+              <template v-else>
+                <el-button size="mini" type="success" plain @click="handleWarningFromList(warning)">处理</el-button>
+              </template>
             </div>
           </div>
         </div>
@@ -214,6 +219,7 @@ export default {
           type: '未戴安全帽', 
           level: 'level1', 
           location: '工地东北角',
+          status: 'pending',
           description: '检测到工作人员未佩戴安全帽，存在严重安全隐患，请立即整改并加强安全教育'
         },
         { 
@@ -223,6 +229,7 @@ export default {
           type: '未穿工作服', 
           level: 'level2', 
           location: '工地南侧',
+          status: 'pending',
           description: '发现工作人员未按规定穿着工作服，违反现场作业安全规范，需要立即纠正'
         },
         { 
@@ -232,6 +239,7 @@ export default {
           type: '闲杂人员', 
           level: 'level3', 
           location: '材料区',
+          status: 'pending',
           description: '检测到非工作人员进入施工区域，可能存在安全风险，请及时清理并加强管控'
         },
         { 
@@ -241,6 +249,7 @@ export default {
           type: '吸烟', 
           level: 'level4', 
           location: '休息区',
+          status: 'pending',
           description: '发现工作人员在禁烟区域吸烟，违反安全生产规定，请立即制止并进行安全教育'
         },
       ],
