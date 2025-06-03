@@ -770,9 +770,12 @@ export default {
                 'level3-tag': scope.row.warningLevel === 'level3',
                 'level4-tag': scope.row.warningLevel === 'level4'
               }">
-                {{ scope.row.warningLevel === 'level1' ? '一级预警' :
+                {{ 
+                  scope.row.warningLevel === 'level1' ? '一级预警' :
                   scope.row.warningLevel === 'level2' ? '二级预警' :
-                  scope.row.warningLevel === 'level3' ? '三级预警' : '四级预警' }}
+                  scope.row.warningLevel === 'level3' ? '三级预警' : 
+                  scope.row.warningLevel === 'level4' ? '四级预警' :
+                  '未知预警' }}
               </span>
             </template>
           </el-table-column>
