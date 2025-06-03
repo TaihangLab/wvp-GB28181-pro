@@ -233,6 +233,12 @@ export default {
       archiveDialogVisible: false,
       archiveWarningId: '',
       
+      // 批量处理对话框
+      batchProcessDialogVisible: false,
+      batchRemarkForm: {
+        remark: ''
+      },
+      
       // 档案管理数据
       archivesList: [
         {
@@ -254,8 +260,6 @@ export default {
       ],
       selectedArchiveId: '',
       currentCameraId: 'camera_1',
-      
-
       
       // 预警详情对话框
       warningDetailVisible: false,
@@ -422,14 +426,11 @@ export default {
         const index = this.warningList.findIndex(item => item.id === id)
         if (index !== -1) {
           if (action === 'markProcessed') {
-            // 标记为已处理
-            this.warningList[index].status = 'completed'
-            this.$message.success('已标记为已处理')
-          } else if (action === 'remark') {
-            // 添加备注
+            // 标记为已处理 - 弹出处理意见对话框
             this.currentWarningId = id
             this.remarkDialogVisible = true
-            return // 不关闭loading，等备注保存后再关闭
+            this.loading = false // 在弹框前先关闭loading
+            return // 等处理意见填写完成后再继续
           } else if (action === 'report') {
             // 上报
             this.reportWarningId = id
@@ -554,8 +555,6 @@ export default {
       return cameraNames[this.currentCameraId] || '监控点'
     },
     
-
-    
     // 全选/取消全选
     handleSelectAll() {
       if (this.selectedWarnings.length === this.filteredWarningList.length) {
@@ -598,6 +597,17 @@ export default {
         return
       }
       
+      // 弹出批量处理意见对话框
+      this.batchProcessDialogVisible = true
+    },
+    
+    // 确认批量处理
+    async confirmBatchProcess() {
+      if (!this.batchRemarkForm.remark.trim()) {
+        this.$message.warning('请输入批量处理意见')
+        return
+      }
+      
       try {
         this.loading = true
         
@@ -612,16 +622,26 @@ export default {
           const index = this.warningList.findIndex(item => item.id === id)
           if (index !== -1 && this.warningList[index].status === 'pending') {
             this.warningList[index].status = 'completed'
+            this.warningList[index].remark = this.batchRemarkForm.remark
           }
         }
         
-        this.$message.success(`已批量标记 ${this.selectedWarnings.length} 项预警为已处理`)
+        this.$message.success(`已批量处理 ${this.selectedWarnings.length} 项预警，处理意见已保存`)
         this.selectedWarnings = []
+        this.closeBatchProcessDialog()
       } catch (error) {
         console.error('批量处理失败:', error)
         this.$message.error('批量处理失败')
       } finally {
         this.loading = false
+      }
+    },
+    
+    // 关闭批量处理对话框
+    closeBatchProcessDialog() {
+      this.batchProcessDialogVisible = false
+      this.batchRemarkForm = {
+        remark: ''
       }
     },
     
@@ -762,6 +782,8 @@ export default {
       }
       
       try {
+        this.loading = true
+        
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 300))
         
@@ -771,14 +793,25 @@ export default {
           // 构建完整的备注内容
           let remarkContent = this.remarkForm.remark
           
+          // 保存处理意见
           this.warningList[index].remark = remarkContent
+          // 同时将状态更新为已处理
+          this.warningList[index].status = 'completed'
         }
         
-        this.$message.success('备注已保存')
+        // 如果在选中列表中，移除它
+        const selectedIndex = this.selectedWarnings.indexOf(this.currentWarningId)
+        if (selectedIndex !== -1) {
+          this.selectedWarnings.splice(selectedIndex, 1)
+        }
+        
+        this.$message.success('处理完成，处理意见已保存')
         this.closeRemarkDialog()
       } catch (error) {
-        console.error('保存备注失败:', error)
-        this.$message.error('保存备注失败')
+        console.error('处理失败:', error)
+        this.$message.error('处理失败')
+      } finally {
+        this.loading = false
       }
     },
     
@@ -1166,13 +1199,6 @@ export default {
                   </template>
                   
                   <el-button 
-                    class="remark-btn" 
-                    size="mini" 
-                    plain
-                    @click.stop="handleWarning(item.id, 'remark')"
-                  >备注</el-button>
-                  
-                  <el-button 
                     class="report-btn" 
                     size="mini" 
                     @click.stop="handleWarning(item.id, 'report')"
@@ -1232,7 +1258,7 @@ export default {
     
     <!-- 添加备注对话框 -->
     <el-dialog
-      title="添加备注"
+      title="处理预警"
       :visible.sync="remarkDialogVisible"
       width="30%"
       center
@@ -1245,15 +1271,19 @@ export default {
             v-model="remarkForm.remark"
             type="textarea"
             :rows="4"
-            placeholder="请输入处理意见"
+            placeholder="请输入处理意见，描述具体的处理措施和结果"
             maxlength="500"
             show-word-limit
           />
         </el-form-item>
       </el-form>
+      <div class="process-tip">
+        <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
+        <span style="color: #909399; font-size: 13px;">填写处理意见后，该预警将被标记为已处理状态</span>
+      </div>
       <span slot="footer" class="dialog-footer">
         <el-button @click="closeRemarkDialog">取 消</el-button>
-        <el-button type="primary" @click="saveRemark">保 存</el-button>
+        <el-button type="primary" @click="saveRemark">确认处理</el-button>
       </span>
     </el-dialog>
     
@@ -1345,7 +1375,43 @@ export default {
       </span>
     </el-dialog>
     
-
+    <!-- 批量处理对话框 -->
+    <el-dialog
+      title="批量处理预警"
+      :visible.sync="batchProcessDialogVisible"
+      width="35%"
+      center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <div class="batch-process-info">
+        <i class="el-icon-warning-outline" style="color: #E6A23C; font-size: 24px; margin-right: 8px;"></i>
+        <span style="font-size: 16px; font-weight: 500;">您将要批量处理 {{ selectedWarnings.length }} 项预警</span>
+      </div>
+      
+      <el-form :model="batchRemarkForm" label-width="80px" style="margin-top: 20px;">
+        <el-form-item label="处理意见" required>
+          <el-input
+            v-model="batchRemarkForm.remark"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入批量处理意见，此意见将应用到所有选中的预警"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+      
+      <div class="batch-process-tip">
+        <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
+        <span style="color: #909399; font-size: 13px;">批量处理完成后，所有选中的预警将被标记为已处理状态，并保存统一的处理意见</span>
+      </div>
+      
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="closeBatchProcessDialog">取 消</el-button>
+        <el-button type="primary" @click="confirmBatchProcess">确认批量处理</el-button>
+      </span>
+    </el-dialog>
     
     <!-- 预警详情对话框 -->
     <WarningDetail
@@ -2099,6 +2165,16 @@ export default {
   padding: 10px 0;
 }
 
+.process-tip {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  border-left: 3px solid #909399;
+}
+
 /* 归档对话框样式 */
 .archive-dialog-content {
   padding: 10px 0;
@@ -2118,5 +2194,25 @@ export default {
 
 .archive-tip {
   margin-top: 10px;
+}
+
+.batch-process-info {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #fef7e0;
+  border: 1px solid #faecd8;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.batch-process-tip {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  border-left: 3px solid #909399;
 }
 </style>

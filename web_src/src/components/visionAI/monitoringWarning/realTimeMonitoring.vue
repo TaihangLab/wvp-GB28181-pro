@@ -171,6 +171,37 @@
       @handle-archive="handleArchiveFromDialog"
       @handle-false-alarm="handleFalseAlarmFromDialog"
     />
+    
+    <!-- 处理意见对话框 -->
+    <el-dialog
+      title="处理预警"
+      :visible.sync="remarkDialogVisible"
+      width="30%"
+      center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <el-form :model="remarkForm" label-width="80px">
+        <el-form-item label="处理意见" required>
+          <el-input
+            v-model="remarkForm.remark"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入处理意见，描述具体的处理措施和结果"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+      <div class="process-tip">
+        <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
+        <span style="color: #909399; font-size: 13px;">填写处理意见后，该预警将被标记为已处理状态</span>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="closeRemarkDialog">取 消</el-button>
+        <el-button type="primary" @click="saveRemark">确认处理</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -261,6 +292,13 @@ export default {
       currentCameraId: '',
       archiveWarningId: '',
       reportWarningId: '',
+      
+      // 处理意见对话框
+      remarkDialogVisible: false,
+      remarkForm: {
+        remark: ''
+      },
+      currentProcessingWarningId: '',
     }
   },
   computed: {
@@ -749,15 +787,59 @@ export default {
     // 从预警列表处理预警 - 使用统一的处理逻辑
     handleWarningFromList(warning) {
       if (warning && warning.id) {
-        this.handleWarning(warning.id, 'markProcessed');
+        // 弹出处理意见对话框
+        this.currentProcessingWarningId = warning.id;
+        this.remarkDialogVisible = true;
       }
     },
-    // 从对话框处理预警
+    
+    // 保存处理意见并完成处理
+    async saveRemark() {
+      if (!this.remarkForm.remark.trim()) {
+        this.$message.warning('请输入处理意见');
+        return;
+      }
+      
+      try {
+        this.loading = true;
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 更新本地数据状态
+        const index = this.warningList.findIndex(item => item.id === this.currentProcessingWarningId);
+        if (index !== -1) {
+          this.warningList[index].status = 'completed';
+          this.warningList[index].remark = this.remarkForm.remark;
+        }
+        
+        this.$message.success('处理完成，处理意见已保存');
+        this.closeRemarkDialog();
+      } catch (error) {
+        console.error('处理失败:', error);
+        this.$message.error('处理失败');
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    // 关闭处理意见对话框
+    closeRemarkDialog() {
+      this.remarkDialogVisible = false;
+      this.remarkForm = {
+        remark: ''
+      };
+      this.currentProcessingWarningId = '';
+    },
+    
+    // 从对话框处理预警 - 也使用处理意见流程
     handleWarningFromDialog(warning) {
       if (warning && warning.id) {
-        this.handleWarning(warning.id, 'markProcessed');
+        this.currentProcessingWarningId = warning.id;
+        this.remarkDialogVisible = true;
       }
     },
+    
     // 处理预警事件 - 复制预警管理页面的核心逻辑
     async handleWarning(id, action) {
       try {
@@ -1902,6 +1984,20 @@ body.camera-fullscreen-mode .video-cell .video-content .video-placeholder::befor
   color: #409EFF;
 }
 
+body.camera-fullscreen-mode .video-cell .video-content .video-placeholder i.el-icon-warning {
+  color: #f56c6c;
+  animation: pulse 1.5s infinite;
+}
+
+.process-tip {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  border-left: 3px solid #909399;
+}
 </style>
 
 <!-- 全局样式，处理全屏模式 -->
