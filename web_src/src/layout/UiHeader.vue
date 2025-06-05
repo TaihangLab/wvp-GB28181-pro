@@ -35,6 +35,9 @@
           <span>设备配置</span>
         </template>
         <el-menu-item index="/deviceManage/camera">摄像头</el-menu-item>
+        <el-menu-item index="/deviceManage/sensor">传感器设备</el-menu-item>
+        <el-menu-item index="/deviceManage/network">网络设备</el-menu-item>
+        <el-menu-item index="/deviceManage/storage">存储设备</el-menu-item>
       </el-submenu>
       
       <!-- 模型管理菜单 -->
@@ -44,6 +47,8 @@
           <span>模型管理</span>
         </template>
         <el-menu-item index="/modelManage/modelList">模型列表</el-menu-item>
+        <el-menu-item index="/modelManage/modelTrain">模型训练</el-menu-item>
+        <el-menu-item index="/modelManage/modelDeploy">模型部署</el-menu-item>
       </el-submenu>
       
       <!-- 技能管理菜单 -->
@@ -53,6 +58,8 @@
           <span>技能管理</span>
         </template>
         <el-menu-item index="/skillManage/deviceSkills">技能列表</el-menu-item>
+        <el-menu-item index="/skillManage/skillConfig">技能测试</el-menu-item>
+        <el-menu-item index="/skillManage/skillMonitor">技能监控</el-menu-item>
       </el-submenu>
       
       <!-- 智能管控菜单 -->

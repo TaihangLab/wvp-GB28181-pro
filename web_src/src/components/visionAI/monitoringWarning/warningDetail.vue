@@ -391,8 +391,9 @@ export default {
         });
       }
       
-      // 归档节点 - 只有在已归档状态下才显示
+      // 归档节点逻辑优化
       if (this.warning.status === 'archived') {
+        // 已归档状态 - 显示完成
         timeline.push({
           status: 'completed',
           statusText: '已归档',
@@ -400,12 +401,20 @@ export default {
           description: this.warning.isFalseAlarm ? '误报已归档，处理流程结束' : '预警已归档，处理流程结束'
         });
       } else if (this.warning.status === 'completed') {
-        // 处理完成但未归档，显示可选的归档步骤
+        // 处理完成但未归档 - 显示为活跃状态，提示用户可以进行归档操作
+        timeline.push({
+          status: 'active',
+          statusText: '归档处理',
+          time: '',
+          description: '可选择将预警归档至相应档案'
+        });
+      } else if (this.warning.status === 'pending') {
+        // 待处理状态 - 显示为未来步骤
         timeline.push({
           status: 'future',
           statusText: '归档处理',
           time: '',
-          description: '可选择将预警归档至相应档案'
+          description: '处理完成后可进行归档操作'
         });
       }
       
@@ -517,16 +526,21 @@ export default {
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // 更新预警状态和备注
+        // 更新预警状态和备注 - 使用Vue.set确保响应式更新
         if (this.warning) {
-          this.warning.status = 'completed';
-          this.warning.remark = this.remarkForm.remark;
-          this.warning.processTime = this.getCurrentTime(); // 添加处理时间
+          this.$set(this.warning, 'status', 'completed');
+          this.$set(this.warning, 'remark', this.remarkForm.remark);
+          this.$set(this.warning, 'processTime', this.getCurrentTime());
         }
         
         this.$message.success('处理完成，处理意见已保存');
         this.$emit('handle-warning', this.warning);
         this.closeRemarkDialog();
+        
+        // 强制更新视图，确保按钮状态立即变化
+        this.$nextTick(() => {
+          this.$forceUpdate();
+        });
       } catch (error) {
         console.error('处理失败:', error);
         this.$message.error('处理失败');
