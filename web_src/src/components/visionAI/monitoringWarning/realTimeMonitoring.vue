@@ -125,10 +125,12 @@
       <div class="list-content">
         <div v-for="warning in warningList" 
              :key="warning.id" 
-             class="warning-item"
-             :class="warning.level">
-          <div class="warning-level-badge" :class="warning.level">{{ getWarningLevelText(warning.level) }}</div>
+             class="warning-item">
           <div class="warning-video">
+            <div class="warning-status-container">
+              <div class="warning-level-badge" :class="warning.level">{{ getWarningLevelText(warning.level) }}</div>
+              <div class="warning-status-badge" :class="getCurrentWarningStatus(warning).class">{{ getCurrentWarningStatus(warning).text }}</div>
+            </div>
             <div v-if="warning.imageUrl" class="warning-image">
               <img :src="warning.imageUrl" :alt="warning.type" />
             </div>
@@ -139,7 +141,7 @@
           </div>
           <div class="warning-info">
             <div class="warning-time-location">
-              <div class="warning-time">{{ warning.time }}</div>
+              <div class="warning-time">{{ formatTime(warning.time) }}</div>
               <div class="warning-location">{{ warning.location }}</div>
             </div>
             <div class="warning-detail">
@@ -150,8 +152,15 @@
             </div>
             <div class="warning-actions">
               <el-button size="mini" type="primary" plain @click="viewWarningDetail(warning)">查看详情</el-button>
-              <!-- 处理按钮始终可用，允许多次处理 -->
-              <el-button size="mini" type="success" plain @click="handleWarningFromList(warning)">处理</el-button>
+              <!-- 处理按钮根据状态禁用 -->
+              <el-button 
+                size="mini" 
+                type="success" 
+                plain 
+                :disabled="isProcessingDisabled(warning)"
+                @click="handleWarningFromList(warning)">
+                {{ isProcessingDisabled(warning) ? '已完成' : '处理' }}
+              </el-button>
             </div>
           </div>
         </div>
@@ -194,11 +203,12 @@
       </el-form>
       <div class="process-tip">
         <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
-        <span style="color: #909399; font-size: 13px;">填写处理意见后，将在处理进展中添加一条处理记录，可多次添加处理记录</span>
+        <span style="color: #909399; font-size: 13px;">填写处理意见后，可点击"确认处理"添加处理记录，或点击"结束处理"完成整个处理流程</span>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button @click="closeRemarkDialog">取 消</el-button>
         <el-button type="primary" @click="saveRemark">确认处理</el-button>
+        <el-button type="success" @click="finishProcessing">结束处理</el-button>
       </span>
     </el-dialog>
   </div>
@@ -244,7 +254,7 @@ export default {
       warningList: [
         { 
           id: 1, 
-          time: '10:30:25', 
+          time: '2024-12-18 10:30:25', 
           device: '摄像头01', 
           type: '未戴安全帽', 
           level: 'level1', 
@@ -255,7 +265,7 @@ export default {
         },
         { 
           id: 2, 
-          time: '10:28:15', 
+          time: '2024-12-18 10:28:15', 
           device: '摄像头03', 
           type: '未穿工作服', 
           level: 'level2', 
@@ -790,13 +800,64 @@ export default {
     // 从预警列表处理预警 - 使用统一的处理逻辑
     handleWarningFromList(warning) {
       if (warning && warning.id) {
+        // 检查当前是否已经在处理中
+        const hasProcessingRecord = warning.operationHistory && 
+          warning.operationHistory.some(record => 
+            record.operationType === 'processing' && record.status === 'active'
+          );
+        
+        if (hasProcessingRecord) {
+          // 如果已经有处理中记录，直接弹出处理意见对话框
+          this.currentProcessingWarningId = warning.id;
+          this.remarkDialogVisible = true;
+        } else {
+          // 如果没有处理中记录，先添加"处理中"状态
+          this.startProcessingWarning(warning);
+        }
+      }
+    },
+    
+    // 开始处理预警
+    startProcessingWarning(warning) {
+      const index = this.warningList.findIndex(item => item.id === warning.id);
+      if (index !== -1) {
+        // 确保有操作历史数组
+        if (!this.warningList[index].operationHistory) {
+          this.$set(this.warningList[index], 'operationHistory', []);
+        }
+        
+        // 更新待处理记录为已完成状态
+        this.warningList[index].operationHistory = this.warningList[index].operationHistory.map(record => {
+          if (record.operationType === 'pending' && record.status === 'active') {
+            return {
+              ...record,
+              status: 'completed',
+              description: '预警已确认，开始处理'
+            };
+          }
+          return record;
+        });
+        
+        // 添加处理中记录
+        const newRecord = {
+          id: Date.now() + Math.random(),
+          status: 'active',
+          statusText: '处理中',
+          time: this.getCurrentTime(),
+          description: '处理人员正在处理此预警，可添加处理记录',
+          operationType: 'processing',
+          operator: this.getCurrentUserName()
+        };
+        
+        this.warningList[index].operationHistory.unshift(newRecord);
+        
         // 弹出处理意见对话框
         this.currentProcessingWarningId = warning.id;
         this.remarkDialogVisible = true;
       }
     },
     
-    // 保存处理意见并完成处理
+    // 保存处理意见（添加处理中记录）
     async saveRemark() {
       if (!this.remarkForm.remark.trim()) {
         this.$message.warning('请输入处理意见');
@@ -809,10 +870,9 @@ export default {
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // 更新本地数据状态 - 只添加处理记录，不改变状态
+        // 更新本地数据状态 - 添加新的处理记录
         const index = this.warningList.findIndex(item => item.id === this.currentProcessingWarningId);
         if (index !== -1) {
-          // 添加处理记录到操作历史（如果预警对象有operationHistory）
           if (!this.warningList[index].operationHistory) {
             this.$set(this.warningList[index], 'operationHistory', []);
           }
@@ -820,22 +880,60 @@ export default {
           const newRecord = {
             id: Date.now() + Math.random(),
             status: 'completed',
-            statusText: '处理记录',
+            statusText: '处理中',
             time: this.getCurrentTime(),
             description: `处理意见：${this.remarkForm.remark}`,
-            operationType: 'process',
+            operationType: 'processing-action',
             operator: this.getCurrentUserName()
           };
           
           this.warningList[index].operationHistory.unshift(newRecord);
-          // 不再改变预警状态为completed，保持预警可继续处理
         }
         
-        this.$message.success('处理记录已添加，可继续添加多次处理记录');
+        this.$message.success('处理记录已添加');
         this.closeRemarkDialog();
       } catch (error) {
         console.error('处理失败:', error);
         this.$message.error('处理失败');
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    // 结束处理
+    async finishProcessing() {
+      try {
+        this.loading = true;
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 更新本地数据状态
+        const index = this.warningList.findIndex(item => item.id === this.currentProcessingWarningId);
+        if (index !== -1) {
+          if (!this.warningList[index].operationHistory) {
+            this.$set(this.warningList[index], 'operationHistory', []);
+          }
+          
+          // 更新处理中记录为已完成
+          this.warningList[index].operationHistory = this.warningList[index].operationHistory.map(record => {
+            if (record.operationType === 'processing' && record.status === 'active') {
+              return {
+                ...record,
+                status: 'completed',
+                statusText: '已处理',
+                description: '预警处理已完成，可以进行后续操作'
+              };
+            }
+            return record;
+          });
+        }
+        
+        this.$message.success('处理已完成，现在可以进行归档等操作');
+        this.closeRemarkDialog();
+      } catch (error) {
+        console.error('结束处理失败:', error);
+        this.$message.error('结束处理失败');
       } finally {
         this.loading = false;
       }
@@ -853,8 +951,40 @@ export default {
     // 从对话框处理预警 - 也使用处理意见流程
     handleWarningFromDialog(warning) {
       if (warning && warning.id) {
-        this.currentProcessingWarningId = warning.id;
-        this.remarkDialogVisible = true;
+        // 如果是完成处理的事件，只更新状态，不再弹出对话框
+        if (warning.action === 'finished') {
+          // 更新本地预警列表的状态
+          const index = this.warningList.findIndex(item => item.id === warning.id);
+          if (index !== -1) {
+            this.warningList[index].operationHistory = warning.operationHistory;
+          }
+          return;
+        }
+        
+        // 如果是添加处理记录的事件，只更新状态，不再弹出对话框
+        if (warning.action === 'record-added') {
+          // 更新本地预警列表的状态
+          const index = this.warningList.findIndex(item => item.id === warning.id);
+          if (index !== -1) {
+            this.warningList[index].operationHistory = warning.operationHistory;
+          }
+          return;
+        }
+        
+        // 检查当前是否已经在处理中
+        const hasProcessingRecord = warning.operationHistory && 
+          warning.operationHistory.some(record => 
+            record.operationType === 'processing' && record.status === 'active'
+          );
+        
+        if (hasProcessingRecord) {
+          // 如果已经有处理中记录，直接弹出处理意见对话框
+          this.currentProcessingWarningId = warning.id;
+          this.remarkDialogVisible = true;
+        } else {
+          // 如果没有处理中记录，先添加"处理中"状态
+          this.startProcessingWarning(warning);
+        }
       }
     },
     
@@ -1085,6 +1215,111 @@ export default {
         'level4': 'el-icon-warning-outline'
       };
       return iconMap[level] || 'el-icon-warning';
+    },
+    
+    // 获取当前预警状态
+    getCurrentWarningStatus(warning) {
+      if (!warning.operationHistory || warning.operationHistory.length === 0) {
+        return {
+          text: '待处理',
+          class: 'status-pending'
+        };
+      }
+      
+      // 查找最新的状态（第一个元素）
+      const latestOperation = warning.operationHistory[0];
+      
+      // 检查是否已归档
+      const hasArchived = warning.operationHistory.some(record => 
+        record.operationType === 'archive' || record.operationType === 'falseAlarm'
+      ) || warning.status === 'archived';
+      
+      if (hasArchived) {
+        return {
+          text: '已归档',
+          class: 'status-archived'
+        };
+      }
+      
+      // 检查是否有已处理状态
+      const hasCompletedProcessing = warning.operationHistory.some(record => 
+        record.operationType === 'completed'
+      );
+      
+      if (hasCompletedProcessing) {
+        return {
+          text: '已处理',
+          class: 'status-completed'
+        };
+      }
+      
+      // 检查是否有处理中状态
+      const hasActiveProcessing = warning.operationHistory.some(record => 
+        record.operationType === 'processing'
+      );
+      
+      if (hasActiveProcessing) {
+        return {
+          text: '处理中',
+          class: 'status-processing'
+        };
+      }
+      
+      // 检查是否已经确认开始处理（待处理状态完成）
+      const hasPendingCompleted = warning.operationHistory.some(record => 
+        record.operationType === 'pending' && record.status === 'completed'
+      );
+      
+      if (hasPendingCompleted) {
+        return {
+          text: '处理中',
+          class: 'status-processing'
+        };
+      }
+      
+      // 默认为待处理
+      return {
+        text: '待处理',
+        class: 'status-pending'
+      };
+    },
+    
+    // 检查处理按钮是否应该禁用
+    isProcessingDisabled(warning) {
+      if (!warning.operationHistory || warning.operationHistory.length === 0) {
+        return false; // 没有历史记录，可以处理
+      }
+      
+      // 如果已归档，禁用处理按钮
+      const hasArchived = warning.operationHistory.some(record => 
+        record.operationType === 'archive' || record.operationType === 'falseAlarm'
+      ) || warning.status === 'archived';
+      
+      if (hasArchived) {
+        return true;
+      }
+      
+      // 如果已完成处理，禁用处理按钮
+      const hasCompletedProcessing = warning.operationHistory.some(record => 
+        record.operationType === 'completed'
+      );
+      
+      return hasCompletedProcessing;
+    },
+    
+    // 格式化时间显示
+    formatTime(timeString) {
+      try {
+        // 如果是完整的时间字符串，格式化为更友好的显示
+        if (timeString.includes(' ')) {
+          const [date, time] = timeString.split(' ');
+          const [year, month, day] = date.split('-');
+          return `${month}-${day} ${time}`;
+        }
+        return timeString;
+      } catch (error) {
+        return timeString;
+      }
     },
   }
 }
@@ -1509,17 +1744,31 @@ export default {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-.warning-list .list-content .warning-item .warning-level-badge {
+.warning-list .list-content .warning-item .warning-status-container {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 6px;
+  left: 6px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.warning-list .list-content .warning-item .warning-level-badge {
   padding: 3px 8px;
   font-size: 12px;
   color: white;
   font-weight: bold;
-  border-radius: 0 0 0 8px;
+  border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  z-index: 2;
+}
+
+.warning-list .list-content .warning-item .warning-status-badge {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .warning-list .list-content .warning-item .warning-level-badge.level1 {
@@ -1538,21 +1787,24 @@ export default {
   background-color: #67c23a;
 }
 
-.warning-list .list-content .warning-item.level1 {
-  border-left: 4px solid #f56c6c;
+/* 状态标签颜色 */
+.warning-list .list-content .warning-item .warning-status-badge.status-pending {
+  background-color: #909399;
 }
 
-.warning-list .list-content .warning-item.level2 {
-  border-left: 4px solid #e6a23c;
+.warning-list .list-content .warning-item .warning-status-badge.status-processing {
+  background-color: #409EFF;
 }
 
-.warning-list .list-content .warning-item.level3 {
-  border-left: 4px solid #409EFF;
+.warning-list .list-content .warning-item .warning-status-badge.status-completed {
+  background-color: #67c23a;
 }
 
-.warning-list .list-content .warning-item.level4 {
-  border-left: 4px solid #67c23a;
+.warning-list .list-content .warning-item .warning-status-badge.status-archived {
+  background-color: #606266;
 }
+
+
 
 .warning-list .list-content .warning-item .warning-info {
   padding: 4px 0;

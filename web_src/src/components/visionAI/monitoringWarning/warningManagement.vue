@@ -70,7 +70,7 @@ export default {
           value: 1,
           unit: '人',
           level: '一级预警',
-          time: '2024-01-15 10:30:25',
+          time: '2024-12-18 10:30:25',
           status: 'pending',
           cameraId: 'camera_1',
           deviceInfo: {
@@ -91,7 +91,7 @@ export default {
           value: 1,
           unit: '人',
           level: '二级预警',
-          time: '2024-01-15 10:28:15',
+          time: '2024-12-18 10:28:15',
           status: 'pending',
           cameraId: 'camera_3',
           deviceInfo: {
@@ -112,7 +112,7 @@ export default {
           value: 1,
           unit: '人',
           level: '三级预警',
-          time: '2024-01-15 10:15:42',
+          time: '2024-12-18 10:15:42',
           status: 'pending',
           cameraId: 'camera_2',
           deviceInfo: {
@@ -133,7 +133,7 @@ export default {
           value: 1,
           unit: '人',
           level: '二级预警',
-          time: '2024-01-15 09:58:30',
+          time: '2024-12-18 09:58:30',
           status: 'completed',
           cameraId: 'camera_5',
           deviceInfo: {
@@ -154,7 +154,7 @@ export default {
           value: 1,
           unit: '人',
           level: '一级预警',
-          time: '2024-01-15 09:45:12',
+          time: '2024-12-18 09:45:12',
           status: 'pending',
           cameraId: 'camera_4',
           deviceInfo: {
@@ -175,7 +175,7 @@ export default {
           value: 2,
           unit: '人',
           level: '三级预警',
-          time: '2024-01-15 09:32:18',
+          time: '2024-12-18 09:32:18',
           status: 'pending',
           cameraId: 'camera_6',
           deviceInfo: {
@@ -432,9 +432,8 @@ export default {
         const index = this.warningList.findIndex(item => item.id === id)
         if (index !== -1) {
           if (action === 'markProcessed') {
-            // 添加处理记录 - 弹出处理意见对话框
-            this.currentWarningId = id
-            this.remarkDialogVisible = true
+            // 处理预警 - 使用和预警详情对话框一致的逻辑
+            this.startProcessingWarning(this.warningList[index])
             this.loading = false // 在弹框前先关闭loading
             return // 等处理意见填写完成后再继续
           } else if (action === 'report') {
@@ -869,31 +868,31 @@ export default {
         this.loading = true
         
         // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 300))
+        await new Promise(resolve => setTimeout(resolve, 500))
         
-        // 更新本地数据 - 只添加处理记录，不改变状态
+        // 更新本地数据状态 - 添加新的处理记录
         const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
         if (index !== -1) {
-          // 添加处理记录到操作历史（如果预警对象有operationHistory）
+          // 确保有操作历史数组
           if (!this.warningList[index].operationHistory) {
             this.$set(this.warningList[index], 'operationHistory', [])
           }
           
+          // 添加新的处理中记录
           const newRecord = {
             id: Date.now() + Math.random(),
             status: 'completed',
-            statusText: '处理记录',
+            statusText: '处理中',
             time: this.getCurrentTime(),
             description: `处理意见：${this.remarkForm.remark}`,
-            operationType: 'process',
+            operationType: 'processing',
             operator: this.getCurrentUserName()
           }
           
           this.warningList[index].operationHistory.unshift(newRecord)
-          // 不再改变预警状态为completed，保持预警可继续处理
         }
         
-        this.$message.success('处理记录已添加，可继续添加多次处理记录')
+        this.$message.success('处理记录已添加')
         this.closeRemarkDialog()
       } catch (error) {
         console.error('处理失败:', error)
@@ -1135,6 +1134,210 @@ export default {
         '四级预警': 'el-icon-warning-outline'
       };
       return iconMap[level] || 'el-icon-warning';
+    },
+    
+    // 开始处理预警 - 与预警详情对话框保持一致
+    startProcessingWarning(warning) {
+      // 初始化操作历史（如果没有）
+      this.initOperationHistory(warning)
+      
+      // 更新待处理记录为已完成状态
+      if (warning.operationHistory) {
+        warning.operationHistory = warning.operationHistory.map(record => {
+          if (record.operationType === 'pending' && record.status === 'active') {
+            return {
+              ...record,
+              status: 'completed',
+              description: '预警已确认，开始处理'
+            }
+          }
+          return record
+        })
+      }
+      
+      // 弹出处理意见对话框
+      this.currentWarningId = warning.id
+      this.remarkDialogVisible = true
+    },
+    
+    // 初始化操作历史 - 与预警详情对话框保持一致
+    initOperationHistory(warning) {
+      if (!warning) return
+      
+      // 如果预警有保存的操作历史，则直接返回
+      if (warning.operationHistory && Array.isArray(warning.operationHistory) && warning.operationHistory.length > 0) {
+        return
+      }
+      
+      // 如果没有操作历史，则创建默认的初始记录
+      const operationHistory = []
+      
+      // 添加预警产生记录（始终存在的初始记录）
+      operationHistory.push({
+        id: Date.now() + Math.random(),
+        status: 'completed',
+        statusText: '预警产生',
+        time: warning.time || this.getCurrentTime(),
+        description: `${warning.type || '系统检测'}：${warning.description || '检测到异常情况，请及时处理'}`,
+        operationType: 'create',
+        operator: '系统'
+      })
+      
+      // 添加待处理记录（始终显示）
+      operationHistory.push({
+        id: Date.now() + Math.random() + 1,
+        status: 'active',
+        statusText: '待处理',
+        time: warning.createTime || this.getCurrentTime(),
+        description: '预警已产生，等待处理人员确认并开始处理',
+        operationType: 'pending',
+        operator: ''
+      })
+      
+      // 设置操作历史
+      this.$set(warning, 'operationHistory', operationHistory)
+    },
+    
+    // 结束处理 - 与预警详情对话框保持一致
+    async finishProcessing() {
+      try {
+        this.loading = true
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // 更新本地数据状态
+        const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
+        if (index !== -1) {
+          // 确保有操作历史数组
+          if (!this.warningList[index].operationHistory) {
+            this.$set(this.warningList[index], 'operationHistory', [])
+          }
+          
+          // 添加新的已处理记录
+          const newRecord = {
+            id: Date.now() + Math.random(),
+            status: 'completed',
+            statusText: '已处理',
+            time: this.getCurrentTime(),
+            description: '预警处理已完成，可以进行后续操作',
+            operationType: 'completed',
+            operator: this.getCurrentUserName()
+          }
+          
+          this.warningList[index].operationHistory.unshift(newRecord)
+        }
+        
+        this.$message.success('处理已完成，现在可以进行归档等操作')
+        this.closeRemarkDialog()
+      } catch (error) {
+        console.error('结束处理失败:', error)
+        this.$message.error('结束处理失败')
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 检查处理按钮是否应该禁用
+    isProcessingDisabled(warning) {
+      if (!warning.operationHistory || warning.operationHistory.length === 0) {
+        return false // 没有历史记录，可以处理
+      }
+      
+      // 如果已归档，禁用处理按钮
+      const hasArchived = warning.operationHistory.some(record => 
+        record.operationType === 'archive' || record.operationType === 'falseAlarm'
+      ) || warning.status === 'archived'
+      
+      if (hasArchived) {
+        return true
+      }
+      
+      // 如果已完成处理，禁用处理按钮
+      const hasCompletedProcessing = warning.operationHistory.some(record => 
+        record.operationType === 'completed'
+      )
+      
+      return hasCompletedProcessing
+    },
+    
+    // 获取当前预警状态
+    getCurrentWarningStatus(warning) {
+      if (!warning.operationHistory || warning.operationHistory.length === 0) {
+        return {
+          text: '待处理',
+          class: 'status-pending'
+        }
+      }
+      
+      // 检查是否已归档
+      const hasArchived = warning.operationHistory.some(record => 
+        record.operationType === 'archive' || record.operationType === 'falseAlarm'
+      ) || warning.status === 'archived'
+      
+      if (hasArchived) {
+        return {
+          text: '已归档',
+          class: 'status-archived'
+        }
+      }
+      
+      // 检查是否有已处理状态
+      const hasCompletedProcessing = warning.operationHistory.some(record => 
+        record.operationType === 'completed'
+      )
+      
+      if (hasCompletedProcessing) {
+        return {
+          text: '已处理',
+          class: 'status-completed'
+        }
+      }
+      
+      // 检查是否有处理中状态
+      const hasActiveProcessing = warning.operationHistory.some(record => 
+        record.operationType === 'processing'
+      )
+      
+      if (hasActiveProcessing) {
+        return {
+          text: '处理中',
+          class: 'status-processing'
+        }
+      }
+      
+      // 检查是否已经确认开始处理（待处理状态完成）
+      const hasPendingCompleted = warning.operationHistory.some(record => 
+        record.operationType === 'pending' && record.status === 'completed'
+      )
+      
+      if (hasPendingCompleted) {
+        return {
+          text: '处理中',
+          class: 'status-processing'
+        }
+      }
+      
+      // 默认为待处理
+      return {
+        text: '待处理',
+        class: 'status-pending'
+      }
+    },
+    
+    // 格式化时间
+    formatTime(timeString) {
+      try {
+        // 如果是完整的时间字符串，格式化为更友好的显示
+        if (timeString.includes(' ')) {
+          const [date, time] = timeString.split(' ');
+          const [year, month, day] = date.split('-');
+          return `${year}年${month}月${day}日 ${time}`;
+        }
+        return timeString;
+      } catch (error) {
+        return timeString;
+      }
     }
   }
 }
@@ -1293,8 +1496,16 @@ export default {
               ]"
               @click="showWarningDetail(item)"
             >
-              <div class="warning-level-badge" :class="getLevelClass(item.level)">
-                <span class="level-badge-text">{{ getLevelBadgeText(item.level) }}</span>
+              <!-- 等级和状态标签容器 -->
+              <div class="warning-badges-container">
+                <div class="warning-level-badge" :class="getLevelClass(item.level)">
+                  <span class="level-badge-text">{{ getLevelBadgeText(item.level) }}</span>
+                </div>
+                
+                <!-- 预警状态标签，与等级标签挨在一起显示 -->
+                <div class="warning-status-badge" :class="getCurrentWarningStatus(item).class">
+                  {{ getCurrentWarningStatus(item).text }}
+                </div>
               </div>
             
               <!-- 右上角选择框 -->
@@ -1335,40 +1546,51 @@ export default {
                     <div class="remark-empty" v-else>未添加备注</div>
                   </div>
                   <div class="info-item time-item">
-                    <span class="time">{{ item.time }}</span>
+                    <span class="time">{{ formatTime(item.time) }}</span>
                   </div>
                 </div>
                 
                 <div class="warning-footer">
                   <!-- 处理按钮始终可用，允许多次处理 -->
-                  <el-button 
-                    type="success" 
-                    size="mini" 
-                    plain
-                    @click.stop="handleWarning(item.id, 'markProcessed')"
-                  >处理</el-button>
-                  
-                  <el-button 
-                    class="report-btn" 
-                    size="mini" 
-                    @click.stop="handleWarning(item.id, 'report')"
-                  >上报</el-button>
-                  
-                  <el-button 
-                    class="false-alarm-btn" 
-                    size="mini" 
-                    type="warning"
-                    plain
-                    @click.stop="handleWarning(item.id, 'falseAlarm')"
-                  >误报</el-button>
-                  
-                  <el-button 
-                    class="archive-btn" 
-                    size="mini" 
-                    type="danger"
-                    plain
-                    @click.stop="handleWarning(item.id, 'archive')"
-                  >归档</el-button>
+                  <div class="item-actions">
+                    <!-- 按钮排列顺序与预警详情对话框保持一致：上报、归档、误报、处理 -->
+                    <el-button 
+                      size="mini" 
+                      class="action-btn report-btn"
+                      @click.stop="handleWarning(item.id, 'report')"
+                      :disabled="isProcessingDisabled(item)"
+                    >
+                      上报
+                    </el-button>
+                    
+                    <el-button 
+                      size="mini" 
+                      class="action-btn archive-btn"
+                      @click.stop="handleWarning(item.id, 'archive')"
+                      :disabled="!isProcessingDisabled(item)"
+                    >
+                      归档
+                    </el-button>
+                    
+                    <el-button 
+                      size="mini" 
+                      class="action-btn false-alarm-btn"
+                      @click.stop="handleWarning(item.id, 'falseAlarm')"
+                    >
+                      误报
+                    </el-button>
+                    
+                    <el-button 
+                      size="mini" 
+                      type="success" 
+                      plain
+                      class="action-btn"
+                      @click.stop="handleWarning(item.id, 'markProcessed')"
+                      :disabled="isProcessingDisabled(item)"
+                    >
+                      {{ isProcessingDisabled(item) ? '已完成' : '处理' }}
+                    </el-button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1429,11 +1651,12 @@ export default {
       </el-form>
       <div class="process-tip">
         <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
-        <span style="color: #909399; font-size: 13px;">填写处理意见后，将在处理进展中添加一条处理记录，可多次添加处理记录</span>
+        <span style="color: #909399; font-size: 13px;">填写处理意见后，可点击"确认处理"添加处理记录，或点击"结束处理"完成整个处理流程</span>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button @click="closeRemarkDialog">取 消</el-button>
         <el-button type="primary" @click="saveRemark">确认处理</el-button>
+        <el-button type="success" @click="finishProcessing">结束处理</el-button>
       </span>
     </el-dialog>
     
@@ -1812,77 +2035,41 @@ export default {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
-.warning-level-badge {
+/* 等级和状态标签容器 */
+.warning-badges-container {
   position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 10;
-  color: #fff;
-  padding: 4px 10px 4px 8px;
-  border-radius: 0 0 4px 0;
-  font-size: 11px;
-  font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  min-width: 35px;
-  min-height: 20px;
+  top: 6px;
+  left: 6px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 100%, 0 100%);
+  gap: 6px;
+  z-index: 2;
 }
 
-.warning-level-badge::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: -4px;
-  width: 0;
-  height: 0;
-  border-top: 10px solid;
-  border-bottom: 10px solid;
-  border-left: 4px solid;
-  border-right: 0;
-  border-top-color: inherit;
-  border-bottom-color: inherit;
-  border-left-color: inherit;
+.warning-level-badge {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  /* 移除之前的复杂样式，使用简洁的设计 */
 }
 
+/* 等级标签背景颜色 - 与实时监控页面保持一致 */
 .warning-level-badge.level-1-bg {
-  background: linear-gradient(135deg, #ff4757 0%, #e74c3c 100%);
-}
-
-.warning-level-badge.level-1-bg::after {
-  border-top-color: #e74c3c;
-  border-bottom-color: #e74c3c;
-  border-left-color: #e74c3c;
+  background-color: #f56c6c;
 }
 
 .warning-level-badge.level-2-bg {
-  background: linear-gradient(135deg, #ffa502 0%, #e67e22 100%);
-}
-
-.warning-level-badge.level-2-bg::after {
-  border-top-color: #e67e22;
-  border-bottom-color: #e67e22;
-  border-left-color: #e67e22;
+  background-color: #e6a23c;
 }
 
 .warning-level-badge.level-3-bg {
-  background: linear-gradient(135deg, #3742fa 0%, #2f3542 100%);
+  background-color: #409EFF;
 }
 
-.warning-level-badge.level-3-bg::after {
-  border-top-color: #2f3542;
-  border-bottom-color: #2f3542;
-  border-left-color: #2f3542;
-}
-
-.level-badge-text {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
+.warning-level-badge.level-4-bg {
+  background-color: #67c23a;
 }
 
 .warning-image {
@@ -2435,5 +2622,84 @@ export default {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* 底部按钮样式 - 与预警详情对话框保持一致 */
+.action-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  margin: 0 2px;
+}
+
+
+
+.report-btn {
+  background-color: #e6a23c;
+  border-color: #e6a23c;
+  color: white;
+}
+
+.report-btn:hover {
+  background-color: #eeb462;
+  border-color: #eeb462;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.3);
+}
+
+.archive-btn {
+  background-color: #f56c6c;
+  border-color: #f56c6c;
+  color: white;
+}
+
+.archive-btn:hover {
+  background-color: #f78989;
+  border-color: #f78989;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
+}
+
+.false-alarm-btn {
+  background-color: #909399;
+  border-color: #909399;
+  color: white;
+}
+
+.false-alarm-btn:hover {
+  background-color: #a6a9ad;
+  border-color: #a6a9ad;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(144, 147, 153, 0.3);
+}
+
+/* 预警状态标签样式 - 与实时监控页面保持完全一致 */
+.warning-status-badge {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* 旧的状态样式已移除，使用带warning-status-badge前缀的新样式 */
+
+/* 状态标签颜色 - 与实时监控页面保持一致 */
+.warning-status-badge.status-pending {
+  background-color: #909399;
+}
+
+.warning-status-badge.status-processing {
+  background-color: #409EFF;
+}
+
+.warning-status-badge.status-completed {
+  background-color: #67c23a;
+}
+
+.warning-status-badge.status-archived {
+  background-color: #606266;
 }
 </style>
