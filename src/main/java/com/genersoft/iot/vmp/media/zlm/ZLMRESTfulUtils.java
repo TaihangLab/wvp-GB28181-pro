@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.HashMap;
@@ -442,7 +443,8 @@ public class ZLMRESTfulUtils {
         param.put("vhost", "__defaultVhost__");
         param.put("app", app);
         param.put("stream", stream);
-        param.put("stamp", stamp);
+        BigDecimal bigDecimal = new BigDecimal(stamp);
+        param.put("stamp", bigDecimal);
         param.put("schema", schema);
         return sendPost(mediaServer, "seekRecordStamp",param, null);
     }

@@ -123,7 +123,12 @@ public class DeviceQuery {
 			log.debug("设备通道信息同步API调用，deviceId：" + deviceId);
 		}
 		Device device = deviceService.getDeviceByDeviceId(deviceId);
-
+		if (device.getRegisterTime() == null) {
+			WVPResult<SyncStatus> wvpResult = new WVPResult<>();
+			wvpResult.setCode(ErrorCode.ERROR100.getCode());
+			wvpResult.setMsg("设备尚未注册过");
+			return wvpResult;
+		}
 		return deviceService.devicesSync(device);
 
 	}
@@ -223,7 +228,7 @@ public class DeviceQuery {
 		if (exist) {
 			throw new ControllerException(ErrorCode.ERROR100.getCode(), "设备编号已存在");
 		}
-		deviceService.addDevice(device);
+		deviceService.addCustomDevice(device);
 	}
 
 
