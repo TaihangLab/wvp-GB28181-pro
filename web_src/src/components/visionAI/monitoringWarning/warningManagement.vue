@@ -27,32 +27,32 @@ export default {
           selected: true
         },
         {
-          id: 'oil_gas_area',
-          name: '油气监控区域',
+          id: 'northeast_corner',
+          name: '工地东北角',
           count: 0,
           selected: false
         },
         {
-          id: 'work_area',
-          name: '作业区域',
+          id: 'south_side',
+          name: '工地南侧',
           count: 0,
           selected: false
         },
         {
-          id: 'storage_area',
-          name: '储罐区域',
+          id: 'material_area',
+          name: '材料区',
           count: 0,
           selected: false
         },
         {
-          id: 'pipeline_area',
-          name: '管道区域',
+          id: 'rest_area',
+          name: '休息区',
           count: 0,
           selected: false
         },
         {
-          id: 'pipeline_interface',
-          name: '管道接口',
+          id: 'construction_area',
+          name: '施工作业区',
           count: 0,
           selected: false
         }
@@ -65,129 +65,129 @@ export default {
       warningList: [
         {
           id: '1',
-          deviceName: 'CH4 超上限预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 1.30,
-          unit: '%LEL',
+          deviceName: '未戴安全帽',
+          imageUrl: require('./images/5.jpg'),
+          value: 1,
+          unit: '人',
           level: '一级预警',
-          time: '2022-12-20 17:02:58',
+          time: '2024-01-15 10:30:25',
           status: 'pending',
           cameraId: 'camera_1',
           deviceInfo: {
-            name: '可燃气体',
-            position: '0.1 米'
+            name: '摄像头01',
+            position: '工地东北角'
           },
           remark: '',
-          device: '可燃气体',
-          type: 'CH4 超上限预警',
-          location: '油气监控区域',
-          locationId: 'oil_gas_area',
-          description: '检测到CH4浓度超过安全阈值，当前浓度为1.30%LEL，存在爆炸危险，请立即处理'
+          device: '摄像头01',
+          type: '未戴安全帽',
+          location: '工地东北角',
+          locationId: 'northeast_corner',
+          description: '检测到工作人员未佩戴安全帽，存在严重安全隐患，请立即整改并加强安全教育'
         },
         {
           id: '2',
-          deviceName: 'CO 浓度预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 75,
-          unit: 'ppm',
+          deviceName: '未穿工作服',
+          imageUrl: require('./images/4.jpg'),
+          value: 1,
+          unit: '人',
           level: '二级预警',
-          time: '2022-12-20 17:01:58',
-          status: 'processing',
-          cameraId: 'camera_1',
-          deviceInfo: {
-            name: '一氧化碳',
-            position: '1.5 米'
-          },
-          remark: '',
-          device: '一氧化碳检测器',
-          type: 'CO 浓度预警',
-          location: '作业区域',
-          locationId: 'work_area',
-          description: '检测到一氧化碳浓度超标，当前浓度为75ppm，可能对人员造成健康危害'
-        },
-        {
-          id: '3',
-          deviceName: 'H2S 浓度预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 10,
-          unit: 'ppm',
-          level: '三级预警',
-          time: '2022-12-20 16:58:32',
-          status: 'pending',
-          cameraId: 'camera_2',
-          deviceInfo: {
-            name: '硫化氢',
-            position: '2.0 米'
-          },
-          remark: '',
-          device: '硫化氢检测器',
-          type: 'H2S 浓度预警',
-          location: '储罐区域',
-          locationId: 'storage_area',
-          description: '检测到硫化氢浓度异常，当前浓度为10ppm，请注意通风和人员防护'
-        },
-        {
-          id: '4',
-          deviceName: '火焰探测器预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 85,
-          unit: '%',
-          level: '一级预警',
-          time: '2022-12-20 16:55:12',
-          status: 'pending',
-          cameraId: 'camera_1',
-          deviceInfo: {
-            name: '火焰探测器',
-            position: '管道区域'
-          },
-          remark: '',
-          device: '火焰探测器',
-          type: '火焰探测器预警',
-          location: '管道区域',
-          locationId: 'pipeline_area',
-          description: '火焰探测器检测到火焰信号，置信度85%，存在火灾风险，请立即确认并处理'
-        },
-        {
-          id: '5',
-          deviceName: '温度超限预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 85,
-          unit: '°C',
-          level: '二级预警',
-          time: '2022-12-20 16:50:22',
-          status: 'completed',
-          cameraId: 'camera_2',
-          deviceInfo: {
-            name: '温度传感器',
-            position: '储罐区'
-          },
-          remark: '已检查温度传感器，调整了冷却系统参数',
-          device: '温度传感器',
-          type: '温度超限预警',
-          location: '储罐区域',
-          locationId: 'storage_area',
-          description: '温度传感器检测到温度超过安全限值，当前温度85°C，可能影响设备安全运行'
-        },
-        {
-          id: '6',
-          deviceName: '压力超限预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 2.5,
-          unit: 'MPa',
-          level: '一级预警',
-          time: '2022-12-20 16:45:18',
+          time: '2024-01-15 10:28:15',
           status: 'pending',
           cameraId: 'camera_3',
           deviceInfo: {
-            name: '压力传感器',
-            position: '管道接口'
+            name: '摄像头03',
+            position: '工地南侧'
           },
           remark: '',
-          device: '压力传感器',
-          type: '压力超限预警',
-          location: '管道接口',
-          locationId: 'pipeline_interface',
-          description: '压力传感器检测到管道压力超过安全限值，当前压力2.5MPa，存在爆管风险'
+          device: '摄像头03',
+          type: '未穿工作服',
+          location: '工地南侧',
+          locationId: 'south_side',
+          description: '发现工作人员未按规定穿着工作服，违反现场作业安全规范，需要立即纠正'
+        },
+        {
+          id: '3',
+          deviceName: '闲杂人员',
+          imageUrl: require('./images/5.jpg'),
+          value: 1,
+          unit: '人',
+          level: '三级预警',
+          time: '2024-01-15 10:15:42',
+          status: 'pending',
+          cameraId: 'camera_2',
+          deviceInfo: {
+            name: '摄像头02',
+            position: '材料区'
+          },
+          remark: '',
+          device: '摄像头02',
+          type: '闲杂人员',
+          location: '材料区',
+          locationId: 'material_area',
+          description: '检测到非工作人员进入施工区域，可能存在安全风险，请及时清理并加强管控'
+        },
+        {
+          id: '4',
+          deviceName: '违规吸烟',
+          imageUrl: require('./images/6.jpg'),
+          value: 1,
+          unit: '人',
+          level: '二级预警',
+          time: '2024-01-15 09:58:30',
+          status: 'completed',
+          cameraId: 'camera_5',
+          deviceInfo: {
+            name: '摄像头05',
+            position: '休息区'
+          },
+          remark: '已对违规人员进行安全教育，并要求现场管理员加强巡查',
+          device: '摄像头05',
+          type: '违规吸烟',
+          location: '休息区',
+          locationId: 'rest_area',
+          description: '发现工作人员在禁烟区域吸烟，违反安全生产规定，请立即制止并进行安全教育'
+        },
+        {
+          id: '5',
+          deviceName: '高空作业未系安全带',
+          imageUrl: require('./images/1.jpg'),
+          value: 1,
+          unit: '人',
+          level: '一级预警',
+          time: '2024-01-15 09:45:12',
+          status: 'pending',
+          cameraId: 'camera_4',
+          deviceInfo: {
+            name: '摄像头04',
+            position: '施工作业区'
+          },
+          remark: '',
+          device: '摄像头04',
+          type: '高空作业未系安全带',
+          location: '施工作业区',
+          locationId: 'construction_area',
+          description: '检测到高空作业人员未系安全带，存在坠落风险，请立即停止作业并整改'
+        },
+        {
+          id: '6',
+          deviceName: '未穿反光背心',
+          imageUrl: require('./images/3.jpg'),
+          value: 2,
+          unit: '人',
+          level: '三级预警',
+          time: '2024-01-15 09:32:18',
+          status: 'pending',
+          cameraId: 'camera_6',
+          deviceInfo: {
+            name: '摄像头06',
+            position: '工地东北角'
+          },
+          remark: '',
+          device: '摄像头06',
+          type: '未穿反光背心',
+          location: '工地东北角',
+          locationId: 'northeast_corner',
+          description: '检测到作业人员未穿着反光背心，在低照度环境下存在安全隐患，请立即整改'
         }
       ],
       
@@ -243,19 +243,19 @@ export default {
       archivesList: [
         {
           id: 'archive_1',
-          name: '油气行业默认档案',
+          name: '建筑工地默认档案',
           cameraId: 'camera_1',
-          cameraName: '可燃气体监控点',
+          cameraName: '摄像头01',
           isDefault: true,
-          createTime: '2022-12-01 10:00:00'
+          createTime: '2024-01-01 10:00:00'
         },
         {
           id: 'archive_2', 
-          name: '储罐区专项档案',
-          cameraId: 'camera_2',
-          cameraName: '储罐区监控点',
+          name: '工地南侧专项档案',
+          cameraId: 'camera_3',
+          cameraName: '摄像头03',
           isDefault: false,
-          createTime: '2022-12-05 14:30:00'
+          createTime: '2024-01-05 14:30:00'
         }
       ],
       selectedArchiveId: '',
@@ -297,17 +297,23 @@ export default {
       // 按预警类型过滤 (根据设备名称包含的关键词进行筛选)
       if (this.searchForm.warningType) {
         switch(this.searchForm.warningType) {
-          case 'overflow':
-            list = list.filter(item => item.deviceName.includes('超上限') || item.deviceName.includes('超限'))
+          case 'safety_helmet':
+            list = list.filter(item => item.deviceName.includes('安全帽'))
             break
-          case 'concentration':
-            list = list.filter(item => item.deviceName.includes('浓度'))
+          case 'safety_belt':
+            list = list.filter(item => item.deviceName.includes('安全带'))
             break
-          case 'temperature':
-            list = list.filter(item => item.deviceName.includes('温度'))
+          case 'protective_clothing':
+            list = list.filter(item => item.deviceName.includes('反光背心') || item.deviceName.includes('工作服'))
             break
-          case 'pressure':
-            list = list.filter(item => item.deviceName.includes('压力'))
+          case 'unauthorized_personnel':
+            list = list.filter(item => item.deviceName.includes('闲杂人员'))
+            break
+          case 'smoking':
+            list = list.filter(item => item.deviceName.includes('吸烟'))
+            break
+          case 'high_altitude':
+            list = list.filter(item => item.deviceName.includes('高空'))
             break
         }
       }
@@ -578,11 +584,14 @@ export default {
     getCurrentCameraName() {
       // 实际项目中应该从摄像头数据中获取
       const cameraNames = {
-        'camera_1': '可燃气体监控点',
-        'camera_2': '储罐区监控点',
-        'camera_3': '管道接口监控点'
+        'camera_1': '摄像头01',
+        'camera_2': '摄像头02',
+        'camera_3': '摄像头03',
+        'camera_4': '摄像头04',
+        'camera_5': '摄像头05',
+        'camera_6': '摄像头06'
       }
-      return cameraNames[this.currentCameraId] || '监控点'
+      return cameraNames[this.currentCameraId] || '摄像头'
     },
     
     // 获取当前时间
@@ -991,22 +1000,17 @@ export default {
     // 获取预警类型文本
     getWarningTypeText(type) {
       const typeMap = {
-        '未戴安全帽': '安全违规',
-        '未穿工作服': '安全违规',
-        '闲杂人员': '人员违规',
-        '吸烟': '消防违规',
-        '安全帽识别': '安全违规',
-        '工服识别': '安全违规',
-        '玻璃运输车打卡': '车辆违规',
-        '烟火检测': '消防违规',
-        'CH4 超上限预警': '气体检测预警',
-        'CO 浓度预警': '气体检测预警',
-        'H2S 浓度预警': '气体检测预警',
-        '火焰探测器预警': '消防预警',
-        '温度超限预警': '环境监测预警',
-        '压力超限预警': '设备监测预警'
+        '未戴安全帽': '安全防护违规',
+        '未穿工作服': '安全防护违规',
+        '闲杂人员': '人员管理违规',
+        '违规吸烟': '消防安全违规',
+        '高空作业未系安全带': '高空作业违规',
+        '未穿反光背心': '安全防护违规',
+        '安全帽识别': '安全防护违规',
+        '工服识别': '安全防护违规',
+        '烟火检测': '消防安全违规'
       };
-      return typeMap[type] || '其他预警';
+      return typeMap[type] || '其他安全违规';
     },
     
     // 获取预警等级标签文本
@@ -1120,6 +1124,17 @@ export default {
           this.$message.success(`正在查看"${selectedLocation.name}"的预警信息`)
         }
       }
+    },
+    
+    // 获取预警图标
+    getWarningIcon(level) {
+      const iconMap = {
+        '一级预警': 'el-icon-warning',
+        '二级预警': 'el-icon-warning-outline',
+        '三级预警': 'el-icon-warning-outline',
+        '四级预警': 'el-icon-warning-outline'
+      };
+      return iconMap[level] || 'el-icon-warning';
     }
   }
 }
@@ -1191,6 +1206,23 @@ export default {
               <el-option label="二级预警" value="level2" />
               <el-option label="三级预警" value="level3" />
               <el-option label="四级预警" value="level4" />
+            </el-select>
+          </div>
+          
+          <div class="select-wrapper">
+            <el-select 
+              v-model="searchForm.warningType" 
+              placeholder="预警类型" 
+              size="small"
+              clearable
+              @change="handleSearch"
+            >
+              <el-option label="安全帽违规" value="safety_helmet" />
+              <el-option label="安全带违规" value="safety_belt" />
+              <el-option label="防护服违规" value="protective_clothing" />
+              <el-option label="无关人员" value="unauthorized_personnel" />
+              <el-option label="吸烟违规" value="smoking" />
+              <el-option label="高空作业违规" value="high_altitude" />
             </el-select>
           </div>
           
@@ -1275,10 +1307,13 @@ export default {
                 </el-checkbox>
               </div>
               
-              <div class="warning-image" :class="getLevelClass(item.level)">
-                <div class="warning-icon">
-                  <i class="el-icon-warning-outline"></i>
-                  <div class="icon-text">加载失败</div>
+              <div class="warning-image">
+                <div v-if="item.imageUrl" class="warning-real-image">
+                  <img :src="item.imageUrl" :alt="item.type" />
+                </div>
+                <div v-else class="warning-video-preview">
+                  <i :class="getWarningIcon(item.level)"></i>
+                  <span>预警监控画面</span>
                 </div>
               </div>
               
@@ -1857,22 +1892,66 @@ export default {
   justify-content: center;
   position: relative;
   overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(45deg, #0a1526, #1e3c72);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
 }
 
-.warning-icon {
+.warning-real-image,
+.warning-video-preview {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: rgba(0, 0, 0, 0.25);
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  position: relative;
 }
 
-.warning-icon i {
+.warning-real-image {
+  padding: 0;
+  overflow: hidden;
+}
+
+.warning-real-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 6px;
+  transition: transform 0.3s ease;
+}
+
+.warning-real-image:hover img {
+  transform: scale(1.05);
+}
+
+.warning-video-preview i {
   font-size: 36px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  opacity: 0.8;
 }
 
-.icon-text {
+.warning-video-preview span {
   font-size: 13px;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 根据预警等级设置不同的图标颜色和动画效果 */
+.warning-card.level-1-border .warning-video-preview i {
+  color: #f56c6c;
+  animation: pulse 1.5s infinite;
+}
+
+.warning-card.level-2-border .warning-video-preview i {
+  color: #e6a23c;
+}
+
+.warning-card.level-3-border .warning-video-preview i {
+  color: #409EFF;
 }
 
 .warning-content {
@@ -2340,5 +2419,21 @@ export default {
   display: flex;
   align-items: center;
   border-left: 3px solid #909399;
+}
+
+/* 动画效果 */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>

@@ -59,7 +59,10 @@
                   违规截图
                 </h4>
                 <div class="image-container">
-                  <div class="placeholder-image">
+                  <div v-if="warning.imageUrl" class="real-image">
+                    <img :src="warning.imageUrl" :alt="warning.type" />
+                  </div>
+                  <div v-else class="placeholder-image">
                     <i :class="getWarningIcon(warning.level)"></i>
                     <span>违规截图</span>
                   </div>
@@ -1020,6 +1023,7 @@ export default {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+.real-image,
 .placeholder-image,
 .placeholder-video {
   position: absolute;
@@ -1034,6 +1038,25 @@ export default {
   background: linear-gradient(45deg, #1e3c72, #2a5298);
   color: rgba(255, 255, 255, 0.8);
   font-size: 14px;
+}
+
+.real-image {
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+
+.real-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+}
+
+.real-image:hover img {
+  transform: scale(1.05);
 }
 
 .placeholder-image i,

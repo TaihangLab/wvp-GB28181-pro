@@ -129,7 +129,10 @@
              :class="warning.level">
           <div class="warning-level-badge" :class="warning.level">{{ getWarningLevelText(warning.level) }}</div>
           <div class="warning-video">
-            <div class="video-placeholder">
+            <div v-if="warning.imageUrl" class="warning-image">
+              <img :src="warning.imageUrl" :alt="warning.type" />
+            </div>
+            <div v-else class="video-placeholder">
               <i :class="getWarningIcon(warning.level)"></i>
               <span>预警监控画面</span>
             </div>
@@ -247,6 +250,7 @@ export default {
           level: 'level1', 
           location: '工地东北角',
           status: 'pending',
+          imageUrl: require('./images/5.jpg'),
           description: '检测到工作人员未佩戴安全帽，存在严重安全隐患，请立即整改并加强安全教育'
         },
         { 
@@ -257,6 +261,7 @@ export default {
           level: 'level2', 
           location: '工地南侧',
           status: 'pending',
+          imageUrl: require('./images/4.jpg'),
           description: '发现工作人员未按规定穿着工作服，违反现场作业安全规范，需要立即纠正'
         },
         { 
@@ -267,6 +272,7 @@ export default {
           level: 'level3', 
           location: '材料区',
           status: 'pending',
+          imageUrl: require('./images/5.jpg'),
           description: '检测到非工作人员进入施工区域，可能存在安全风险，请及时清理并加强管控'
         },
         { 
@@ -277,6 +283,7 @@ export default {
           level: 'level4', 
           location: '休息区',
           status: 'pending',
+          imageUrl: require('./images/6.jpg'),
           description: '发现工作人员在禁烟区域吸烟，违反安全生产规定，请立即制止并进行安全教育'
         },
       ],
@@ -1952,6 +1959,26 @@ body.camera-fullscreen-mode .video-cell .video-content .video-placeholder::befor
   padding: 0;
   position: relative;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.warning-list .list-content .warning-item .warning-image {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.warning-list .list-content .warning-item .warning-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.3s ease;
+}
+
+.warning-list .list-content .warning-item:hover .warning-image img {
+  transform: scale(1.05);
 }
 
 .warning-list .list-content .warning-item .warning-video .video-placeholder {
