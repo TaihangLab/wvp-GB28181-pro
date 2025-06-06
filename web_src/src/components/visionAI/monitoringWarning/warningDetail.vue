@@ -963,7 +963,7 @@ export default {
         if (timeString && timeString.includes(' ')) {
           const [date, time] = timeString.split(' ');
           const [year, month, day] = date.split('-');
-          return `${month}-${day} ${time}`;
+          return `${year}年${month}月${day}日 ${time}`;
         }
         return timeString;
       } catch (error) {
