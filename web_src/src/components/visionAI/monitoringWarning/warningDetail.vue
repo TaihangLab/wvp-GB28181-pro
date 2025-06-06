@@ -90,7 +90,7 @@
               </h4>
               <div class="timeline-container">
                 <div 
-                  v-for="(item, index) in processTimeline" 
+                  v-for="(item, index) in operationHistory" 
                   :key="index"
                   class="timeline-item"
                   :class="{ 
@@ -98,10 +98,14 @@
                     'completed': item.status === 'completed',
                     'future': item.status === 'future'
                   }"
+                  :data-type="item.operationType"
                 >
                   <div class="timeline-dot"></div>
                   <div class="timeline-content">
-                    <div class="timeline-status">{{ item.statusText }}</div>
+                    <div class="timeline-status">
+                      <span>{{ item.statusText }}</span>
+                      <span v-if="item.operator" class="timeline-operator">{{ item.operator }}</span>
+                    </div>
                     <div class="timeline-time">{{ item.time }}</div>
                     <div class="timeline-desc">{{ item.description }}</div>
                   </div>
@@ -127,18 +131,11 @@
             <i class="el-icon-close"></i>
             误报
           </el-button>
-          <template v-if="warning && warning.status === 'completed'">
-            <el-button type="success" disabled class="action-btn">
-              <i class="el-icon-check"></i>
-              已处理
-            </el-button>
-          </template>
-          <template v-else>
-            <el-button type="success" @click="handleWarning" class="action-btn">
-              <i class="el-icon-check"></i>
-              处理
-            </el-button>
-          </template>
+          <!-- 处理按钮始终可用，允许多次处理 -->
+          <el-button type="success" @click="handleWarning" class="action-btn">
+            <i class="el-icon-check"></i>
+            处理
+          </el-button>
         </template>
         <!-- 预警管理页面只显示处理和关闭按钮 -->
         <template v-else-if="source === 'warningManagement'">
@@ -148,18 +145,11 @@
         </template>
         <!-- 默认情况显示处理和关闭按钮 -->
         <template v-else>
-          <template v-if="warning && warning.status === 'completed'">
-            <el-button type="success" disabled class="action-btn">
-              <i class="el-icon-check"></i>
-              已处理
-            </el-button>
-          </template>
-          <template v-else>
-            <el-button type="success" @click="handleWarning" class="action-btn">
-              <i class="el-icon-check"></i>
-              处理
-            </el-button>
-          </template>
+          <!-- 处理按钮始终可用，允许多次处理 -->
+          <el-button type="success" @click="handleWarning" class="action-btn">
+            <i class="el-icon-check"></i>
+            处理
+          </el-button>
           <el-button @click="closeDialog" class="action-btn">
             关闭
           </el-button>
@@ -275,7 +265,7 @@
       </el-form>
       <div class="process-tip">
         <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
-        <span style="color: #909399; font-size: 13px;">填写处理意见后，该预警将被标记为已处理状态</span>
+        <span style="color: #909399; font-size: 13px;">填写处理意见后，将在处理进展中添加一条处理记录，可多次添加处理记录</span>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button @click="closeRemarkDialog">取 消</el-button>
@@ -321,6 +311,9 @@ export default {
       remarkForm: {
         remark: ''
       },
+      
+      // 处理进展时间线 - 改为数据属性，动态记录操作历史
+      operationHistory: []
     }
   },
   watch: {
@@ -328,8 +321,9 @@ export default {
       handler(val) {
         this.dialogVisible = val;
         if (val && this.warning) {
-          // 当对话框打开时，初始化档案数据
+          // 当对话框打开时，初始化档案数据和操作历史
           this.initArchivesList();
+          this.initOperationHistory();
         }
       },
       immediate: true
@@ -348,77 +342,6 @@ export default {
     // 默认档案
     defaultArchive() {
       return this.availableArchives.find(archive => archive.isDefault);
-    },
-    // 处理进展时间线
-    processTimeline() {
-      if (!this.warning) return [];
-      
-      const timeline = [];
-      
-      // 预警产生 - 始终是完成状态
-      timeline.push({
-        status: 'completed',
-        statusText: '预警产生',
-        time: this.warning.time || '2025-06-03 15:17:28',
-        description: `${this.warning.type || '系统检测'}：${this.warning.description || '检测到异常情况，请及时处理'}`
-      });
-      
-      // 待处理节点 - 始终显示
-      const isPending = this.warning.status === 'pending';
-      timeline.push({
-        status: isPending ? 'active' : 'completed',
-        statusText: '待处理',
-        time: this.warning.createTime || this.getCurrentTime(),
-        description: isPending ? '等待处理人员确认并处理' : '预警已进入处理流程'
-      });
-      
-      // 处理完成节点
-      if (this.warning.status === 'completed') {
-        // 已经处理完成
-        timeline.push({
-          status: 'completed',
-          statusText: '处理完成',
-          time: this.warning.processTime || this.getCurrentTime(),
-          description: this.warning.remark || '预警处理完成'
-        });
-      } else if (this.warning.status === 'pending') {
-        // 还在待处理状态，显示未来的处理完成节点
-        timeline.push({
-          status: 'future',
-          statusText: '处理完成',
-          time: '',
-          description: '请填写处理意见完成预警处理'
-        });
-      }
-      
-      // 归档节点逻辑优化
-      if (this.warning.status === 'archived') {
-        // 已归档状态 - 显示完成
-        timeline.push({
-          status: 'completed',
-          statusText: '已归档',
-          time: this.warning.archiveTime || this.getCurrentTime(),
-          description: this.warning.isFalseAlarm ? '误报已归档，处理流程结束' : '预警已归档，处理流程结束'
-        });
-      } else if (this.warning.status === 'completed') {
-        // 处理完成但未归档 - 显示为活跃状态，提示用户可以进行归档操作
-        timeline.push({
-          status: 'active',
-          statusText: '归档处理',
-          time: '',
-          description: '可选择将预警归档至相应档案'
-        });
-      } else if (this.warning.status === 'pending') {
-        // 待处理状态 - 显示为未来步骤
-        timeline.push({
-          status: 'future',
-          statusText: '归档处理',
-          time: '',
-          description: '处理完成后可进行归档操作'
-        });
-      }
-      
-      return timeline.reverse(); // 最新的在上面
     }
   },
   methods: {
@@ -526,21 +449,19 @@ export default {
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // 更新预警状态和备注 - 使用Vue.set确保响应式更新
-        if (this.warning) {
-          this.$set(this.warning, 'status', 'completed');
-          this.$set(this.warning, 'remark', this.remarkForm.remark);
-          this.$set(this.warning, 'processTime', this.getCurrentTime());
-        }
+        // 记录处理操作到历史
+        this.addOperationRecord({
+          status: 'completed',
+          statusText: '处理记录',
+          time: this.getCurrentTime(),
+          description: `处理意见：${this.remarkForm.remark}`,
+          operationType: 'process',
+          operator: this.getCurrentUserName()
+        });
         
-        this.$message.success('处理完成，处理意见已保存');
+        this.$message.success('处理记录已添加');
         this.$emit('handle-warning', this.warning);
         this.closeRemarkDialog();
-        
-        // 强制更新视图，确保按钮状态立即变化
-        this.$nextTick(() => {
-          this.$forceUpdate();
-        });
       } catch (error) {
         console.error('处理失败:', error);
         this.$message.error('处理失败');
@@ -587,10 +508,20 @@ export default {
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 500));
         
+        // 记录上报操作到历史
+        this.addOperationRecord({
+          status: 'completed',
+          statusText: '预警上报',
+          time: this.getCurrentTime(),
+          description: '预警已上报给上级部门处理，等待上级部门响应',
+          operationType: 'report',
+          operator: this.getCurrentUserName()
+        });
+        
         this.$message.success('预警已成功上报');
         this.$emit('handle-report', this.warning);
         this.closeReportDialog();
-        this.closeDialog();
+        // 不关闭详情对话框，让用户可以继续查看和操作
       } catch (error) {
         console.error('上报失败:', error);
         this.$message.error('上报失败');
@@ -609,10 +540,16 @@ export default {
     async confirmArchive() {
       try {
         let targetArchiveId = this.selectedArchiveId;
+        let archiveName = '';
         
         // 如果没有选择档案，自动创建默认档案
         if (!targetArchiveId) {
           targetArchiveId = await this.createDefaultArchive();
+          archiveName = '默认档案';
+        } else {
+          // 获取选中档案的名称
+          const selectedArchive = this.availableArchives.find(archive => archive.id === targetArchiveId);
+          archiveName = selectedArchive ? selectedArchive.name : '未知档案';
         }
         
         if (!targetArchiveId) {
@@ -623,10 +560,24 @@ export default {
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 500));
         
+        // 记录归档操作到历史
+        this.addOperationRecord({
+          status: 'completed',
+          statusText: '预警归档',
+          time: this.getCurrentTime(),
+          description: `预警已归档到：${archiveName}，可在预警档案中查看`,
+          operationType: 'archive',
+          operator: this.getCurrentUserName(),
+          archiveInfo: {
+            archiveId: targetArchiveId,
+            archiveName: archiveName
+          }
+        });
+        
         this.$message.success('预警已成功归档');
         this.$emit('handle-archive', this.warning);
         this.closeArchiveDialog();
-        this.closeDialog();
+        // 不关闭详情对话框，让用户可以继续查看操作历史
       } catch (error) {
         console.error('归档失败:', error);
         this.$message.error('归档失败');
@@ -691,18 +642,38 @@ export default {
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     },
     
+    // 获取当前用户昵称
+    getCurrentUserName() {
+      // 实际项目中应该从用户登录信息或Vuex store中获取
+      // 这里模拟一些用户昵称
+      const userNames = ['张工程师', '李主管', '王安全员', '赵技术员', '陈操作员'];
+      const savedUserName = localStorage.getItem('currentUserName');
+      
+      if (savedUserName) {
+        return savedUserName;
+      } else {
+        // 如果没有保存的用户名，随机选择一个并保存
+        const randomName = userNames[Math.floor(Math.random() * userNames.length)];
+        localStorage.setItem('currentUserName', randomName);
+        return randomName;
+      }
+    },
+    
     // 处理误报事件 - 复制预警管理页面的逻辑
     async handleFalseAlarmArchive() {
       try {
         let targetArchiveId = null;
+        let archiveName = '';
         
         // 查找或创建默认档案
         const existingDefaultArchive = this.availableArchives.find(archive => archive.isDefault);
         if (existingDefaultArchive) {
           targetArchiveId = existingDefaultArchive.id;
+          archiveName = existingDefaultArchive.name;
         } else {
           // 如果没有默认档案，自动创建
           targetArchiveId = await this.createDefaultArchive();
+          archiveName = '默认档案';
         }
         
         if (!targetArchiveId) {
@@ -713,9 +684,23 @@ export default {
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 300));
         
+        // 记录误报操作到历史
+        this.addOperationRecord({
+          status: 'completed',
+          statusText: '误报处理',
+          time: this.getCurrentTime(),
+          description: `预警被标记为误报并自动归档到：${archiveName}`,
+          operationType: 'falseAlarm',
+          operator: this.getCurrentUserName(),
+          archiveInfo: {
+            archiveId: targetArchiveId,
+            archiveName: archiveName
+          }
+        });
+        
         this.$message.success('误报已自动归档到默认档案');
         this.$emit('handle-false-alarm', this.warning);
-        this.closeDialog();
+        // 不关闭详情对话框，让用户可以继续查看操作历史
       } catch (error) {
         console.error('误报归档失败:', error);
         this.$message.error('误报归档失败');
@@ -796,6 +781,66 @@ export default {
         '烟火检测': '消防违规'
       };
       return typeMap[type] || '其他违规';
+    },
+    // 初始化操作历史
+    initOperationHistory() {
+      if (!this.warning) return;
+      
+      // 重置操作历史
+      this.operationHistory = [];
+      
+      // 如果预警有保存的操作历史，则直接加载
+      if (this.warning.operationHistory && Array.isArray(this.warning.operationHistory) && this.warning.operationHistory.length > 0) {
+        this.operationHistory = [...this.warning.operationHistory];
+        return;
+      }
+      
+      // 如果没有操作历史，则创建默认的初始记录
+      // 添加预警产生记录（始终存在的初始记录）
+      this.addOperationRecord({
+        status: 'completed',
+        statusText: '预警产生',
+        time: this.warning.time || this.getCurrentTime(),
+        description: `${this.warning.type || '系统检测'}：${this.warning.description || '检测到异常情况，请及时处理'}`,
+        operationType: 'create',
+        operator: '系统'
+      });
+      
+      // 添加待处理记录（始终显示）
+      this.addOperationRecord({
+        status: 'active',
+        statusText: '待处理',
+        time: this.warning.createTime || this.getCurrentTime(),
+        description: '等待处理人员确认并处理',
+        operationType: 'pending',
+        operator: ''
+      });
+    },
+    
+    // 添加操作记录到历史
+    addOperationRecord(record) {
+      // 确保记录包含必要字段
+      const newRecord = {
+        id: Date.now() + Math.random(), // 唯一ID
+        status: record.status || 'completed',
+        statusText: record.statusText || '操作',
+        time: record.time || this.getCurrentTime(),
+        description: record.description || '操作完成',
+        operationType: record.operationType || 'custom',
+        operator: record.operator || this.getCurrentUserName(),
+        ...record
+      };
+      
+      // 添加到历史记录开头（最新的在上面）
+      this.operationHistory.unshift(newRecord);
+      
+      // 更新预警对象的操作历史
+      if (this.warning) {
+        if (!this.warning.operationHistory) {
+          this.$set(this.warning, 'operationHistory', []);
+        }
+        this.warning.operationHistory.unshift(newRecord);
+      }
     }
   }
 }
@@ -1014,6 +1059,10 @@ export default {
   border: 1px solid #ebeef5;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
+  /* 设置固定高度，与媒体内容区域高度保持一致 */
+  height: 470px;
+  display: flex;
+  flex-direction: column;
 }
 
 .timeline-title {
@@ -1027,6 +1076,8 @@ export default {
   display: flex;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  /* 固定标题高度，不参与滚动 */
+  flex-shrink: 0;
 }
 
 .timeline-title i {
@@ -1037,6 +1088,32 @@ export default {
 .timeline-container {
   padding: 16px 20px 20px;
   position: relative;
+  /* 设置滚动容器，占用剩余空间 */
+  flex: 1;
+  overflow-y: auto;
+  /* 美化滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: #c0c4cc #f5f7fa;
+}
+
+/* Webkit浏览器滚动条样式 */
+.timeline-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.timeline-container::-webkit-scrollbar-track {
+  background: #f5f7fa;
+  border-radius: 3px;
+}
+
+.timeline-container::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.timeline-container::-webkit-scrollbar-thumb:hover {
+  background: #a6a9ad;
 }
 
 .timeline-item {
@@ -1071,13 +1148,43 @@ export default {
   height: 12px;
   border-radius: 50%;
   border: 2px solid #e4e7ed;
-  background: #ffffff;
+  background: #e4e7ed;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   z-index: 2;
   transition: all 0.3s ease;
 }
 
-.timeline-item.active .timeline-dot {
+/* 所有历史时间线项目（除第一个外）使用灰色圆点 */
+.timeline-container .timeline-item:not(:first-child) .timeline-dot {
+  border-color: #e4e7ed !important;
+  background: #e4e7ed !important;
+  box-shadow: 0 2px 6px rgba(228, 231, 237, 0.3) !important;
+  animation: none !important;
+}
+
+/* 最新的时间线项目（第一个）使用动态蓝色圆点 - 优先级最高 */
+.timeline-container .timeline-item:first-child .timeline-dot {
+  border-color: #409EFF !important;
+  background: #409EFF !important;
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.2), 0 2px 6px rgba(64, 158, 255, 0.3) !important;
+  animation: pulse-latest 2s infinite !important;
+}
+
+/* 最新圆点的动态效果 */
+@keyframes pulse-latest {
+  0% {
+    box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.2), 0 2px 6px rgba(64, 158, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(64, 158, 255, 0.1), 0 2px 6px rgba(64, 158, 255, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.2), 0 2px 6px rgba(64, 158, 255, 0.3);
+  }
+}
+
+/* 移除原有的active和completed状态样式，避免干扰圆点颜色 */
+/* .timeline-item.active .timeline-dot {
   border-color: #409EFF;
   background: #409EFF;
   box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
@@ -1088,7 +1195,7 @@ export default {
   border-color: #67c23a;
   background: #67c23a;
   box-shadow: 0 2px 6px rgba(103, 194, 58, 0.3);
-}
+} */
 
 .timeline-content {
   margin-left: 4px;
@@ -1098,6 +1205,48 @@ export default {
   border: 1px solid #f0f2f5;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
+  position: relative;
+}
+
+/* 为不同操作类型添加左边框颜色 */
+.timeline-content::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 0 8px 8px 0;
+}
+
+/* 预警产生 */
+.timeline-item[data-type="create"] .timeline-content::before {
+  background: #909399;
+}
+
+/* 处理完成 */
+.timeline-item[data-type="process"] .timeline-content::before {
+  background: #67c23a;
+}
+
+/* 上报 */
+.timeline-item[data-type="report"] .timeline-content::before {
+  background: #e6a23c;
+}
+
+/* 归档 */
+.timeline-item[data-type="archive"] .timeline-content::before {
+  background: #f56c6c;
+}
+
+/* 误报 */
+.timeline-item[data-type="falseAlarm"] .timeline-content::before {
+  background: #909399;
+}
+
+/* 待处理 */
+.timeline-item[data-type="pending"] .timeline-content::before {
+  background: #409EFF;
 }
 
 .timeline-item.active .timeline-content {
@@ -1116,6 +1265,19 @@ export default {
   font-size: 14px;
   color: #303133;
   margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timeline-operator {
+  font-size: 12px;
+  color: #909399;
+  font-weight: normal;
+  background: rgba(144, 147, 153, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
 }
 
 .timeline-item.active .timeline-status {
