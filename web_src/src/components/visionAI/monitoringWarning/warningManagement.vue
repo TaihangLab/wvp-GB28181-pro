@@ -233,6 +233,12 @@ export default {
       archiveDialogVisible: false,
       archiveWarningId: '',
       
+      // 批量处理对话框
+      batchProcessDialogVisible: false,
+      batchRemarkForm: {
+        remark: ''
+      },
+      
       // 档案管理数据
       archivesList: [
         {
@@ -254,8 +260,6 @@ export default {
       ],
       selectedArchiveId: '',
       currentCameraId: 'camera_1',
-      
-
       
       // 预警详情对话框
       warningDetailVisible: false,
@@ -422,14 +426,11 @@ export default {
         const index = this.warningList.findIndex(item => item.id === id)
         if (index !== -1) {
           if (action === 'markProcessed') {
-            // 标记为已处理
-            this.warningList[index].status = 'completed'
-            this.$message.success('已标记为已处理')
-          } else if (action === 'remark') {
-            // 添加备注
+            // 添加处理记录 - 弹出处理意见对话框
             this.currentWarningId = id
             this.remarkDialogVisible = true
-            return // 不关闭loading，等备注保存后再关闭
+            this.loading = false // 在弹框前先关闭loading
+            return // 等处理意见填写完成后再继续
           } else if (action === 'report') {
             // 上报
             this.reportWarningId = id
@@ -481,23 +482,51 @@ export default {
     async confirmArchive() {
       try {
         let targetArchiveId = this.selectedArchiveId
+        let archiveName = ''
         
-        // 如果没有选择档案且没有默认档案，自动创建默认档案
-        if (!targetArchiveId && !this.defaultArchive) {
+        // 如果没有选择档案，自动创建默认档案
+        if (!targetArchiveId) {
           targetArchiveId = await this.createDefaultArchive()
+          archiveName = '默认档案'
+        } else {
+          // 获取选中档案的名称
+          const selectedArchive = this.availableArchives.find(archive => archive.id === targetArchiveId)
+          archiveName = selectedArchive ? selectedArchive.name : '未知档案'
         }
         
         if (!targetArchiveId) {
-          this.$message.warning('请选择或创建档案')
+          this.$message.error('无法创建默认档案')
           return
         }
         
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 500))
         
-        // 更新预警状态为已归档
+        // 获取当前预警并添加归档记录到操作历史
         const index = this.warningList.findIndex(item => item.id === this.archiveWarningId)
         if (index !== -1) {
+          // 添加归档记录到操作历史
+          if (!this.warningList[index].operationHistory) {
+            this.$set(this.warningList[index], 'operationHistory', [])
+          }
+          
+          const newRecord = {
+            id: Date.now() + Math.random(),
+            status: 'completed',
+            statusText: '预警归档',
+            time: this.getCurrentTime(),
+            description: `预警已归档到：${archiveName}，可在预警档案中查看`,
+            operationType: 'archive',
+            operator: this.getCurrentUserName(),
+            archiveInfo: {
+              archiveId: targetArchiveId,
+              archiveName: archiveName
+            }
+          }
+          
+          this.warningList[index].operationHistory.unshift(newRecord)
+          
+          // 更新预警状态为已归档（用于筛选时不显示）
           this.warningList[index].status = 'archived'
           this.warningList[index].archiveId = targetArchiveId
           this.warningList[index].archiveTime = new Date().toLocaleString()
@@ -514,6 +543,8 @@ export default {
       } catch (error) {
         console.error('归档失败:', error)
         this.$message.error('归档失败')
+      } finally {
+        this.loading = false
       }
     },
     
@@ -554,7 +585,35 @@ export default {
       return cameraNames[this.currentCameraId] || '监控点'
     },
     
-
+    // 获取当前时间
+    getCurrentTime() {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      const hours = String(now.getHours()).padStart(2, '0')
+      const minutes = String(now.getMinutes()).padStart(2, '0')
+      const seconds = String(now.getSeconds()).padStart(2, '0')
+      
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    },
+    
+    // 获取当前用户昵称
+    getCurrentUserName() {
+      // 实际项目中应该从用户登录信息或Vuex store中获取
+      // 这里模拟一些用户昵称
+      const userNames = ['张工程师', '李主管', '王安全员', '赵技术员', '陈操作员']
+      const savedUserName = localStorage.getItem('currentUserName')
+      
+      if (savedUserName) {
+        return savedUserName
+      } else {
+        // 如果没有保存的用户名，随机选择一个并保存
+        const randomName = userNames[Math.floor(Math.random() * userNames.length)]
+        localStorage.setItem('currentUserName', randomName)
+        return randomName
+      }
+    },
     
     // 全选/取消全选
     handleSelectAll() {
@@ -598,6 +657,17 @@ export default {
         return
       }
       
+      // 弹出批量处理意见对话框
+      this.batchProcessDialogVisible = true
+    },
+    
+    // 确认批量处理
+    async confirmBatchProcess() {
+      if (!this.batchRemarkForm.remark.trim()) {
+        this.$message.warning('请输入批量处理意见')
+        return
+      }
+      
       try {
         this.loading = true
         
@@ -607,21 +677,46 @@ export default {
         // 模拟API调用处理时间
         await new Promise(resolve => setTimeout(resolve, 800))
         
-        // 更新所有选中项的状态为已处理
+        // 为所有选中项添加处理记录
         for (const id of this.selectedWarnings) {
           const index = this.warningList.findIndex(item => item.id === id)
-          if (index !== -1 && this.warningList[index].status === 'pending') {
-            this.warningList[index].status = 'completed'
+          if (index !== -1) {
+            // 添加处理记录到操作历史
+            if (!this.warningList[index].operationHistory) {
+              this.$set(this.warningList[index], 'operationHistory', [])
+            }
+            
+            const newRecord = {
+              id: Date.now() + Math.random(),
+              status: 'completed',
+              statusText: '批量处理记录',
+              time: this.getCurrentTime(),
+              description: `批量处理意见：${this.batchRemarkForm.remark}`,
+              operationType: 'process',
+              operator: this.getCurrentUserName()
+            }
+            
+            this.warningList[index].operationHistory.unshift(newRecord)
+            // 不再改变预警状态，保持预警可继续处理
           }
         }
         
-        this.$message.success(`已批量标记 ${this.selectedWarnings.length} 项预警为已处理`)
+        this.$message.success(`已为 ${this.selectedWarnings.length} 项预警添加处理记录，可继续添加多次处理记录`)
         this.selectedWarnings = []
+        this.closeBatchProcessDialog()
       } catch (error) {
         console.error('批量处理失败:', error)
         this.$message.error('批量处理失败')
       } finally {
         this.loading = false
+      }
+    },
+    
+    // 关闭批量处理对话框
+    closeBatchProcessDialog() {
+      this.batchProcessDialogVisible = false
+      this.batchRemarkForm = {
+        remark: ''
       }
     },
     
@@ -762,23 +857,40 @@ export default {
       }
       
       try {
+        this.loading = true
+        
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 300))
         
-        // 更新本地数据
+        // 更新本地数据 - 只添加处理记录，不改变状态
         const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
         if (index !== -1) {
-          // 构建完整的备注内容
-          let remarkContent = this.remarkForm.remark
+          // 添加处理记录到操作历史（如果预警对象有operationHistory）
+          if (!this.warningList[index].operationHistory) {
+            this.$set(this.warningList[index], 'operationHistory', [])
+          }
           
-          this.warningList[index].remark = remarkContent
+          const newRecord = {
+            id: Date.now() + Math.random(),
+            status: 'completed',
+            statusText: '处理记录',
+            time: this.getCurrentTime(),
+            description: `处理意见：${this.remarkForm.remark}`,
+            operationType: 'process',
+            operator: this.getCurrentUserName()
+          }
+          
+          this.warningList[index].operationHistory.unshift(newRecord)
+          // 不再改变预警状态为completed，保持预警可继续处理
         }
         
-        this.$message.success('备注已保存')
+        this.$message.success('处理记录已添加，可继续添加多次处理记录')
         this.closeRemarkDialog()
       } catch (error) {
-        console.error('保存备注失败:', error)
-        this.$message.error('保存备注失败')
+        console.error('处理失败:', error)
+        this.$message.error('处理失败')
+      } finally {
+        this.loading = false
       }
     },
     
@@ -795,18 +907,37 @@ export default {
     async confirmReport() {
       try {
         // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 300))
+        await new Promise(resolve => setTimeout(resolve, 500))
         
-        this.$message({
-          message: '预警已上报',
-          type: 'success',
-          duration: 2000
-        })
+        // 获取当前预警
+        const index = this.warningList.findIndex(item => item.id === this.reportWarningId)
+        if (index !== -1) {
+          // 添加上报记录到操作历史
+          if (!this.warningList[index].operationHistory) {
+            this.$set(this.warningList[index], 'operationHistory', [])
+          }
+          
+          const newRecord = {
+            id: Date.now() + Math.random(),
+            status: 'completed',
+            statusText: '预警上报',
+            time: this.getCurrentTime(),
+            description: '预警已上报给上级部门处理，等待上级部门响应',
+            operationType: 'report',
+            operator: this.getCurrentUserName()
+          }
+          
+          this.warningList[index].operationHistory.unshift(newRecord)
+        }
         
+        this.$message.success('预警已成功上报')
         this.closeReportDialog()
+        // 不改变预警状态，保持预警可继续处理
       } catch (error) {
         console.error('上报失败:', error)
         this.$message.error('上报失败')
+      } finally {
+        this.loading = false
       }
     },
     
@@ -892,14 +1023,17 @@ export default {
     async handleFalseAlarmArchive() {
       try {
         let targetArchiveId = null
+        let archiveName = ''
         
         // 查找或创建默认档案
         const existingDefaultArchive = this.availableArchives.find(archive => archive.isDefault)
         if (existingDefaultArchive) {
           targetArchiveId = existingDefaultArchive.id
+          archiveName = existingDefaultArchive.name
         } else {
           // 如果没有默认档案，自动创建
           targetArchiveId = await this.createDefaultArchive()
+          archiveName = '默认档案'
         }
         
         if (!targetArchiveId) {
@@ -910,9 +1044,31 @@ export default {
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 300))
         
-        // 更新本地数据
+        // 获取当前预警并添加误报记录到操作历史
         const index = this.warningList.findIndex(item => item.id === this.archiveWarningId)
         if (index !== -1) {
+          // 添加误报记录到操作历史
+          if (!this.warningList[index].operationHistory) {
+            this.$set(this.warningList[index], 'operationHistory', [])
+          }
+          
+          const newRecord = {
+            id: Date.now() + Math.random(),
+            status: 'completed',
+            statusText: '误报处理',
+            time: this.getCurrentTime(),
+            description: `预警被标记为误报并自动归档到：${archiveName}`,
+            operationType: 'falseAlarm',
+            operator: this.getCurrentUserName(),
+            archiveInfo: {
+              archiveId: targetArchiveId,
+              archiveName: archiveName
+            }
+          }
+          
+          this.warningList[index].operationHistory.unshift(newRecord)
+          
+          // 更新本地数据
           this.warningList[index].status = 'archived'
           this.warningList[index].archiveId = targetArchiveId
           this.warningList[index].archiveTime = new Date().toLocaleString()
@@ -930,6 +1086,8 @@ export default {
       } catch (error) {
         console.error('误报归档失败:', error)
         this.$message.error('误报归档失败')
+      } finally {
+        this.loading = false
       }
     },
     
@@ -1147,30 +1305,13 @@ export default {
                 </div>
                 
                 <div class="warning-footer">
-                  <template v-if="item.status === 'pending'">
-                    <el-button 
-                      type="success" 
-                      size="mini" 
-                      plain
-                      @click.stop="handleWarning(item.id, 'markProcessed')"
-                    >处理</el-button>
-                  </template>
-                  <template v-else-if="item.status === 'completed'">
-                    <el-button 
-                      type="success" 
-                      size="mini" 
-                      plain
-                      disabled
-                      class="processed-btn"
-                    >已处理</el-button>
-                  </template>
-                  
+                  <!-- 处理按钮始终可用，允许多次处理 -->
                   <el-button 
-                    class="remark-btn" 
+                    type="success" 
                     size="mini" 
                     plain
-                    @click.stop="handleWarning(item.id, 'remark')"
-                  >备注</el-button>
+                    @click.stop="handleWarning(item.id, 'markProcessed')"
+                  >处理</el-button>
                   
                   <el-button 
                     class="report-btn" 
@@ -1232,7 +1373,7 @@ export default {
     
     <!-- 添加备注对话框 -->
     <el-dialog
-      title="添加备注"
+      title="处理预警"
       :visible.sync="remarkDialogVisible"
       width="30%"
       center
@@ -1245,15 +1386,19 @@ export default {
             v-model="remarkForm.remark"
             type="textarea"
             :rows="4"
-            placeholder="请输入处理意见"
+            placeholder="请输入处理意见，描述具体的处理措施和结果"
             maxlength="500"
             show-word-limit
           />
         </el-form-item>
       </el-form>
+      <div class="process-tip">
+        <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
+        <span style="color: #909399; font-size: 13px;">填写处理意见后，将在处理进展中添加一条处理记录，可多次添加处理记录</span>
+      </div>
       <span slot="footer" class="dialog-footer">
         <el-button @click="closeRemarkDialog">取 消</el-button>
-        <el-button type="primary" @click="saveRemark">保 存</el-button>
+        <el-button type="primary" @click="saveRemark">确认处理</el-button>
       </span>
     </el-dialog>
     
@@ -1261,18 +1406,18 @@ export default {
     <el-dialog
       title="上报确认"
       :visible.sync="reportDialogVisible"
-      width="25%"
+      width="400px"
       center
       :close-on-click-modal="false"
       :close-on-press-escape="false"
     >
-      <div class="dialog-content">
-        <i class="el-icon-warning" style="color: #E6A23C; font-size: 24px; margin-right: 8px;"></i>
-        <span>确认要上报这条预警吗？</span>
+      <div class="confirm-content">
+        <p>确定要上报此预警吗？</p>
+        <p style="color: #909399; font-size: 12px;">上报后预警将提交给上级部门处理</p>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button @click="closeReportDialog">取 消</el-button>
-        <el-button type="primary" @click="confirmReport">确认上报</el-button>
+        <el-button type="warning" @click="confirmReport">确定上报</el-button>
       </span>
     </el-dialog>
     
@@ -1345,7 +1490,43 @@ export default {
       </span>
     </el-dialog>
     
-
+    <!-- 批量处理对话框 -->
+    <el-dialog
+      title="批量处理预警"
+      :visible.sync="batchProcessDialogVisible"
+      width="35%"
+      center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <div class="batch-process-info">
+        <i class="el-icon-warning-outline" style="color: #E6A23C; font-size: 24px; margin-right: 8px;"></i>
+        <span style="font-size: 16px; font-weight: 500;">您将要批量处理 {{ selectedWarnings.length }} 项预警</span>
+      </div>
+      
+      <el-form :model="batchRemarkForm" label-width="80px" style="margin-top: 20px;">
+        <el-form-item label="处理意见" required>
+          <el-input
+            v-model="batchRemarkForm.remark"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入批量处理意见，此意见将应用到所有选中的预警"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+      
+      <div class="batch-process-tip">
+        <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
+        <span style="color: #909399; font-size: 13px;">批量处理完成后，将为所有选中的预警添加统一的处理记录，可继续多次处理</span>
+      </div>
+      
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="closeBatchProcessDialog">取 消</el-button>
+        <el-button type="primary" @click="confirmBatchProcess">确认批量处理</el-button>
+      </span>
+    </el-dialog>
     
     <!-- 预警详情对话框 -->
     <WarningDetail
@@ -2099,6 +2280,27 @@ export default {
   padding: 10px 0;
 }
 
+.confirm-content {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.confirm-content p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #606266;
+}
+
+.process-tip {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  border-left: 3px solid #909399;
+}
+
 /* 归档对话框样式 */
 .archive-dialog-content {
   padding: 10px 0;
@@ -2118,5 +2320,25 @@ export default {
 
 .archive-tip {
   margin-top: 10px;
+}
+
+.batch-process-info {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #fef7e0;
+  border: 1px solid #faecd8;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.batch-process-tip {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  border-left: 3px solid #909399;
 }
 </style>

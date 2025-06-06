@@ -50,75 +50,96 @@
           </div>
         </el-col>
 
-        <!-- 中间3D地图 -->
+        <!-- 中间预警图片查看器 -->
         <el-col :span="12">
           <div class="map-panel panel-box">
-            <div class="center-stats">
-              <div class="stat-box warning-stat">
-                <div class="stat-icon alert-icon">
+            <!-- 预警图片查看器 -->
+            <div class="warning-viewer">
+              <!-- 主要显示区域 -->
+              <div class="main-image-container">
+                <img 
+                  :src="currentWarningImage.image" 
+                  :alt="currentWarningImage.event"
+                  class="main-warning-image"
+                />
+                
+                <!-- 顶部信息叠加层 -->
+                <div class="top-info-overlay">
+                  <div class="info-card warning-info-card">
+                    <div class="info-icon warning-icon">
                   <i class="el-icon-warning"></i>
                 </div>
-                <div class="stat-info">
-                  <div class="stat-title">今日预警</div>
-                  <div class="stat-value">{{ todayWarnings }}<span class="unit">个</span></div>
+                    <div class="info-content">
+                      <div class="info-title">今日预警</div>
+                      <div class="info-number">{{ todayWarnings }}<span class="info-unit">个</span></div>
                 </div>
               </div>
-              <div class="stat-box device-stat">
-                <div class="stat-icon video-icon">
+                  <div class="info-card device-info-card">
+                    <div class="info-icon device-icon">
                   <i class="el-icon-video-camera-solid"></i>
                 </div>
-                <div class="stat-info">
-                  <div class="stat-title">设备概览</div>
-                  <div class="stat-value">{{ deviceCount }}/{{ totalDevices }}</div>
+                    <div class="info-content">
+                      <div class="info-title">设备概览</div>
+                      <div class="info-number">{{ deviceCount }}/{{ totalDevices }}</div>
                 </div>
               </div>
-              <div class="stat-box warning-stat">
-                <div class="stat-icon alert-blue-icon">
-                  <i class="el-icon-bell"></i>
                 </div>
-                <div class="stat-info">
-                  <div class="stat-title">当前预警</div>
-                  <div class="stat-value">{{ currentEvent }}</div>
+                
+                <!-- 预警信息叠加层 -->
+                <div class="warning-info-overlay">
+                  <div class="warning-info-panel">
+                    <div class="info-row">
+                      <span class="info-label">预警时间：</span>
+                      <span class="info-value">{{ currentWarningImage.time }}</span>
                 </div>
+                    <div class="info-row">
+                      <span class="info-label">预警事件：</span>
+                      <span class="info-value">{{ currentWarningImage.event }}</span>
               </div>
-              <div class="stat-box location-stat">
-                <div class="stat-icon location-icon">
-                  <i class="el-icon-position"></i>
+                    <div class="info-row">
+                      <span class="info-label">预警等级：</span>
+                      <span class="info-value" :class="'level-' + currentWarningImage.level">{{ currentWarningImage.levelText }}</span>
                 </div>
-                <div class="stat-info">
-                  <div class="stat-title">设备位置</div>
-                  <div class="stat-value">{{ currentDevice }}</div>
-                </div>
-              </div>
-            </div>
-            <div class="map-container" ref="mapContainer">
-              <!-- 3D地图将在这里渲染 -->
-              <div class="map-stats">
-                <div class="map-stat-item">
-                  <div class="stat-label">今日预警</div>
-                  <div class="stat-value">{{ todayWarnings }}<span class="unit">个</span></div>
-                </div>
-                <div class="map-stat-item">
-                  <div class="stat-label">设备概览</div>
-                  <div class="stat-value">{{ deviceCount }}<span class="unit">/{{ totalDevices }}</span></div>
+                    <div class="info-row">
+                      <span class="info-label">预警点位：</span>
+                      <span class="info-value">{{ currentWarningImage.location }}</span>
                 </div>
               </div>
             </div>
-            <div class="map-info">
-              <div class="info-title">预警信息</div>
-              <div class="info-item">
-                <span>时间：</span>{{ currentDetailTime }}
+                </div>
+              
+              <!-- 底部缩略图滑动区域 -->
+              <div class="thumbnail-container-bottom">
+                <!-- 左侧导航按钮 -->
+                <button 
+                  class="slider-btn prev-btn"
+                  @click="slidePrev"
+                  :disabled="currentImageIndex === 0"
+                >
+                  <i class="el-icon-arrow-left"></i>
+                </button>
+                
+                <!-- 中间滑动区域 -->
+                <div class="thumbnail-slider" ref="thumbnailSlider">
+                  <div 
+                    v-for="(warning, index) in warningImages" 
+                    :key="index"
+                    :class="['thumbnail-item', { active: currentImageIndex === index }]"
+                    @click="selectWarningImage(index)"
+                  >
+                    <img :src="warning.image" :alt="warning.event" />
+                </div>
               </div>
-              <div class="info-item">
-                <span>事件：</span>{{ currentEvent }}
-              </div>
-              <div class="info-item">
-                <span>设备名称：</span>{{ currentDevice }}
-              </div>
-              <div class="info-tip">
-                <i class="el-icon-info"></i>
-                提示：鼠标拖动可旋转视角
-              </div>
+                
+                <!-- 右侧导航按钮 -->
+                <button 
+                  class="slider-btn next-btn"
+                  @click="slideNext"
+                  :disabled="currentImageIndex === warningImages.length - 1"
+                >
+                  <i class="el-icon-arrow-right"></i>
+                </button>
+            </div>
             </div>
           </div>
         </el-col>
@@ -223,8 +244,6 @@
 <script>
 import * as echarts from 'echarts';
 import axios from 'axios';
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 export default {
   name: 'VisualCenter',
@@ -317,18 +336,28 @@ export default {
       ],
 
       // 表格高度
-      tableHeight: 240
+      tableHeight: 280,
+
+      // 预警图片相关数据
+      currentWarningImage: {
+        image: '',
+        event: '',
+        time: '',
+        level: '',
+        levelText: '',
+        location: ''
+      },
+      warningImages: [],
+      currentImageIndex: 0
     };
   },
   mounted() {
     // 初始化模拟数据
     this.initMockData();
     
-    // 初始化CSS变量
+    // 初始化CSS变量 - 只保留面板相关的变量
     document.documentElement.style.setProperty('--panel-top-height', '210px');
     document.documentElement.style.setProperty('--panel-bottom-height', '330px');
-    document.documentElement.style.setProperty('--map-panel-height', '504px');
-    document.documentElement.style.setProperty('--map-container-height', '414px');
     
     this.fetchWeatherData();
     this.fetchSystemStatus();
@@ -349,6 +378,7 @@ export default {
       this.initStatusChart();
       this.initSimpleMapArea();
       this.generateMockData();
+      this.initWarningViewer();
     });
     
     window.addEventListener('resize', this.handleResize);
@@ -361,6 +391,7 @@ export default {
     
     // 移除事件监听
     document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
+    document.removeEventListener('keydown', this.handleKeyboardNavigation);
     window.removeEventListener('resize', this.handleResize);
     
     // 销毁图表和3D资源
@@ -399,9 +430,8 @@ export default {
       
       // 初始化天气信息
       this.locationInfo = {
-        location: '太行山工业园区',
+        location: '太行工业园区',
         weather: '晴 26°C',
-        airQuality: '空气质量: 良',
         loading: false
       };
       
@@ -450,6 +480,56 @@ export default {
         { name: '原料仓库', count: 6, value: 40 },
         { name: '成品仓库', count: 3, value: 20 }
       ];
+      
+      // 初始化预警图片数据
+      this.warningImages = [
+        {
+          image: 'https://via.placeholder.com/800x600/333333/FFFFFF?text=预警图片1',
+          event: '识别大块异物ZMR',
+          time: '2025.06.03 15:17',
+          level: 'high',
+          levelText: '四级',
+          location: '测试zmr'
+        },
+        {
+          image: 'https://via.placeholder.com/800x600/444444/FFFFFF?text=预警图片2',
+          event: '未戴安全帽',
+          time: '2025.06.03 14:52',
+          level: 'medium',
+          levelText: '三级',
+          location: '生产车间A区'
+        },
+        {
+          image: 'https://via.placeholder.com/800x600/555555/FFFFFF?text=预警图片3',
+          event: '区域入侵',
+          time: '2025.06.03 14:30',
+          level: 'low',
+          levelText: '二级',
+          location: '装配车间北门'
+        },
+        {
+          image: 'https://via.placeholder.com/800x600/666666/FFFFFF?text=预警图片4',
+          event: '垃圾堆积',
+          time: '2025.06.03 13:45',
+          level: 'low',
+          levelText: '一级',
+          location: '原料仓库东侧'
+        },
+        {
+          image: 'https://via.placeholder.com/800x600/777777/FFFFFF?text=预警图片5',
+          event: '烟雾识别',
+          time: '2025.06.03 12:20',
+          level: 'urgent',
+          levelText: '紧急',
+          location: '机械加工区'
+        }
+      ];
+      
+      // 设置默认显示第一张图片
+      if (this.warningImages.length > 0) {
+        this.currentWarningImage = this.warningImages[0];
+        this.currentImageIndex = 0;
+      }
     },
     
     // 获取系统状态数据
@@ -513,7 +593,7 @@ export default {
         const response = {
           data: {
             location: {
-              name: '太行山工业园区'
+              name: '太行工业园区'
             },
             current: {
               condition: {
@@ -532,20 +612,12 @@ export default {
           this.locationInfo.location = location.name;
           // 天气和温度合并显示
           this.locationInfo.weather = `${current.condition.text} ${current.temp_c}°C`;
-          // 空气质量
-          if (current.air_quality) {
-            const aqi = current.air_quality['us-epa-index'];
-            const aqiText = ['优', '良', '轻度污染', '中度污染', '重度污染', '严重污染'][aqi - 1] || '未知';
-            this.locationInfo.airQuality = `空气质量: ${aqiText}`;
-          }
-        } else {
-          throw new Error('Invalid weather data');
+          
         }
       } catch (error) {
         console.error('获取天气数据失败:', error);
-        this.locationInfo.location = '太行山工业园区';
+        this.locationInfo.location = '太行工业园区';
         this.locationInfo.weather = '晴 26°C';
-        this.locationInfo.airQuality = '空气质量: 良';
       } finally {
         this.locationInfo.loading = false;
       }
@@ -600,21 +672,17 @@ export default {
     handleFullscreenChange() {
       this.isFullscreen = !!document.fullscreenElement;
       
-      // 根据全屏状态调整表格和面板高度
+      // 根据全屏状态调整表格高度和面板高度
       if (this.isFullscreen) {
-        this.tableHeight = 420; // 全屏模式下显示更多行
-        // 调整全屏下的CSS变量
-        document.documentElement.style.setProperty('--panel-top-height', '320px');
-        document.documentElement.style.setProperty('--panel-bottom-height', '420px');
-        document.documentElement.style.setProperty('--map-panel-height', '660px');
-        document.documentElement.style.setProperty('--map-container-height', '570px');
+        this.tableHeight = 280; // 全屏模式下适中的表格高度
+        // 调整全屏下的面板高度 - 适当缩小以避免滚动
+        document.documentElement.style.setProperty('--panel-top-height', '240px');
+        document.documentElement.style.setProperty('--panel-bottom-height', '320px');
       } else {
-        this.tableHeight = 240; // 非全屏模式下的标准高度
-        // 恢复正常模式下的CSS变量
+        this.tableHeight = 280; // 非全屏模式下使用与全屏相同的表格高度，确保显示效果一致
+        // 恢复正常模式下的面板高度
         document.documentElement.style.setProperty('--panel-top-height', '210px');
         document.documentElement.style.setProperty('--panel-bottom-height', '330px');
-        document.documentElement.style.setProperty('--map-panel-height', '504px');
-        document.documentElement.style.setProperty('--map-container-height', '414px');
       }
       
       // 全屏状态变化后，重新调整图表大小
@@ -858,498 +926,7 @@ export default {
     
     // 初始化简单地图区域
     initSimpleMapArea() {
-      const mapContainer = this.$refs.mapContainer;
-      if (!mapContainer) return;
-      
-      // 清空地图容器
-      while (mapContainer.firstChild) {
-        mapContainer.removeChild(mapContainer.firstChild);
-      }
-      
-      // 创建Three.js场景
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x04143F);
-      
-      // 创建相机
-      const camera = new THREE.PerspectiveCamera(
-        60, 
-        mapContainer.clientWidth / mapContainer.clientHeight, 
-        0.1, 
-        1000
-      );
-      camera.position.set(0, 20, 30);
-      camera.lookAt(0, 0, 0);
-      
-      // 创建渲染器
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(mapContainer.clientWidth, mapContainer.clientHeight);
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      mapContainer.appendChild(renderer.domElement);
-      
-      // 添加环境光
-      const ambientLight = new THREE.AmbientLight(0x404040, 2);
-      scene.add(ambientLight);
-      
-      // 添加定向光源
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-      directionalLight.position.set(10, 25, 15);
-      directionalLight.castShadow = true;
-      
-      // 设置阴影范围
-      directionalLight.shadow.camera.near = 1;
-      directionalLight.shadow.camera.far = 50;
-      directionalLight.shadow.camera.left = -20;
-      directionalLight.shadow.camera.right = 20;
-      directionalLight.shadow.camera.top = 20;
-      directionalLight.shadow.camera.bottom = -20;
-      scene.add(directionalLight);
-      
-      // 添加点光源，增强视觉效果
-      const pointLight = new THREE.PointLight(0x00FFFF, 1, 30);
-      pointLight.position.set(0, 15, 0);
-      scene.add(pointLight);
-      
-      // 添加控制器以支持鼠标拖动旋转和缩放
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.screenSpacePanning = false;
-      controls.minDistance = 15;
-      controls.maxDistance = 50;
-      controls.maxPolarAngle = Math.PI / 2;
-      
-      // 创建地面
-      const groundGeometry = new THREE.PlaneGeometry(100, 100);
-      const groundMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x061E5D,
-        roughness: 0.8,
-        metalness: 0.2
-      });
-      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-      ground.rotation.x = -Math.PI / 2;
-      ground.receiveShadow = true;
-      scene.add(ground);
-      
-      // 添加网格辅助线
-      const gridHelper = new THREE.GridHelper(100, 50, 0x00FFFF, 0x235894);
-      gridHelper.material.opacity = 0.2;
-      gridHelper.material.transparent = true;
-      scene.add(gridHelper);
-      
-      // 创建工厂基地
-      const baseGeometry = new THREE.BoxGeometry(40, 0.5, 35);
-      const baseMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x061E5D, 
-        transparent: true,
-        opacity: 0.8,
-        roughness: 0.7,
-        metalness: 0.3
-      });
-      const baseFloor = new THREE.Mesh(baseGeometry, baseMaterial);
-      baseFloor.position.set(0, 0.25, 0);
-      baseFloor.receiveShadow = true;
-      scene.add(baseFloor);
-      
-      // 添加边框线
-      const edges = new THREE.EdgesGeometry(baseGeometry);
-      const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00FFFF });
-      const borderLines = new THREE.LineSegments(edges, lineMaterial);
-      borderLines.position.copy(baseFloor.position);
-      scene.add(borderLines);
-      
-      // 创建道路
-      const roadGeometry = new THREE.PlaneGeometry(5, 30);
-      const roadMaterial = new THREE.MeshStandardMaterial({
-        color: 0x333333,
-        roughness: 0.8,
-        metalness: 0.2
-      });
-      const road = new THREE.Mesh(roadGeometry, roadMaterial);
-      road.rotation.x = -Math.PI / 2;
-      road.position.set(15, 0.3, 0);
-      scene.add(road);
-      
-      // 添加路径线
-      const roadLine1 = new THREE.BoxGeometry(0.2, 0.1, 28);
-      const roadLineMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
-      const roadLineMarking = new THREE.Mesh(roadLine1, roadLineMaterial);
-      roadLineMarking.position.set(15, 0.4, 0);
-      scene.add(roadLineMarking);
-      
-      // 添加几个工厂建筑物
-      this.addBuilding(scene, -12, 0, -12, 10, 6, 8, 0x00FFFF, '生产车间A'); // 生产车间A - 蓝色
-      this.addBuilding(scene, 8, 0, -12, 8, 5, 10, 0x44FF9B, '装配车间');   // 装配车间 - 绿色
-      this.addBuilding(scene, -12, 0, 8, 10, 4, 7, 0xFF8746, '机械加工区'); // 机械加工区 - 橙色
-      this.addBuilding(scene, 8, 0, 10, 7, 7, 5, 0x207FFF, '仓库');        // 仓库 - 蓝色
-      
-      // 添加小型办公楼
-      this.addBuilding(scene, -2, 0, -8, 5, 8, 6, 0x00C5FF, '办公楼');
-      
-      // 添加围墙
-      this.addWalls(scene, 40, 35);
-      
-      // 添加预警点
-      this.addWarningPoint(scene, -12, 0, -12, 0xFF4D4F); // 生产车间A的预警
-      this.addWarningPoint(scene, 8, 0, -12, 0xFF8746);   // 装配车间的预警
-      this.addWarningPoint(scene, 8, 0, 10, 0x44FF9B);    // 仓库的预警
-      
-      // 添加环形粒子效果
-      this.addParticleRing(scene);
-      
-      // 渲染循环
-      function animate() {
-        requestAnimationFrame(animate);
-        
-        // 更新控制器
-        controls.update();
-        
-        // 渲染场景
-        renderer.render(scene, camera);
-      }
-      
-      // 开始动画循环
-      animate();
-      
-      // 处理窗口大小变化
-      function handleResize() {
-        if (!mapContainer) return;
-        
-        const width = mapContainer.clientWidth;
-        const height = mapContainer.clientHeight;
-        
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        
-        renderer.setSize(width, height);
-      }
-      
-      window.addEventListener('resize', handleResize);
-      
-      // 清理函数
-      this.$once('hook:beforeDestroy', function() {
-        window.removeEventListener('resize', handleResize);
-        
-        // 销毁Three.js资源
-        renderer.dispose();
-        
-        // 移除渲染器元素
-        if (mapContainer && renderer.domElement) {
-          mapContainer.removeChild(renderer.domElement);
-        }
-      });
-    },
-    
-    // 添加墙体
-    addWalls(scene, width, depth) {
-      const wallHeight = 2;
-      const wallThickness = 0.5;
-      const wallMaterial = new THREE.MeshStandardMaterial({
-        color: 0x235894,
-        transparent: true,
-        opacity: 0.6,
-        roughness: 0.7,
-        metalness: 0.3
-      });
-      
-      // 北墙
-      const northWallGeometry = new THREE.BoxGeometry(width, wallHeight, wallThickness);
-      const northWall = new THREE.Mesh(northWallGeometry, wallMaterial);
-      northWall.position.set(0, wallHeight/2, -depth/2);
-      scene.add(northWall);
-      
-      // 南墙
-      const southWallGeometry = new THREE.BoxGeometry(width, wallHeight, wallThickness);
-      const southWall = new THREE.Mesh(southWallGeometry, wallMaterial);
-      southWall.position.set(0, wallHeight/2, depth/2);
-      scene.add(southWall);
-      
-      // 西墙
-      const westWallGeometry = new THREE.BoxGeometry(wallThickness, wallHeight, depth);
-      const westWall = new THREE.Mesh(westWallGeometry, wallMaterial);
-      westWall.position.set(-width/2, wallHeight/2, 0);
-      scene.add(westWall);
-      
-      // 东墙
-      const eastWallGeometry = new THREE.BoxGeometry(wallThickness, wallHeight, depth - 8);
-      const eastWall = new THREE.Mesh(eastWallGeometry, wallMaterial);
-      eastWall.position.set(width/2, wallHeight/2, -4);
-      scene.add(eastWall);
-      
-      // 门柱
-      const pillarGeometry = new THREE.BoxGeometry(1, wallHeight*1.5, 1);
-      const pillarMaterial = new THREE.MeshStandardMaterial({
-        color: 0x00FFFF,
-        transparent: true,
-        opacity: 0.8
-      });
-      
-      const pillar1 = new THREE.Mesh(pillarGeometry, pillarMaterial);
-      pillar1.position.set(width/2, wallHeight*0.75, depth/2 - 4);
-      scene.add(pillar1);
-      
-      const pillar2 = new THREE.Mesh(pillarGeometry, pillarMaterial);
-      pillar2.position.set(width/2, wallHeight*0.75, depth/2);
-      scene.add(pillar2);
-      
-      // 添加边框线
-      const addEdges = (mesh, geometry) => {
-        const edges = new THREE.EdgesGeometry(geometry);
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00FFFF });
-        const borderLines = new THREE.LineSegments(edges, lineMaterial);
-        borderLines.position.copy(mesh.position);
-        borderLines.rotation.copy(mesh.rotation);
-        scene.add(borderLines);
-      };
-      
-      addEdges(northWall, northWallGeometry);
-      addEdges(southWall, southWallGeometry);
-      addEdges(westWall, westWallGeometry);
-      addEdges(eastWall, eastWallGeometry);
-      addEdges(pillar1, pillarGeometry);
-      addEdges(pillar2, pillarGeometry);
-    },
-    
-    // 添加环形粒子效果
-    addParticleRing(scene) {
-      const ringRadius = 19;
-      const ringGeometry = new THREE.BufferGeometry();
-      const particles = 150;
-      
-      const positions = [];
-      const colors = [];
-      
-      for (let i = 0; i < particles; i++) {
-        // 在圆环上均匀分布点
-        const angle = (i / particles) * Math.PI * 2;
-        const x = Math.cos(angle) * ringRadius;
-        const z = Math.sin(angle) * ringRadius;
-        const y = 0.2 + Math.random() * 0.3; // 略高于地面
-        
-        positions.push(x, y, z);
-        
-        // 颜色渐变
-        const hue = (i / particles); // 0-1范围的色相
-        const color = new THREE.Color().setHSL(hue, 1, 0.5);
-        colors.push(color.r, color.g, color.b);
-      }
-      
-      ringGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      ringGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-      
-      const particleMaterial = new THREE.PointsMaterial({
-        size: 0.5,
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.8,
-        blending: THREE.AdditiveBlending
-      });
-      
-      const ring = new THREE.Points(ringGeometry, particleMaterial);
-      scene.add(ring);
-      
-      // 添加动画
-      const animate = () => {
-        requestAnimationFrame(animate);
-        
-        const positions = ring.geometry.attributes.position.array;
-        const time = Date.now() * 0.001;
-        
-        for (let i = 0; i < particles; i++) {
-          const idx = i * 3;
-          const angle = (i / particles) * Math.PI * 2 + time * 0.2;
-          
-          positions[idx] = Math.cos(angle) * ringRadius;
-          positions[idx + 2] = Math.sin(angle) * ringRadius;
-          positions[idx + 1] = 0.2 + Math.sin(time + i * 0.1) * 0.2;
-        }
-        
-        ring.geometry.attributes.position.needsUpdate = true;
-      };
-      
-      animate();
-    },
-    
-    // 添加建筑物
-    addBuilding(scene, x, y, z, width, height, depth, color, name) {
-      // 建筑几何体
-      const geometry = new THREE.BoxGeometry(width, height, depth);
-      
-      // 半透明材质
-      const material = new THREE.MeshStandardMaterial({
-        color: color,
-        transparent: true,
-        opacity: 0.6,
-        roughness: 0.5,
-        metalness: 0.5
-      });
-      
-      // 创建建筑物
-      const building = new THREE.Mesh(geometry, material);
-      building.position.set(x, y + height / 2, z);
-      building.castShadow = true;
-      building.receiveShadow = true;
-      
-      // 添加边框线
-      const edges = new THREE.EdgesGeometry(geometry);
-      const lineMaterial = new THREE.LineBasicMaterial({ color: color });
-      const borderLines = new THREE.LineSegments(edges, lineMaterial);
-      borderLines.position.copy(building.position);
-      
-      // 添加屋顶细节
-      if (name !== '办公楼') {
-        const roofDetail = this.addRoof(x, y + height, z, width, depth, color);
-        scene.add(roofDetail);
-      } else {
-        // 办公楼添加玻璃窗效果
-        const windowsMaterial = new THREE.MeshStandardMaterial({
-          color: 0x88CCFF,
-          transparent: true,
-          opacity: 0.7,
-          roughness: 0.2,
-          metalness: 0.8
-        });
-        
-        const windowsGeometry = new THREE.BoxGeometry(width * 0.9, height * 0.7, 0.1);
-        const frontWindows = new THREE.Mesh(windowsGeometry, windowsMaterial);
-        frontWindows.position.set(x, y + height * 0.6, z + depth/2 + 0.05);
-        scene.add(frontWindows);
-        
-        const backWindows = new THREE.Mesh(windowsGeometry, windowsMaterial);
-        backWindows.position.set(x, y + height * 0.6, z - depth/2 - 0.05);
-        scene.add(backWindows);
-        
-        // 添加窗户线条
-        const windowFrameGeometry = new THREE.EdgesGeometry(windowsGeometry);
-        const windowFrameMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF });
-        const frontWindowFrames = new THREE.LineSegments(windowFrameGeometry, windowFrameMaterial);
-        frontWindowFrames.position.copy(frontWindows.position);
-        scene.add(frontWindowFrames);
-        
-        const backWindowFrames = new THREE.LineSegments(windowFrameGeometry, windowFrameMaterial);
-        backWindowFrames.position.copy(backWindows.position);
-        scene.add(backWindowFrames);
-      }
-      
-      // 添加到场景
-      scene.add(building);
-      scene.add(borderLines);
-      
-      return building;
-    },
-    
-    // 添加屋顶
-    addRoof(x, y, z, width, depth, color) {
-      const roofGroup = new THREE.Group();
-      
-      // 屋顶几何体
-      const roofHeight = 1.5;
-      const roofGeometry = new THREE.CylinderGeometry(0.1, width/2, roofHeight, 4);
-      roofGeometry.rotateY(Math.PI / 4);
-      roofGeometry.scale(1, 1, depth/width);
-      
-      const roofMaterial = new THREE.MeshStandardMaterial({
-        color: color,
-        transparent: true,
-        opacity: 0.7,
-        roughness: 0.6,
-        metalness: 0.4
-      });
-      
-      const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-      roof.position.set(x, y + roofHeight/2, z);
-      roof.castShadow = true;
-      
-      // 添加屋顶边框
-      const roofEdges = new THREE.EdgesGeometry(roofGeometry);
-      const roofLineMaterial = new THREE.LineBasicMaterial({ color: color });
-      const roofLines = new THREE.LineSegments(roofEdges, roofLineMaterial);
-      roofLines.position.copy(roof.position);
-      
-      roofGroup.add(roof);
-      roofGroup.add(roofLines);
-      
-      return roofGroup;
-    },
-    
-    // 添加预警点
-    addWarningPoint(scene, x, y, z, color) {
-      // 创建预警点几何体
-      const geometry = new THREE.SphereGeometry(0.5, 16, 16);
-      const material = new THREE.MeshBasicMaterial({ 
-        color: color,
-        transparent: true,
-        opacity: 0.8
-      });
-      
-      // 创建点
-      const point = new THREE.Mesh(geometry, material);
-      point.position.set(x, y + 8, z);
-      scene.add(point);
-      
-      // 创建脉冲效果的多个同心环
-      const rings = [];
-      for (let i = 0; i < 3; i++) {
-        const ringGeometry = new THREE.RingGeometry(0.7 + i * 0.3, 0.9 + i * 0.3, 32);
-        const ringMaterial = new THREE.MeshBasicMaterial({ 
-          color: color, 
-          transparent: true,
-          opacity: 0.6 - i * 0.15,
-          side: THREE.DoubleSide
-        });
-        
-        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-        ring.position.set(x, y + 8, z);
-        ring.rotation.x = Math.PI / 2;
-        ring.userData = { offset: i * 0.3 }; // 用于错开动画
-        scene.add(ring);
-        rings.push({ mesh: ring, material: ringMaterial });
-      }
-      
-      // 垂直线
-      const lineGeometry = new THREE.BufferGeometry();
-      const linePositions = [
-        x, y + 0.5, z,
-        x, y + 8, z
-      ];
-      lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-      
-      const dashLineMaterial = new THREE.LineDashedMaterial({
-        color: color,
-        dashSize: 0.3,
-        gapSize: 0.1,
-        transparent: true,
-        opacity: 0.8
-      });
-      
-      const line = new THREE.Line(lineGeometry, dashLineMaterial);
-      line.computeLineDistances();
-      scene.add(line);
-      
-      // 添加脉冲动画
-      const pulseAnimate = () => {
-        requestAnimationFrame(pulseAnimate);
-        
-        // 对每个环进行脉冲动画，错开时间
-        rings.forEach((ring, index) => {
-          const time = Date.now() * 0.005 + ring.mesh.userData.offset;
-          
-          // 脉冲动画
-          ring.material.opacity = (0.6 - index * 0.15) * (0.5 + Math.sin(time) * 0.5);
-          const scale = 1 + Math.sin(time * 0.8) * 0.3;
-          ring.mesh.scale.set(scale, scale, 1);
-        });
-        
-        // 预警点脉冲
-        point.scale.setScalar(0.9 + Math.sin(Date.now() * 0.006) * 0.1);
-        
-        // 线条动画
-        dashLineMaterial.dashOffset -= 0.01;
-      };
-      
-      pulseAnimate();
-      
-      return point;
+      // 地图区域已移除
     },
     
     // 更新设备表格数据
@@ -1402,6 +979,84 @@ export default {
       this.deviceTimeRange = range;
       // 这里可以根据不同时间范围加载不同设备数据
     },
+
+    // 预警图片相关方法
+    initWarningViewer() {
+      // 添加键盘导航功能
+      document.addEventListener('keydown', this.handleKeyboardNavigation);
+      
+      // 确保图片加载
+      this.preloadImages();
+    },
+    
+    handleKeyboardNavigation(event) {
+      // 只在当前页面激活时处理键盘事件
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault();
+          this.slidePrev();
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          this.slideNext();
+          break;
+        case 'Escape':
+          event.preventDefault();
+          // 可以添加退出全屏等功能
+          break;
+      }
+    },
+    
+    preloadImages() {
+      // 预加载所有图片以提升用户体验
+      this.warningImages.forEach(warning => {
+        const img = new Image();
+        img.src = warning.image;
+      });
+    },
+    
+    // 滑动到指定缩略图位置
+    scrollToThumbnail(index) {
+      const thumbnailSlider = this.$refs.thumbnailSlider;
+      if (thumbnailSlider) {
+        const thumbnailItem = thumbnailSlider.children[index];
+        if (thumbnailItem) {
+          thumbnailItem.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center'
+          });
+        }
+      }
+    },
+    
+    // 重写选择图片方法，添加滚动效果
+    selectWarningImage(index) {
+      this.currentImageIndex = index;
+      this.currentWarningImage = this.warningImages[index];
+      this.scrollToThumbnail(index);
+    },
+    
+    // 重写滑动方法，添加滚动效果
+    slidePrev() {
+      if (this.currentImageIndex > 0) {
+        this.currentImageIndex = this.currentImageIndex - 1;
+        this.currentWarningImage = this.warningImages[this.currentImageIndex];
+        this.scrollToThumbnail(this.currentImageIndex);
+      }
+    },
+    
+    slideNext() {
+      if (this.currentImageIndex < this.warningImages.length - 1) {
+        this.currentImageIndex = this.currentImageIndex + 1;
+        this.currentWarningImage = this.warningImages[this.currentImageIndex];
+        this.scrollToThumbnail(this.currentImageIndex);
+      }
+    }
   }
 }
 </script>
@@ -1411,8 +1066,16 @@ export default {
 :root {
   --panel-top-height: 210px;
   --panel-bottom-height: 330px;
-  --map-panel-height: 504px;
-  --map-container-height: 414px;
+}
+
+/* 全局隐藏滚动条样式 */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .visual-center {
@@ -1421,6 +1084,7 @@ export default {
   color: #fff;
   padding: 20px;
   position: relative;
+  overflow-x: hidden; /* 隐藏水平滚动条 */
 }
 
 .top-bar {
@@ -1435,7 +1099,7 @@ export default {
 }
 
 .top-bar .time {
-  width: 280px;
+  width: 300px;
   font-size: 18px;
   font-weight: bold;
   color: #00ffff;
@@ -1482,7 +1146,7 @@ export default {
   justify-content: flex-end;
   gap: 20px;
   flex: 0 0 auto;
-  min-width: 300px;
+  width: 300px;
 }
 
 .location-info {
@@ -1554,7 +1218,15 @@ export default {
 }
 
 .map-panel {
-  height: var(--map-panel-height);
+  height: calc(var(--panel-top-height) + 52px + var(--panel-top-height) + 0px); /* 精确对齐：上面板 + 间距 + 下面板 */
+  margin-bottom: 20px; /* 确保与其他面板保持一致的底部间距 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 全屏模式下的中间面板 */
+.visual-center:fullscreen .map-panel {
+  height: calc(var(--panel-top-height) + 52px + var(--panel-top-height) + 0px); /* 全屏下使用相同的52px间距 */
 }
 
 .map-container {
@@ -1565,42 +1237,6 @@ export default {
   border-radius: 4px;
   box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.2);
   flex: 1;
-}
-
-.map-container canvas {
-  width: 100% !important;
-  height: 100% !important;
-  outline: none;
-  cursor: grab;
-}
-
-.map-container canvas:active {
-  cursor: grabbing;
-}
-
-.map-stats {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: rgba(6, 30, 93, 0.8);
-  padding: 15px;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
-}
-
-.map-stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.stat-label {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
 }
 
 .stat-value {
@@ -1674,69 +1310,6 @@ export default {
   border: 1px solid rgba(0, 255, 255, 0.3);
 }
 
-.center-stats {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 20px;
-}
-
-.stat-box {
-  display: flex;
-  align-items: center;
-  background: rgba(0, 30, 60, 0.5);
-  padding: 10px 15px;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  transition: all 0.3s ease;
-}
-
-.stat-box:hover {
-  background: rgba(0, 30, 60, 0.7);
-  border-color: rgba(0, 255, 255, 0.6);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.stat-icon {
-  width: 40px;
-  height: 40px;
-  margin-right: 10px;
-  background: rgba(0, 255, 255, 0.1);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-}
-
-.alert-icon {
-  color: #FF4D4F;
-}
-
-.video-icon {
-  color: #00FFFF;
-}
-
-.alert-blue-icon {
-  color: #44FF9B;
-}
-
-.location-icon {
-  color: #00C5FF;
-}
-
-.stat-info .stat-title {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
-.stat-info .stat-value {
-  color: #00FFFF;
-  font-size: 18px;
-  font-weight: bold;
-}
-
 .warning-table,
 .device-table {
   height: calc(100% - 40px);
@@ -1744,152 +1317,9 @@ export default {
   overflow: hidden;
 }
 
-/* 确保表格各部分都完全透明 */
-.warning-table >>> .el-table,
-.device-table >>> .el-table,
-.warning-table >>> .el-table__header-wrapper,
-.device-table >>> .el-table__header-wrapper,
-.warning-table >>> .el-table__body-wrapper,
-.device-table >>> .el-table__body-wrapper,
-.warning-table >>> .el-table__footer-wrapper,
-.device-table >>> .el-table__footer-wrapper {
-  background-color: transparent !important;
-}
-
-.warning-table >>> .el-table::before,
-.device-table >>> .el-table::before {
-  display: none;
-}
-
-.warning-table >>> .el-table tr,
-.device-table >>> .el-table tr {
-  background-color: transparent !important;
-}
-
-.warning-table >>> .el-table td,
-.warning-table >>> .el-table th,
-.device-table >>> .el-table td,
-.device-table >>> .el-table th {
-  background-color: transparent;
-  border-bottom: 1px solid rgba(35, 88, 148, 0.3);
-}
-
-.warning-table >>> .el-table--enable-row-hover .el-table__body tr:hover > td,
-.device-table >>> .el-table--enable-row-hover .el-table__body tr:hover > td {
-  background-color: rgba(0, 255, 255, 0.1) !important;
-}
-
-.warning-table >>> .el-table__body-wrapper::-webkit-scrollbar,
-.device-table >>> .el-table__body-wrapper::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  opacity: 0;
-  transition: opacity 0.3s ease, width 0.3s ease, height 0.3s ease;
-}
-
-.warning-table >>> .el-table__body-wrapper:hover::-webkit-scrollbar,
-.device-table >>> .el-table__body-wrapper:hover::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-  opacity: 1;
-}
-
-.warning-table >>> .el-table__body-wrapper:hover::-webkit-scrollbar-track,
-.device-table >>> .el-table__body-wrapper:hover::-webkit-scrollbar-track {
-  background: rgba(35, 88, 148, 0.1);
-  border-radius: 2px;
-}
-
-.warning-table >>> .el-table__body-wrapper:hover::-webkit-scrollbar-thumb,
-.device-table >>> .el-table__body-wrapper:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 255, 0.3);
-  border-radius: 2px;
-}
-
-.warning-table >>> .el-table__body-wrapper:hover::-webkit-scrollbar-thumb:hover,
-.device-table >>> .el-table__body-wrapper:hover::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 255, 255, 0.5);
-}
-
-/* 隐藏Firefox滚动条 */
-.warning-table >>> .el-table__body-wrapper,
-.device-table >>> .el-table__body-wrapper {
-  scrollbar-width: none;
-}
-
-/* 隐藏IE滚动条 */
-.warning-table >>> .el-table__body-wrapper,
-.device-table >>> .el-table__body-wrapper {
-  -ms-overflow-style: none;
-}
-
-/* 添加脉冲动画 */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(3);
-    opacity: 0;
-  }
-}
-
-.warning-point .pulse {
-  animation: pulse 1.5s infinite;
-}
-
-/* 添加扫描线动画 */
-@keyframes scanLine {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(50%);
-  }
-}
-
-.grid-overlay::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 200%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent 0%, rgba(0, 255, 255, 0.05) 50%, transparent 100%);
-  animation: scanLine 4s linear infinite;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.warning-point {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  z-index: 5;
-}
-
-.building {
-  position: absolute;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid #00FFFF;
-  z-index: 2;
-}
-
-.info-tip i {
-  color: #00FFFF;
-  margin-right: 5px;
-}
-
-.warning-table >>> .el-table--enable-row-hover .el-table__body tr:hover > td,
-.device-table >>> .el-table--enable-row-hover .el-table__body tr:hover > td {
-  background-color: rgba(0, 255, 255, 0.1) !important;
-}
-
-.warning-table >>> .el-table--striped .el-table__body tr.el-table__row--striped td,
-.device-table >>> .el-table--striped .el-table__body tr.el-table__row--striped td {
-  background-color: rgba(6, 30, 93, 0.3) !important;
+/* 特别针对预警记录表格的高度调整 */
+.warning-table {
+  height: calc(100% - 10px) !important;
 }
 
 /* 表格边框处理 */
@@ -1898,10 +1328,142 @@ export default {
   border: none !important;
 }
 
-.warning-table >>> .el-table__fixed-right::before,
+/* 完全移除表格边框和白边 */
+.warning-table >>> .el-table,
+.device-table >>> .el-table {
+  border: none !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+}
+
+/* 移除表格容器边框 */
+.warning-table >>> .el-table__border-left-patch,
+.warning-table >>> .el-table__border-right-patch,
+.device-table >>> .el-table__border-left-patch,
+.device-table >>> .el-table__border-right-patch {
+  display: none !important;
+}
+
+/* 移除表格外边框伪元素 */
+.warning-table >>> .el-table::before,
+.warning-table >>> .el-table::after,
+.device-table >>> .el-table::before,
+.device-table >>> .el-table::after {
+  display: none !important;
+}
+
+/* 删除所有表格边框 */
+.warning-table >>> .el-table td,
+.warning-table >>> .el-table th,
+.device-table >>> .el-table td,
+.device-table >>> .el-table th {
+  background-color: transparent;
+  border: none !important; /* 删除所有边框 */
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: 1px solid rgba(35, 88, 148, 0.3) !important; /* 只保留底部分隔线 */
+}
+
+/* 删除表格最后一行的底部边框 */
+.warning-table >>> .el-table tbody tr:last-child td,
+.device-table >>> .el-table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* 删除表格底部边框 */
+.warning-table >>> .el-table__append-wrapper,
+.device-table >>> .el-table__append-wrapper {
+  border: none !important;
+}
+
+/* 删除表格所有可能的边框 */
+.warning-table >>> .el-table__header,
+.warning-table >>> .el-table__body,
+.warning-table >>> .el-table__footer,
+.device-table >>> .el-table__header,
+.device-table >>> .el-table__body,
+.device-table >>> .el-table__footer {
+  border: none !important;
+}
+
+/* 删除表格固定列边框 */
+.warning-table >>> .el-table__fixed,
+.warning-table >>> .el-table__fixed-right,
+.device-table >>> .el-table__fixed,
+.device-table >>> .el-table__fixed-right {
+  border: none !important;
+  box-shadow: none !important;
+}
+
 .warning-table >>> .el-table__fixed::before,
-.device-table >>> .el-table__fixed-right::before,
-.device-table >>> .el-table__fixed::before {
+.warning-table >>> .el-table__fixed-right::before,
+.device-table >>> .el-table__fixed::before,
+.device-table >>> .el-table__fixed-right::before {
+  display: none !important;
+}
+
+/* 统一表格高度 - 两个表格底边完全对齐 */
+.warning-table {
+  height: calc(100% - 15px) !important; /* 进一步增加预警记录表格高度，确保显示5行数据 */
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.device-table {
+  height: calc(100% - 45px) !important; /* 设备表格有Tab，需要减去更多高度以对齐底部 */
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 移除表格包装器的边框和阴影 */
+.warning-table >>> .el-table__body-wrapper,
+.device-table >>> .el-table__body-wrapper {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.warning-table >>> .el-table__header-wrapper,
+.device-table >>> .el-table__header-wrapper {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 移除表格内部所有可能的边框线 */
+.warning-table >>> .el-table__empty-block,
+.device-table >>> .el-table__empty-block {
+  border: none !important;
+}
+
+.warning-table >>> .el-table__empty-text,
+.device-table >>> .el-table__empty-text {
+  border: none !important;
+}
+
+/* 强制移除所有可能的白色边框 */
+.warning-table >>> *,
+.device-table >>> * {
+  border-color: transparent !important;
+  outline-color: transparent !important;
+}
+
+/* 特别处理可能存在的边框伪元素 */
+.warning-table >>> .el-table--border .el-table__cell:first-child::before,
+.warning-table >>> .el-table--border .el-table__cell:last-child::after,
+.device-table >>> .el-table--border .el-table__cell:first-child::before,
+.device-table >>> .el-table--border .el-table__cell:last-child::after {
+  display: none !important;
+}
+
+/* 移除表格分组相关的边框 */
+.warning-table >>> .el-table--group::after,
+.warning-table >>> .el-table--group::before,
+.device-table >>> .el-table--group::after,
+.device-table >>> .el-table--group::before {
   display: none !important;
 }
 
@@ -1911,97 +1473,14 @@ export default {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
 }
 
-/* 自定义滚动条 */
+/* 隐藏自定义滚动条 */
 .type-list::-webkit-scrollbar,
 .top-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.type-list::-webkit-scrollbar-track,
-.top-list::-webkit-scrollbar-track {
-  background: rgba(35, 88, 148, 0.1);
-  border-radius: 2px;
-}
-
-.type-list::-webkit-scrollbar-thumb,
-.top-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 255, 0.3);
-  border-radius: 2px;
-}
-
-.type-list::-webkit-scrollbar-thumb:hover,
-.top-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 255, 255, 0.5);
-}
-
-.trend-chart,
-.level-chart,
-.status-chart {
-  height: calc(100% - 20px);
-  width: 100%;
-  position: relative;
-  flex: 1;
-}
-
-/* 确保地图面板中的预警信息标题也靠左对齐 */
-.map-info .info-title {
-  color: #00ffff;
-  font-size: 16px;
-  margin-bottom: 15px;
-  padding-left: 10px;
-  border-left: 3px solid #00ffff;
-  text-align: left;
-}
-
-.map-info {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  background: rgba(6, 30, 93, 0.8);
-  padding: 10px 15px;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  z-index: 10;
-  width: 220px;
-}
-
-.info-title {
-  color: #00ffff;
-  font-size: 16px;
-  margin-bottom: 12px;
-  padding-left: 8px;
-  border-left: 3px solid #00ffff;
-  text-align: left;
-}
-
-.info-item {
-  color: #fff;
-  margin-bottom: 10px;
-  font-size: 14px;
-  text-align: left;
-}
-
-.info-item span {
-  color: #7eaee5;
-  font-weight: normal;
-  width: 70px;
-  display: inline-block;
-}
-
-.info-tip {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #7eaee5;
-  display: flex;
-  align-items: center;
-}
-
-.info-tip i {
-  color: #00FFFF;
-  margin-right: 5px;
-  font-size: 14px;
+  display: none;
 }
 
 .type-item, .top-item {
@@ -2038,8 +1517,8 @@ export default {
 
 /* 全屏按钮样式 */
 .fullscreen-btn {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2057,18 +1536,6 @@ export default {
   border-color: rgba(0, 255, 255, 0.6);
   transform: scale(1.05);
   box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
-}
-
-/* 表格透明样式 */
-.transparent-row {
-  background-color: transparent !important;
-}
-
-.warning-table >>> .el-table,
-.device-table >>> .el-table {
-  background-color: transparent;
-  color: #7EAEE5;
-  scrollbar-width: none; /* Firefox */
 }
 
 .status-chart {
@@ -2097,4 +1564,403 @@ export default {
   justify-content: center;
   height: 100% !important;
 }
+
+/* 预警图片查看器样式 */
+.warning-viewer {
+  height: calc(100% - 30px); /* 适应较小面板的高度 */
+  background: #000;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 全屏模式下的特殊样式 */
+.visual-center:fullscreen .warning-viewer {
+  height: calc(100% - 30px); /* 保持一致的高度计算 */
+}
+
+.visual-center:fullscreen .main-image-container {
+  min-height: 350px; /* 全屏下适中的主图片区域高度 */
+}
+
+.visual-center:fullscreen .thumbnail-container-bottom {
+  height: 100px; /* 全屏下保持适中的缩略图区域高度 */
+}
+
+.visual-center:fullscreen .thumbnail-item {
+  width: 110px; /* 全屏下保持适中的缩略图尺寸 */  
+  height: 62px; /* 保持16:9比例 */
+}
+
+.main-image-container {
+  flex: 1; /* 占据剩余空间 */
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  height: calc(100% - 160px); /* 减去信息条60px和缩略图区域100px */
+  border-radius: 12px; /* 添加圆角效果 */
+}
+
+.main-warning-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  background: #000;
+  transition: opacity 0.3s ease;
+  aspect-ratio: 16/9; /* 16:9 比例 */
+  border-radius: 12px; /* 添加圆角效果 */
+}
+
+.main-warning-image.loading {
+  opacity: 0.5;
+}
+
+.warning-info-overlay {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 12px 15px; /* 减少padding */
+  min-width: 200px; /* 减少最小宽度 */
+  max-width: 280px; /* 添加最大宽度限制 */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.warning-info-panel {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: visible;
+  text-align: left; /* 确保内容居左 */
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start; /* 改为顶部对齐 */
+  margin-bottom: 6px; /* 减少行间距 */
+  font-size: 13px; /* 稍微减小字体 */
+  text-align: left;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  color: #7EAEE5;
+  font-weight: normal;
+  white-space: nowrap;
+  min-width: 70px; /* 减少标签最小宽度 */
+  text-align: left;
+}
+
+.info-value {
+  color: #FFFFFF;
+  margin-left: 8px; /* 减少左边距 */
+  flex: 1;
+  text-align: left;
+  word-break: break-word; /* 允许长文本换行 */
+}
+
+.info-value.level-urgent {
+  color: #FF4D4F;
+  font-weight: bold;
+}
+
+.info-value.level-high {
+  color: #FF8746;
+  font-weight: bold;
+}
+
+.info-value.level-medium {
+  color: #44FF9B;
+}
+
+.info-value.level-low {
+  color: #00FFFF;
+}
+
+.thumbnail-container-bottom {
+  height: 100px; /* 增加缩略图区域高度 */
+  background: rgba(6, 30, 93, 0.8); /* 改为与面板一致的蓝色背景 */
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0; /* 不允许收缩 */
+  gap: 15px; /* 按钮和滑块之间的间距 */
+}
+
+.thumbnail-slider {
+  display: flex;
+  align-items: center;
+  gap: 20px; /* 增大缩略图间距 */
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+  flex: 1; /* 占据剩余空间 */
+  padding: 15px 0; /* 增大上下padding */
+  scroll-behavior: smooth; /* 平滑滚动 */
+}
+
+.slider-btn {
+  width: 45px; /* 增大按钮尺寸 */
+  height: 45px;
+  background: rgba(0, 255, 255, 0.15);
+  border: 2px solid rgba(0, 255, 255, 0.4);
+  border-radius: 50%;
+  color: #00FFFF;
+  font-size: 18px; /* 增大图标尺寸 */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0; /* 按钮不收缩 */
+}
+
+.slider-btn:hover:not(:disabled) {
+  background: rgba(0, 255, 255, 0.25);
+  border-color: rgba(0, 255, 255, 0.8);
+  transform: scale(1.15);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+}
+
+.slider-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.thumbnail-slider::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.thumbnail-item {
+  flex-shrink: 0;
+  width: 110px; /* 增大缩略图尺寸 */
+  height: 62px; /* 16:9 比例 */
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 3px solid rgba(255, 255, 255, 0.3); /* 默认白色半透明边框 */
+  transition: all 0.3s ease;
+  position: relative;
+  background: #000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.thumbnail-item:hover {
+  border-color: rgba(0, 255, 255, 0.8);
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3);
+}
+
+.thumbnail-item.active {
+  border-color: #00FFFF; /* 蓝色高亮边框 */
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+  transform: scale(1.08);
+}
+
+.thumbnail-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+  aspect-ratio: 16/9;
+}
+
+/* 顶部信息叠加层样式 */
+.top-info-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  z-index: 10;
+  pointer-events: none; /* 允许点击穿透到图片 */
+}
+
+.info-card {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+  pointer-events: auto; /* 恢复卡片的点击事件 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.info-card:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(0, 255, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 255, 255, 0.2);
+}
+
+.info-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.warning-icon {
+  background: linear-gradient(135deg, #FF4D4F, #FF8746);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 77, 79, 0.4);
+}
+
+.device-icon {
+  background: linear-gradient(135deg, #00FFFF, #00C5FF);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+}
+
+.info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-title {
+  font-size: 12px;
+  color: #7EAEE5;
+  opacity: 0.9;
+  line-height: 1;
+}
+
+.info-number {
+  font-size: 18px;
+  font-weight: bold;
+  color: #00FFFF;
+  line-height: 1;
+}
+
+.info-unit {
+  font-size: 12px;
+  color: #7EAEE5;
+  opacity: 0.8;
+  margin-left: 2px;
+}
+
+.trend-chart,
+.level-chart,
+.status-chart {
+  height: calc(100% - 20px);
+  width: 100%;
+  position: relative;
+  flex: 1;
+}
+
+/* 全屏模式下图表高度调整 */
+.visual-center:fullscreen .trend-chart,
+.visual-center:fullscreen .level-chart,
+.visual-center:fullscreen .status-chart {
+  height: calc(100% - 15px); /* 全屏下稍微减少图表高度 */
+}
+
+/* 全屏模式下整体布局优化 */
+.visual-center:fullscreen {
+  padding: 15px; /* 减少全屏下的内边距 */
+}
+
+.visual-center:fullscreen .main-content {
+  margin-bottom: 15px; /* 减少内容区域底部间距 */
+}
+
+.visual-center:fullscreen .panel-box {
+  margin-bottom: 15px; /* 减少面板间距 */
+}
+
+.visual-center:fullscreen .top-bar {
+  margin-bottom: 8px; /* 减少顶部栏底部间距 */
+}
+
+/* 表格透明样式 */
+.transparent-row {
+  background-color: transparent !important;
+}
+
+.warning-table >>> .el-table,
+.device-table >>> .el-table {
+  background-color: transparent;
+  color: #7EAEE5;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.warning-table >>> .el-table::-webkit-scrollbar,
+.device-table >>> .el-table::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* 确保Element UI表格内部滚动条也隐藏 */
+.warning-table >>> .el-table__body-wrapper::-webkit-scrollbar,
+.device-table >>> .el-table__body-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.warning-table >>> .el-table__body-wrapper,
+.device-table >>> .el-table__body-wrapper {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.warning-table >>> .el-table tr,
+.device-table >>> .el-table tr {
+  background-color: transparent !important;
+}
+
+.warning-table >>> .el-table--enable-row-hover .el-table__body tr:hover > td,
+.device-table >>> .el-table--enable-row-hover .el-table__body tr:hover > td {
+  background-color: rgba(0, 255, 255, 0.1) !important;
+}
+
+.warning-table >>> .el-table--striped .el-table__body tr.el-table__row--striped td,
+.device-table >>> .el-table--striped .el-table__body tr.el-table__row--striped td {
+  background-color: rgba(6, 30, 93, 0.3) !important;
+}
 </style>
+

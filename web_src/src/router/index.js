@@ -57,7 +57,7 @@ export default new VueRouter({
       path: '/',
       name: 'home',
       component: Layout,
-      redirect: '/console',
+      redirect: '/visualCenter',
       children: [
         {
           path: '/console',

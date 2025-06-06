@@ -147,12 +147,8 @@
             </div>
             <div class="warning-actions">
               <el-button size="mini" type="primary" plain @click="viewWarningDetail(warning)">查看详情</el-button>
-              <template v-if="warning.status === 'completed'">
-                <el-button size="mini" type="success" plain disabled>已处理</el-button>
-              </template>
-              <template v-else>
-                <el-button size="mini" type="success" plain @click="handleWarningFromList(warning)">处理</el-button>
-              </template>
+              <!-- 处理按钮始终可用，允许多次处理 -->
+              <el-button size="mini" type="success" plain @click="handleWarningFromList(warning)">处理</el-button>
             </div>
           </div>
         </div>
@@ -171,6 +167,37 @@
       @handle-archive="handleArchiveFromDialog"
       @handle-false-alarm="handleFalseAlarmFromDialog"
     />
+    
+    <!-- 处理意见对话框 -->
+    <el-dialog
+      title="处理预警"
+      :visible.sync="remarkDialogVisible"
+      width="30%"
+      center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <el-form :model="remarkForm" label-width="80px">
+        <el-form-item label="处理意见" required>
+          <el-input
+            v-model="remarkForm.remark"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入处理意见，描述具体的处理措施和结果"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+      <div class="process-tip">
+        <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
+        <span style="color: #909399; font-size: 13px;">填写处理意见后，将在处理进展中添加一条处理记录，可多次添加处理记录</span>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="closeRemarkDialog">取 消</el-button>
+        <el-button type="primary" @click="saveRemark">确认处理</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -261,6 +288,13 @@ export default {
       currentCameraId: '',
       archiveWarningId: '',
       reportWarningId: '',
+      
+      // 处理意见对话框
+      remarkDialogVisible: false,
+      remarkForm: {
+        remark: ''
+      },
+      currentProcessingWarningId: '',
     }
   },
   computed: {
@@ -749,15 +783,74 @@ export default {
     // 从预警列表处理预警 - 使用统一的处理逻辑
     handleWarningFromList(warning) {
       if (warning && warning.id) {
-        this.handleWarning(warning.id, 'markProcessed');
+        // 弹出处理意见对话框
+        this.currentProcessingWarningId = warning.id;
+        this.remarkDialogVisible = true;
       }
     },
-    // 从对话框处理预警
+    
+    // 保存处理意见并完成处理
+    async saveRemark() {
+      if (!this.remarkForm.remark.trim()) {
+        this.$message.warning('请输入处理意见');
+        return;
+      }
+      
+      try {
+        this.loading = true;
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 更新本地数据状态 - 只添加处理记录，不改变状态
+        const index = this.warningList.findIndex(item => item.id === this.currentProcessingWarningId);
+        if (index !== -1) {
+          // 添加处理记录到操作历史（如果预警对象有operationHistory）
+          if (!this.warningList[index].operationHistory) {
+            this.$set(this.warningList[index], 'operationHistory', []);
+          }
+          
+          const newRecord = {
+            id: Date.now() + Math.random(),
+            status: 'completed',
+            statusText: '处理记录',
+            time: this.getCurrentTime(),
+            description: `处理意见：${this.remarkForm.remark}`,
+            operationType: 'process',
+            operator: this.getCurrentUserName()
+          };
+          
+          this.warningList[index].operationHistory.unshift(newRecord);
+          // 不再改变预警状态为completed，保持预警可继续处理
+        }
+        
+        this.$message.success('处理记录已添加，可继续添加多次处理记录');
+        this.closeRemarkDialog();
+      } catch (error) {
+        console.error('处理失败:', error);
+        this.$message.error('处理失败');
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    // 关闭处理意见对话框
+    closeRemarkDialog() {
+      this.remarkDialogVisible = false;
+      this.remarkForm = {
+        remark: ''
+      };
+      this.currentProcessingWarningId = '';
+    },
+    
+    // 从对话框处理预警 - 也使用处理意见流程
     handleWarningFromDialog(warning) {
       if (warning && warning.id) {
-        this.handleWarning(warning.id, 'markProcessed');
+        this.currentProcessingWarningId = warning.id;
+        this.remarkDialogVisible = true;
       }
     },
+    
     // 处理预警事件 - 复制预警管理页面的核心逻辑
     async handleWarning(id, action) {
       try {
@@ -938,6 +1031,36 @@ export default {
         'camera_3': '管道接口监控点'
       };
       return cameraNames[this.currentCameraId] || '监控点';
+    },
+    
+    // 获取当前时间
+    getCurrentTime() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    },
+    
+    // 获取当前用户昵称
+    getCurrentUserName() {
+      // 实际项目中应该从用户登录信息或Vuex store中获取
+      // 这里模拟一些用户昵称
+      const userNames = ['张工程师', '李主管', '王安全员', '赵技术员', '陈操作员'];
+      const savedUserName = localStorage.getItem('currentUserName');
+      
+      if (savedUserName) {
+        return savedUserName;
+      } else {
+        // 如果没有保存的用户名，随机选择一个并保存
+        const randomName = userNames[Math.floor(Math.random() * userNames.length)];
+        localStorage.setItem('currentUserName', randomName);
+        return randomName;
+      }
     },
     // 跳转到更多预警页面
     goToMoreWarnings() {
@@ -1902,6 +2025,20 @@ body.camera-fullscreen-mode .video-cell .video-content .video-placeholder::befor
   color: #409EFF;
 }
 
+body.camera-fullscreen-mode .video-cell .video-content .video-placeholder i.el-icon-warning {
+  color: #f56c6c;
+  animation: pulse 1.5s infinite;
+}
+
+.process-tip {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  border-left: 3px solid #909399;
+}
 </style>
 
 <!-- 全局样式，处理全屏模式 -->
