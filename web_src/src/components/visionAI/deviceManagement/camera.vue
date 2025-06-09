@@ -168,7 +168,28 @@
 
           <!-- 技能选择网格 -->
           <div class="skills-selection-container">
-            <div class="section-title">可用技能</div>
+            <div class="skills-header-with-pagination">
+              <div class="section-title">可用技能</div>
+              <!-- 分页信息显示在标题右侧 -->
+              <div v-if="!skillOptionsLoading && skillOptionsTotal > 0" class="skill-pagination-info">
+                <span class="pagination-text">
+                  共 {{ skillOptionsTotal }} 个{{ skillTotalPages > 1 ? ' | ' + skillCurrentPage + '/' + skillTotalPages + ' 页' : '' }}
+                </span>
+                <el-pagination 
+                  v-if="skillOptionsTotal > skillPageSize"
+                  :current-page.sync="skillCurrentPage" 
+                  :page-size.sync="skillPageSize" 
+                  :page-sizes="[12, 24, 36, 48]"
+                  layout="sizes, prev, pager, next" 
+                  :total="skillOptionsTotal" 
+                  @size-change="handleSkillSizeChange"
+                  @current-change="handleSkillCurrentChange" 
+                  background
+                  small>
+                </el-pagination>
+              </div>
+            </div>
+            
             <div v-if="skillOptionsLoading" class="skills-loading">
               <i class="el-icon-loading"></i> 正在加载技能列表...
           </div>

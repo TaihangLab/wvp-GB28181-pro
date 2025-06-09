@@ -163,6 +163,11 @@ export default {
       skillOptionsLoading: false,
       skillOptionsTotal: 0,
       
+      // 技能分页相关
+      skillCurrentPage: 1,
+      skillPageSize: 12,
+      skillSearchTimer: null,
+      
       // 是否显示左侧技能菜单（替代下拉框）
       showLeftSkillMenu: false,
       
@@ -186,30 +191,14 @@ export default {
       return this.deviceList;
     },
 
-    // 过滤后的技能选项列表
+    // 过滤后的技能选项列表（现在使用服务端分页和过滤，直接返回skillOptions）
     filteredSkillOptions() {
-      if (!this.skillOptions || this.skillOptions.length === 0) {
-        return [];
-      }
-      
-      // 首先按状态过滤
-      let filteredByStatus = this.skillOptions;
-      if (this.skillStatusFilter !== 'all') {
-        const statusValue = this.skillStatusFilter === 'true';
-        filteredByStatus = this.skillOptions.filter(skill => skill.status === statusValue);
-      }
-      
-      // 然后按关键词过滤
-      if (!this.skillSearchKeyword) {
-        return filteredByStatus;
-      }
-      
-      const keyword = this.skillSearchKeyword.toLowerCase();
-      return filteredByStatus.filter(skill => {
-        return skill.name_zh && skill.name_zh.toLowerCase().includes(keyword) ||
-               skill.value && skill.value.toLowerCase().includes(keyword) ||
-               skill.type && skill.type.toLowerCase().includes(keyword);
-      });
+      return this.skillOptions || [];
+    },
+    
+    // 技能总页数
+    skillTotalPages() {
+      return Math.ceil(this.skillOptionsTotal / this.skillPageSize);
     }
   },
 
@@ -235,6 +224,16 @@ export default {
         // 使用关键词搜索摄像头
         this.fetchCameraList({ name: newValue });
       }
+    },
+    
+    skillSearchKeyword(newValue) {
+      // 重置到第一页
+      this.skillCurrentPage = 1;
+      // 延时搜索，避免频繁调用API
+      clearTimeout(this.skillSearchTimer);
+      this.skillSearchTimer = setTimeout(() => {
+        this.fetchSkillClasses();
+      }, 300);
     }
   },
 
@@ -477,6 +476,10 @@ export default {
     // 清除技能搜索
     clearSkillSearch() {
       this.skillSearchKeyword = '';
+      // 重置到第一页
+      this.skillCurrentPage = 1;
+      // 重新获取技能列表
+      this.fetchSkillClasses();
     },
 
     // 检查技能是否被选中
@@ -1339,12 +1342,35 @@ export default {
     },
 
     // 获取技能类列表
-    fetchSkillClasses() {
+    fetchSkillClasses(params = {}) {
       this.skillOptionsLoading = true;
-      skillAPI.getAITaskSkillClasses()
+      
+      // 合并查询参数
+      const queryParams = {
+        page: this.skillCurrentPage,
+        limit: this.skillPageSize,
+        ...params
+      };
+      
+      // 添加状态过滤
+      if (this.skillStatusFilter !== 'all') {
+        queryParams.status = this.skillStatusFilter === 'true';
+      }
+      
+      // 添加搜索关键词
+      if (this.skillSearchKeyword) {
+        queryParams.query = this.skillSearchKeyword;
+      }
+      
+      console.log('获取技能类列表参数:', queryParams);
+      
+      skillAPI.getAITaskSkillClasses(queryParams)
         .then(response => {
+          console.log('获取技能类列表原始响应:', response);
           if (response.data && (response.data.success || response.data.code === 0)) {
             const data = response.data.data || [];
+            this.skillOptionsTotal = response.data.total || data.length;
+            
             this.skillOptions = data.map(item => ({
               id: item.id,
               value: item.name_en || item.name,
@@ -1355,15 +1381,18 @@ export default {
               parameters: item.parameters || []
             }));
             console.log('获取到技能类列表:', this.skillOptions);
+            console.log('技能总数:', this.skillOptionsTotal);
           } else {
             this.$message.error('获取技能类列表失败：' + (response.data && response.data.msg ? response.data.msg : '未知错误'));
             this.skillOptions = []; // 清空技能选项
+            this.skillOptionsTotal = 0;
           }
         })
         .catch(error => {
           console.error('获取技能类列表出错:', error);
           this.$message.error('获取技能类列表失败：' + (error.message || '服务器错误'));
           this.skillOptions = []; // 清空技能选项
+          this.skillOptionsTotal = 0;
         })
         .finally(() => {
           this.skillOptionsLoading = false;
@@ -1846,8 +1875,24 @@ export default {
     // 根据状态过滤技能
     filterSkillsByStatus(value) {
       this.skillStatusFilter = value;
-      // 可以在这里添加额外的处理逻辑，例如记录日志或触发其他事件
+      // 重置到第一页
+      this.skillCurrentPage = 1;
+      // 重新获取技能列表
+      this.fetchSkillClasses();
       console.log('按技能状态过滤:', value);
+    },
+    
+    // 处理技能分页页码改变
+    handleSkillCurrentChange(val) {
+      this.skillCurrentPage = val;
+      this.fetchSkillClasses();
+    },
+
+    // 处理技能每页条数改变
+    handleSkillSizeChange(val) {
+      this.skillPageSize = val;
+      this.skillCurrentPage = 1;
+      this.fetchSkillClasses();
     },
     
     // 获取摄像头关联的AI任务

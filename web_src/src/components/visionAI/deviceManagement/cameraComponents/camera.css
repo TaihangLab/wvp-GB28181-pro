@@ -2751,3 +2751,59 @@
   margin: 0;
 }
 
+/* 技能标题和分页信息样式 */
+.skills-header-with-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.skill-pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.pagination-text {
+  font-size: 13px;
+  color: #606266;
+  white-space: nowrap;
+  min-width: fit-content;
+  font-weight: 500;
+}
+
+.skill-pagination-info .el-pagination {
+  margin: 0;
+}
+
+.skill-pagination-info .el-pagination.is-background .el-pager li:not(.disabled):hover {
+  background-color: #409EFF;
+  color: #fff;
+}
+
+.skill-pagination-info .el-pagination.is-background .el-pager li:not(.disabled).active {
+  background-color: #409EFF;
+  color: #fff;
+}
+
+/* 响应式布局：小屏幕时分页信息换行 */
+@media (max-width: 768px) {
+  .skills-header-with-pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .skill-pagination-info {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .pagination-text {
+    font-size: 12px;
+  }
+}
+
