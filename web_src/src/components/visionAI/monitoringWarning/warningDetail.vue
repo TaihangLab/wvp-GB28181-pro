@@ -15,7 +15,7 @@
           </div>
           <div class="warning-detail-time">
             <i class="el-icon-time"></i>
-            {{ warning.time }}
+            {{ formatTime(warning.time) }}
           </div>
         </div>
         
@@ -25,29 +25,58 @@
           <div class="warning-left-content">
             <!-- 预警信息 -->
             <div class="warning-detail-info">
-              <div class="info-item">
-                <span class="label">设备名称：</span>
-                <span class="value device-name">{{ warning.device }}</span>
+              <!-- 基础信息卡片 -->
+              <div class="info-card">
+                <div class="card-title">
+                  <i class="el-icon-info"></i>
+                  基础信息
+                </div>
+                <div class="info-grid">
+                  <div class="info-row">
+                    <div class="info-cell">
+                      <span class="label">设备名称</span>
+                      <span class="value">{{ warning.device }}</span>
+                    </div>
+                    <div class="info-cell">
+                      <span class="label">违规位置</span>
+                      <span class="value">{{ warning.location || (warning.deviceInfo && warning.deviceInfo.position) || '未知位置' }}</span>
+                    </div>
+                  </div>
+                  <div class="info-row">
+                    <div class="info-cell">
+                      <span class="label">预警名称</span>
+                      <span class="value">{{ warning.type }}</span>
+                    </div>
+                    <div class="info-cell">
+                      <span class="label">预警类型</span>
+                      <span class="value">{{ getWarningTypeText(warning.type) }}</span>
+                    </div>
+                  </div>
+                  <!-- 复判信息行 (仅在复判记录页面显示) -->
+                  <div class="info-row" v-if="(warning.reviewType || warning.duration) && source === 'reviewRecords'">
+                    <div class="info-cell" v-if="warning.reviewType">
+                      <span class="label">复判分类</span>
+                      <span class="value review-classification" :class="'review-' + warning.reviewType">{{ getReviewClassificationText(warning.reviewType) }}</span>
+                    </div>
+                    <div class="info-cell" v-if="warning.duration">
+                      <span class="label">持续时间</span>
+                      <span class="value">{{ warning.duration }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="info-item">
-                <span class="label">预警名称：</span>
-                <span class="value warning-name">{{ warning.type }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">预警类型：</span>
-                <span class="value warning-type">{{ getWarningTypeText(warning.type) }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">违规位置：</span>
-                <span class="value location">{{ warning.location || (warning.deviceInfo && warning.deviceInfo.position) || '未知位置' }}</span>
-              </div>
-              <div class="info-item" v-if="warning.remark">
-                <span class="label">处理备注：</span>
-                <span class="value remark">{{ warning.remark }}</span>
-              </div>
-              <div class="info-item description-item">
-                <span class="label">预警描述：</span>
-                <span class="value description">{{ warning.description || '检测到工作人员未佩戴安全帽，存在安全隐患，请立即整改' }}</span>
+
+
+
+              <!-- 详细描述卡片 -->
+              <div class="info-card">
+                <div class="card-title">
+                  <i class="el-icon-document"></i>
+                  预警描述
+                </div>
+                <div class="info-content">
+                  <p class="description-content">{{ warning.description || '检测到工作人员未佩戴安全帽，存在安全隐患，请立即整改' }}</p>
+                </div>
               </div>
             </div>
             
@@ -59,7 +88,10 @@
                   违规截图
                 </h4>
                 <div class="image-container">
-                  <div class="placeholder-image">
+                  <div v-if="warning.imageUrl" class="real-image">
+                    <img :src="warning.imageUrl" :alt="warning.type" />
+                  </div>
+                  <div v-else class="placeholder-image">
                     <i :class="getWarningIcon(warning.level)"></i>
                     <span>违规截图</span>
                   </div>
@@ -131,10 +163,14 @@
             <i class="el-icon-close"></i>
             误报
           </el-button>
-          <!-- 处理按钮始终可用，允许多次处理 -->
-          <el-button type="success" @click="handleWarning" class="action-btn">
+          <!-- 处理按钮根据状态禁用 -->
+          <el-button 
+            type="success" 
+            :disabled="isProcessingDisabled()"
+            @click="handleWarning" 
+            class="action-btn">
             <i class="el-icon-check"></i>
-            处理
+            {{ isProcessingDisabled() ? '已完成' : '处理' }}
           </el-button>
         </template>
         <!-- 预警管理页面只显示处理和关闭按钮 -->
@@ -143,12 +179,19 @@
         <!-- 预警档案页面只显示关闭按钮 -->
         <template v-else-if="source === 'warningArchives'">
         </template>
+        <!-- 复判记录页面只显示关闭按钮 -->
+        <template v-else-if="source === 'reviewRecords'">
+        </template>
         <!-- 默认情况显示处理和关闭按钮 -->
         <template v-else>
-          <!-- 处理按钮始终可用，允许多次处理 -->
-          <el-button type="success" @click="handleWarning" class="action-btn">
+          <!-- 处理按钮根据状态禁用 -->
+          <el-button 
+            type="success" 
+            :disabled="isProcessingDisabled()"
+            @click="handleWarning" 
+            class="action-btn">
             <i class="el-icon-check"></i>
-            处理
+            {{ isProcessingDisabled() ? '已完成' : '处理' }}
           </el-button>
           <el-button @click="closeDialog" class="action-btn">
             关闭
@@ -265,11 +308,11 @@
       </el-form>
       <div class="process-tip">
         <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
-        <span style="color: #909399; font-size: 13px;">填写处理意见后，将在处理进展中添加一条处理记录，可多次添加处理记录</span>
+        <span style="color: #909399; font-size: 13px;">填写处理意见后，可点击"确认处理"添加处理记录，或点击"结束处理"完成整个处理流程</span>
       </div>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="closeRemarkDialog">取 消</el-button>
         <el-button type="primary" @click="saveRemark">确认处理</el-button>
+        <el-button type="success" @click="finishProcessing">结束处理</el-button>
       </span>
     </el-dialog>
 
@@ -417,7 +460,7 @@ export default {
           this.archiveDialogVisible = true;
           return; // 不关闭loading，等确认后再关闭
         } else if (action === 'falseAlarm') {
-          // 误报 - 自动归档到默认档案
+          // 误报 - 不需要检查处理状态，可以直接归档
           this.currentCameraId = this.warning.cameraId || 'camera_1';
           await this.handleFalseAlarmArchive();
           return; // 不关闭loading，等归档完成后再关闭
@@ -432,11 +475,53 @@ export default {
     
     // 处理预警
     handleWarning() {
+      // 检查当前是否已经在处理中
+      const hasProcessingRecord = this.operationHistory.some(record => 
+        record.operationType === 'processing' && record.status === 'active'
+      );
+      
+      if (hasProcessingRecord) {
+        // 如果已经有处理中记录，直接弹出处理意见对话框
+        this.remarkDialogVisible = true;
+      } else {
+        // 如果没有处理中记录，先添加"处理中"状态
+        this.startProcessing();
+      }
+    },
+    
+    // 开始处理
+    startProcessing() {
+      // 更新待处理记录为已完成状态
+      this.operationHistory = this.operationHistory.map(record => {
+        if (record.operationType === 'pending' && record.status === 'active') {
+          return {
+            ...record,
+            status: 'completed',
+            description: '预警已确认，开始处理'
+          };
+        }
+        return record;
+      });
+      
+      // 同步更新warning对象的操作历史
+      if (this.warning && this.warning.operationHistory) {
+        this.warning.operationHistory = this.warning.operationHistory.map(record => {
+          if (record.operationType === 'pending' && record.status === 'active') {
+            return {
+              ...record,
+              status: 'completed',
+              description: '预警已确认，开始处理'
+            };
+          }
+          return record;
+        });
+      }
+      
       // 弹出处理意见对话框
       this.remarkDialogVisible = true;
     },
     
-    // 保存处理意见并完成处理
+    // 保存处理意见（添加处理中记录）
     async saveRemark() {
       if (!this.remarkForm.remark.trim()) {
         this.$message.warning('请输入处理意见');
@@ -449,22 +534,53 @@ export default {
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // 记录处理操作到历史
+        // 添加新的处理中记录
         this.addOperationRecord({
           status: 'completed',
-          statusText: '处理记录',
+          statusText: '处理中',
           time: this.getCurrentTime(),
           description: `处理意见：${this.remarkForm.remark}`,
-          operationType: 'process',
+          operationType: 'processing',
           operator: this.getCurrentUserName()
         });
         
         this.$message.success('处理记录已添加');
-        this.$emit('handle-warning', this.warning);
+        // 发出处理记录添加事件，传递action标识
+        this.$emit('handle-warning', { ...this.warning, action: 'record-added' });
         this.closeRemarkDialog();
       } catch (error) {
         console.error('处理失败:', error);
         this.$message.error('处理失败');
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    // 结束处理
+    async finishProcessing() {
+      try {
+        this.loading = true;
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 添加新的已处理记录，而不是修改现有记录
+        this.addOperationRecord({
+          status: 'completed',
+          statusText: '已处理',
+          time: this.getCurrentTime(),
+          description: '预警处理已完成，可以进行后续操作',
+          operationType: 'completed',
+          operator: this.getCurrentUserName()
+        });
+        
+        this.$message.success('处理已完成，现在可以进行归档等操作');
+        // 发出完成处理事件，不再触发处理流程
+        this.$emit('handle-warning', { ...this.warning, action: 'finished' });
+        this.closeRemarkDialog();
+      } catch (error) {
+        console.error('结束处理失败:', error);
+        this.$message.error('结束处理失败');
       } finally {
         this.loading = false;
       }
@@ -484,6 +600,16 @@ export default {
     },
     // 归档处理
     handleArchive() {
+      // 检查是否已经处理完成
+      const hasCompletedProcessing = this.operationHistory.some(record => 
+        record.operationType === 'completed'
+      );
+      
+      if (!hasCompletedProcessing) {
+        this.$message.warning('请先完成预警处理后再进行归档操作');
+        return;
+      }
+      
       this.handleWarningAction('archive');
     },
     // 误报处理
@@ -518,7 +644,6 @@ export default {
           operator: this.getCurrentUserName()
         });
         
-        this.$message.success('预警已成功上报');
         this.$emit('handle-report', this.warning);
         this.closeReportDialog();
         // 不关闭详情对话框，让用户可以继续查看和操作
@@ -574,7 +699,6 @@ export default {
           }
         });
         
-        this.$message.success('预警已成功归档');
         this.$emit('handle-archive', this.warning);
         this.closeArchiveDialog();
         // 不关闭详情对话框，让用户可以继续查看操作历史
@@ -608,7 +732,6 @@ export default {
         };
         
         this.archivesList.push(newArchive);
-        this.$message.success('已自动创建默认档案');
         
         return newArchive.id;
       } catch (error) {
@@ -698,7 +821,6 @@ export default {
           }
         });
         
-        this.$message.success('误报已自动归档到默认档案');
         this.$emit('handle-false-alarm', this.warning);
         // 不关闭详情对话框，让用户可以继续查看操作历史
       } catch (error) {
@@ -811,7 +933,7 @@ export default {
         status: 'active',
         statusText: '待处理',
         time: this.warning.createTime || this.getCurrentTime(),
-        description: '等待处理人员确认并处理',
+        description: '预警已产生，等待处理人员确认并开始处理',
         operationType: 'pending',
         operator: ''
       });
@@ -841,6 +963,51 @@ export default {
         }
         this.warning.operationHistory.unshift(newRecord);
       }
+    },
+    
+    // 检查处理按钮是否应该禁用
+    isProcessingDisabled() {
+      if (!this.warning || !this.warning.operationHistory || this.warning.operationHistory.length === 0) {
+        return false; // 没有历史记录，可以处理
+      }
+      
+      // 如果已归档，禁用处理按钮
+      const hasArchived = this.warning.operationHistory.some(record => 
+        record.operationType === 'archive' || record.operationType === 'falseAlarm'
+      ) || this.warning.status === 'archived';
+      
+      if (hasArchived) {
+        return true;
+      }
+      
+      // 如果已完成处理，禁用处理按钮
+      const hasCompletedProcessing = this.warning.operationHistory.some(record => 
+        record.operationType === 'completed'
+      );
+      
+      return hasCompletedProcessing;
+    },
+    // 格式化时间
+    formatTime(timeString) {
+      try {
+        // 如果是完整的时间字符串，格式化为更友好的显示
+        if (timeString && timeString.includes(' ')) {
+          const [date, time] = timeString.split(' ');
+          const [year, month, day] = date.split('-');
+          return `${year}年${month}月${day}日 ${time}`;
+        }
+        return timeString;
+      } catch (error) {
+        return timeString;
+      }
+    },
+    // 获取复判分类文字
+    getReviewClassificationText(type) {
+      const typeMap = {
+        'manual': '人工审核',
+        'auto': '多模态大模型复判'
+      };
+      return typeMap[type] || '未知复判方式';
     }
   }
 }
@@ -894,98 +1061,162 @@ export default {
   display: flex;
   gap: 24px;
   padding: 0 4px;
+  align-items: stretch;
 }
 
 /* 左侧内容 */
 .warning-left-content {
   flex: 2;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 右侧内容 */
 .warning-right-content {
   flex: 1;
   min-width: 280px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 预警信息样式 */
 .warning-detail-info {
-  background: linear-gradient(135deg, #f9f9f9 0%, #f5f7fa 100%);
-  padding: 20px;
-  border-radius: 12px;
-  border-left: 4px solid #409EFF;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   margin-bottom: 20px;
 }
 
-.info-item {
-  display: flex;
-  margin-bottom: 12px;
-  line-height: 1.6;
-  align-items: flex-start;
+/* 信息卡片样式 */
+.info-card {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.info-item:last-child {
+.info-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #c6e2ff;
+}
+
+/* 卡片标题 */
+.card-title {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 12px 16px;
+  border-bottom: 1px solid #e4e7ed;
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  display: flex;
+  align-items: center;
+}
+
+.card-title i {
+  margin-right: 8px;
+  color: #409EFF;
+  font-size: 16px;
+}
+
+/* 网格布局 */
+.info-grid {
+  padding: 16px;
+}
+
+.info-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.info-row:last-child {
   margin-bottom: 0;
 }
 
-.info-item .label {
-  color: #606266;
-  width: 80px;
-  flex-shrink: 0;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.info-item .value {
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 13px;
+.info-cell {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.info-item .device-name {
+.info-cell .label {
+  font-size: 12px;
+  color: #909399;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-cell .value {
+  font-size: 14px;
   color: #303133;
-  background: rgba(64, 158, 255, 0.1);
+  font-weight: 500;
+  background: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+  transition: all 0.2s ease;
 }
 
-.info-item .warning-name {
+.info-cell .value:hover {
+  background: #ecf5ff;
+  border-color: #c6e2ff;
+}
+
+/* 复判分类颜色样式 */
+.info-cell .value.review-classification {
+  font-weight: 600;
+  border-width: 2px;
+}
+
+.info-cell .value.review-manual {
   color: #f56c6c;
   background: rgba(245, 108, 108, 0.1);
+  border-color: #f56c6c;
 }
 
-.info-item .warning-type {
-  color: #e6a23c;
-  background: rgba(230, 162, 60, 0.1);
+.info-cell .value.review-auto {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
+  border-color: #409eff;
 }
 
-.info-item .location {
+/* 内容布局 */
+.info-content {
+  padding: 16px;
+}
+
+.info-text .label {
+  font-size: 12px;
+  color: #909399;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.description-content {
+  font-size: 14px;
   color: #303133;
-  background: rgba(103, 194, 58, 0.1);
-}
-
-.info-item .remark {
-  color: #67c23a;
-  background: rgba(103, 194, 58, 0.1);
-}
-
-.description-item {
-  align-items: flex-start;
-}
-
-.info-item .description {
-  color: #303133;
-  background: rgba(230, 162, 60, 0.1);
-  padding: 8px 12px;
   line-height: 1.6;
-  text-align: left;
+  background: #f8f9fa;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 /* 媒体内容样式 */
 .warning-media {
   display: flex;
   gap: 16px;
+  flex: 1;
 }
 
 .warning-image,
@@ -1020,6 +1251,7 @@ export default {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+.real-image,
 .placeholder-image,
 .placeholder-video {
   position: absolute;
@@ -1034,6 +1266,25 @@ export default {
   background: linear-gradient(45deg, #1e3c72, #2a5298);
   color: rgba(255, 255, 255, 0.8);
   font-size: 14px;
+}
+
+.real-image {
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+
+.real-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+}
+
+.real-image:hover img {
+  transform: scale(1.05);
 }
 
 .placeholder-image i,
@@ -1059,8 +1310,8 @@ export default {
   border: 1px solid #ebeef5;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  /* 设置固定高度，与媒体内容区域高度保持一致 */
-  height: 470px;
+  /* 高度自适应，与左侧内容区域保持一致 */
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -1154,12 +1405,39 @@ export default {
   transition: all 0.3s ease;
 }
 
-/* 所有历史时间线项目（除第一个外）使用灰色圆点 */
+/* 所有历史时间线项目（除第一个外）使用灰色样式 */
 .timeline-container .timeline-item:not(:first-child) .timeline-dot {
   border-color: #e4e7ed !important;
   background: #e4e7ed !important;
   box-shadow: 0 2px 6px rgba(228, 231, 237, 0.3) !important;
   animation: none !important;
+}
+
+.timeline-container .timeline-item:not(:first-child) .timeline-content {
+  background: #fafbfc !important;
+  border-color: #f0f2f5 !important;
+}
+
+.timeline-container .timeline-item:not(:first-child) .timeline-status {
+  color: #909399 !important;
+}
+
+.timeline-container .timeline-item:not(:first-child) .timeline-time {
+  color: #c0c4cc !important;
+}
+
+.timeline-container .timeline-item:not(:first-child) .timeline-desc {
+  color: #c0c4cc !important;
+}
+
+.timeline-container .timeline-item:not(:first-child) .timeline-operator {
+  color: #c0c4cc !important;
+  background: rgba(192, 196, 204, 0.1) !important;
+}
+
+/* 所有历史时间线项目的左边框都显示为灰色 */
+.timeline-container .timeline-item:not(:first-child) .timeline-content::before {
+  background: #e4e7ed !important;
 }
 
 /* 最新的时间线项目（第一个）使用动态蓝色圆点 - 优先级最高 */
@@ -1224,8 +1502,18 @@ export default {
   background: #909399;
 }
 
-/* 处理完成 */
-.timeline-item[data-type="process"] .timeline-content::before {
+/* 处理中（初始状态） */
+.timeline-item[data-type="processing"] .timeline-content::before {
+  background: #409EFF;
+}
+
+/* 处理中（操作记录） */
+.timeline-item[data-type="processing-action"] .timeline-content::before {
+  background: #409EFF;
+}
+
+/* 已处理 */
+.timeline-item[data-type="completed"] .timeline-content::before {
   background: #67c23a;
 }
 
@@ -1246,6 +1534,15 @@ export default {
 
 /* 待处理 */
 .timeline-item[data-type="pending"] .timeline-content::before {
+  background: #909399;
+}
+
+/* 复判相关操作 */
+.timeline-item[data-type="review_completed"] .timeline-content::before {
+  background: #67c23a;
+}
+
+.timeline-item[data-type="review_start"] .timeline-content::before {
   background: #409EFF;
 }
 
@@ -1494,6 +1791,36 @@ export default {
   
   .action-btn {
     margin: 4px;
+  }
+  
+  /* 移动端信息卡片调整 */
+  .info-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .info-grid {
+    padding: 12px;
+  }
+  
+  .card-title {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .info-content {
+    padding: 12px;
+  }
+  
+  .info-cell .value {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  
+  .remark-content,
+  .description-content {
+    padding: 10px 12px;
+    font-size: 13px;
   }
 }
 </style> 

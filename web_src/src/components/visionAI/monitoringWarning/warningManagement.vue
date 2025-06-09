@@ -13,9 +13,11 @@ export default {
         deviceName: '',
         startDate: '',
         endDate: '',
-        status: '',
         warningType: '',
-        warningLevel: ''
+        warningLevel: '',
+        warningSkill: '', // 预警技能
+        warningName: '', // 预警名称
+        warningId: '' // 预警ID
       },
       
       // 左侧位置数据
@@ -27,32 +29,32 @@ export default {
           selected: true
         },
         {
-          id: 'oil_gas_area',
-          name: '油气监控区域',
+          id: 'northeast_corner',
+          name: '工地东北角',
           count: 0,
           selected: false
         },
         {
-          id: 'work_area',
-          name: '作业区域',
+          id: 'south_side',
+          name: '工地南侧',
           count: 0,
           selected: false
         },
         {
-          id: 'storage_area',
-          name: '储罐区域',
+          id: 'material_area',
+          name: '材料区',
           count: 0,
           selected: false
         },
         {
-          id: 'pipeline_area',
-          name: '管道区域',
+          id: 'rest_area',
+          name: '休息区',
           count: 0,
           selected: false
         },
         {
-          id: 'pipeline_interface',
-          name: '管道接口',
+          id: 'construction_area',
+          name: '施工作业区',
           count: 0,
           selected: false
         }
@@ -65,129 +67,135 @@ export default {
       warningList: [
         {
           id: '1',
-          deviceName: 'CH4 超上限预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 1.30,
-          unit: '%LEL',
+          deviceName: '未戴安全帽',
+          imageUrl: require('./images/5.jpg'),
+          value: 1,
+          unit: '人',
           level: '一级预警',
-          time: '2022-12-20 17:02:58',
+          time: '2024-12-18 10:30:25',
           status: 'pending',
           cameraId: 'camera_1',
           deviceInfo: {
-            name: '可燃气体',
-            position: '0.1 米'
+            name: '摄像头01',
+            position: '工地东北角'
           },
           remark: '',
-          device: '可燃气体',
-          type: 'CH4 超上限预警',
-          location: '油气监控区域',
-          locationId: 'oil_gas_area',
-          description: '检测到CH4浓度超过安全阈值，当前浓度为1.30%LEL，存在爆炸危险，请立即处理'
+          device: '摄像头01',
+          type: '未戴安全帽',
+          location: '工地东北角',
+          locationId: 'northeast_corner',
+          description: '检测到工作人员未佩戴安全帽，存在严重安全隐患，请立即整改并加强安全教育',
+          skill: 'safety_helmet_detection'
         },
         {
           id: '2',
-          deviceName: 'CO 浓度预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 75,
-          unit: 'ppm',
+          deviceName: '未穿工作服',
+          imageUrl: require('./images/4.jpg'),
+          value: 1,
+          unit: '人',
           level: '二级预警',
-          time: '2022-12-20 17:01:58',
-          status: 'processing',
-          cameraId: 'camera_1',
-          deviceInfo: {
-            name: '一氧化碳',
-            position: '1.5 米'
-          },
-          remark: '',
-          device: '一氧化碳检测器',
-          type: 'CO 浓度预警',
-          location: '作业区域',
-          locationId: 'work_area',
-          description: '检测到一氧化碳浓度超标，当前浓度为75ppm，可能对人员造成健康危害'
-        },
-        {
-          id: '3',
-          deviceName: 'H2S 浓度预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 10,
-          unit: 'ppm',
-          level: '三级预警',
-          time: '2022-12-20 16:58:32',
-          status: 'pending',
-          cameraId: 'camera_2',
-          deviceInfo: {
-            name: '硫化氢',
-            position: '2.0 米'
-          },
-          remark: '',
-          device: '硫化氢检测器',
-          type: 'H2S 浓度预警',
-          location: '储罐区域',
-          locationId: 'storage_area',
-          description: '检测到硫化氢浓度异常，当前浓度为10ppm，请注意通风和人员防护'
-        },
-        {
-          id: '4',
-          deviceName: '火焰探测器预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 85,
-          unit: '%',
-          level: '一级预警',
-          time: '2022-12-20 16:55:12',
-          status: 'pending',
-          cameraId: 'camera_1',
-          deviceInfo: {
-            name: '火焰探测器',
-            position: '管道区域'
-          },
-          remark: '',
-          device: '火焰探测器',
-          type: '火焰探测器预警',
-          location: '管道区域',
-          locationId: 'pipeline_area',
-          description: '火焰探测器检测到火焰信号，置信度85%，存在火灾风险，请立即确认并处理'
-        },
-        {
-          id: '5',
-          deviceName: '温度超限预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 85,
-          unit: '°C',
-          level: '二级预警',
-          time: '2022-12-20 16:50:22',
-          status: 'completed',
-          cameraId: 'camera_2',
-          deviceInfo: {
-            name: '温度传感器',
-            position: '储罐区'
-          },
-          remark: '已检查温度传感器，调整了冷却系统参数',
-          device: '温度传感器',
-          type: '温度超限预警',
-          location: '储罐区域',
-          locationId: 'storage_area',
-          description: '温度传感器检测到温度超过安全限值，当前温度85°C，可能影响设备安全运行'
-        },
-        {
-          id: '6',
-          deviceName: '压力超限预警',
-          imageUrl: '/src/assets/warning-icon.png',
-          value: 2.5,
-          unit: 'MPa',
-          level: '一级预警',
-          time: '2022-12-20 16:45:18',
+          time: '2024-12-18 10:28:15',
           status: 'pending',
           cameraId: 'camera_3',
           deviceInfo: {
-            name: '压力传感器',
-            position: '管道接口'
+            name: '摄像头03',
+            position: '工地南侧'
           },
           remark: '',
-          device: '压力传感器',
-          type: '压力超限预警',
-          location: '管道接口',
-          locationId: 'pipeline_interface',
-          description: '压力传感器检测到管道压力超过安全限值，当前压力2.5MPa，存在爆管风险'
+          device: '摄像头03',
+          type: '未穿工作服',
+          location: '工地南侧',
+          locationId: 'south_side',
+          description: '发现工作人员未按规定穿着工作服，违反现场作业安全规范，需要立即纠正',
+          skill: 'work_clothes_detection'
+        },
+        {
+          id: '3',
+          deviceName: '闲杂人员',
+          imageUrl: require('./images/5.jpg'),
+          value: 1,
+          unit: '人',
+          level: '三级预警',
+          time: '2024-12-18 10:15:42',
+          status: 'pending',
+          cameraId: 'camera_2',
+          deviceInfo: {
+            name: '摄像头02',
+            position: '材料区'
+          },
+          remark: '',
+          device: '摄像头02',
+          type: '闲杂人员',
+          location: '材料区',
+          locationId: 'material_area',
+          description: '检测到非工作人员进入施工区域，可能存在安全风险，请及时清理并加强管控',
+          skill: 'personnel_intrusion_detection'
+        },
+        {
+          id: '4',
+          deviceName: '违规吸烟',
+          imageUrl: require('./images/6.jpg'),
+          value: 1,
+          unit: '人',
+          level: '二级预警',
+          time: '2024-12-18 09:58:30',
+          status: 'completed',
+          cameraId: 'camera_5',
+          deviceInfo: {
+            name: '摄像头05',
+            position: '休息区'
+          },
+          remark: '已对违规人员进行安全教育，并要求现场管理员加强巡查',
+          device: '摄像头05',
+          type: '违规吸烟',
+          location: '休息区',
+          locationId: 'rest_area',
+          description: '发现工作人员在禁烟区域吸烟，违反安全生产规定，请立即制止并进行安全教育',
+          skill: 'smoke_fire_detection'
+        },
+        {
+          id: '5',
+          deviceName: '高空作业未系安全带',
+          imageUrl: require('./images/1.jpg'),
+          value: 1,
+          unit: '人',
+          level: '一级预警',
+          time: '2024-12-18 09:45:12',
+          status: 'pending',
+          cameraId: 'camera_4',
+          deviceInfo: {
+            name: '摄像头04',
+            position: '施工作业区'
+          },
+          remark: '',
+          device: '摄像头04',
+          type: '高空作业未系安全带',
+          location: '施工作业区',
+          locationId: 'construction_area',
+          description: '检测到高空作业人员未系安全带，存在坠落风险，请立即停止作业并整改',
+          skill: 'safety_belt_detection'
+        },
+        {
+          id: '6',
+          deviceName: '未穿反光背心',
+          imageUrl: require('./images/3.jpg'),
+          value: 2,
+          unit: '人',
+          level: '三级预警',
+          time: '2024-12-18 09:32:18',
+          status: 'pending',
+          cameraId: 'camera_6',
+          deviceInfo: {
+            name: '摄像头06',
+            position: '工地东北角'
+          },
+          remark: '',
+          device: '摄像头06',
+          type: '未穿反光背心',
+          location: '工地东北角',
+          locationId: 'northeast_corner',
+          description: '检测到作业人员未穿着反光背心，在低照度环境下存在安全隐患，请立即整改',
+          skill: 'reflective_vest_detection'
         }
       ],
       
@@ -204,8 +212,7 @@ export default {
         '三级预警': { color: '#409EFF', bg: '#ECF5FF' }
       },
       
-      // 筛选类型
-      filterType: 'all',
+
       
       // 日期范围
       dateRange: null,
@@ -243,19 +250,19 @@ export default {
       archivesList: [
         {
           id: 'archive_1',
-          name: '油气行业默认档案',
+          name: '建筑工地默认档案',
           cameraId: 'camera_1',
-          cameraName: '可燃气体监控点',
+          cameraName: '摄像头01',
           isDefault: true,
-          createTime: '2022-12-01 10:00:00'
+          createTime: '2024-01-01 10:00:00'
         },
         {
           id: 'archive_2', 
-          name: '储罐区专项档案',
-          cameraId: 'camera_2',
-          cameraName: '储罐区监控点',
+          name: '工地南侧专项档案',
+          cameraId: 'camera_3',
+          cameraName: '摄像头03',
           isDefault: false,
-          createTime: '2022-12-05 14:30:00'
+          createTime: '2024-01-05 14:30:00'
         }
       ],
       selectedArchiveId: '',
@@ -263,7 +270,23 @@ export default {
       
       // 预警详情对话框
       warningDetailVisible: false,
-      currentWarningDetail: null
+      currentWarningDetail: null,
+      
+      // 删除确认对话框
+      deleteDialogVisible: false,
+      deleteLoading: false,
+      
+      // 预警技能选项
+      warningSkillOptions: [
+        { label: '安全帽检测', value: 'safety_helmet_detection' },
+        { label: '工作服检测', value: 'work_clothes_detection' },
+        { label: '反光背心检测', value: 'reflective_vest_detection' },
+        { label: '安全带检测', value: 'safety_belt_detection' },
+        { label: '烟火检测', value: 'smoke_fire_detection' },
+        { label: '人员入侵检测', value: 'personnel_intrusion_detection' },
+        { label: '高空作业检测', value: 'high_altitude_work_detection' },
+        { label: '区域入侵检测', value: 'area_intrusion_detection' }
+      ]
     }
   },
   computed: {
@@ -289,25 +312,28 @@ export default {
         list = list.filter(item => new Date(item.time) <= new Date(this.searchForm.endDate))
       }
       
-      // 按状态过滤
-      if (this.searchForm.status) {
-        list = list.filter(item => item.status === this.searchForm.status)
-      }
+
       
       // 按预警类型过滤 (根据设备名称包含的关键词进行筛选)
       if (this.searchForm.warningType) {
         switch(this.searchForm.warningType) {
-          case 'overflow':
-            list = list.filter(item => item.deviceName.includes('超上限') || item.deviceName.includes('超限'))
+          case 'safety_helmet':
+            list = list.filter(item => item.deviceName.includes('安全帽'))
             break
-          case 'concentration':
-            list = list.filter(item => item.deviceName.includes('浓度'))
+          case 'safety_belt':
+            list = list.filter(item => item.deviceName.includes('安全带'))
             break
-          case 'temperature':
-            list = list.filter(item => item.deviceName.includes('温度'))
+          case 'protective_clothing':
+            list = list.filter(item => item.deviceName.includes('反光背心') || item.deviceName.includes('工作服'))
             break
-          case 'pressure':
-            list = list.filter(item => item.deviceName.includes('压力'))
+          case 'unauthorized_personnel':
+            list = list.filter(item => item.deviceName.includes('闲杂人员'))
+            break
+          case 'smoking':
+            list = list.filter(item => item.deviceName.includes('吸烟'))
+            break
+          case 'high_altitude':
+            list = list.filter(item => item.deviceName.includes('高空'))
             break
         }
       }
@@ -323,9 +349,23 @@ export default {
         list = list.filter(item => item.level === levelMap[this.searchForm.warningLevel])
       }
       
-      // 如果是只看预警中事件（未处理的）
-      if (this.filterType === 'pending') {
-        return list.filter(item => item.status === 'pending')
+      // 按预警技能过滤
+      if (this.searchForm.warningSkill) {
+        list = list.filter(item => item.skill === this.searchForm.warningSkill)
+      }
+      
+      // 按预警名称过滤
+      if (this.searchForm.warningName) {
+        list = list.filter(item => 
+          item.deviceName.toLowerCase().includes(this.searchForm.warningName.toLowerCase())
+        )
+      }
+      
+      // 按预警ID过滤
+      if (this.searchForm.warningId) {
+        list = list.filter(item => 
+          item.id.toLowerCase().includes(this.searchForm.warningId.toLowerCase())
+        )
       }
       
       return list
@@ -384,9 +424,11 @@ export default {
         deviceName: '',
         startDate: '',
         endDate: '',
-        status: '',
         warningType: '',
-        warningLevel: ''
+        warningLevel: '',
+        warningSkill: '',
+        warningName: '',
+        warningId: ''
       }
       this.dateRange = null
       this.getWarningList()
@@ -409,7 +451,6 @@ export default {
         
         // 刷新后清空选择
         this.selectedWarnings = []
-        this.filterType = 'all'
       } finally {
         this.loading = false
       }
@@ -426,9 +467,8 @@ export default {
         const index = this.warningList.findIndex(item => item.id === id)
         if (index !== -1) {
           if (action === 'markProcessed') {
-            // 添加处理记录 - 弹出处理意见对话框
-            this.currentWarningId = id
-            this.remarkDialogVisible = true
+            // 处理预警 - 使用和预警详情对话框一致的逻辑
+            this.startProcessingWarning(this.warningList[index])
             this.loading = false // 在弹框前先关闭loading
             return // 等处理意见填写完成后再继续
           } else if (action === 'report') {
@@ -578,11 +618,14 @@ export default {
     getCurrentCameraName() {
       // 实际项目中应该从摄像头数据中获取
       const cameraNames = {
-        'camera_1': '可燃气体监控点',
-        'camera_2': '储罐区监控点',
-        'camera_3': '管道接口监控点'
+        'camera_1': '摄像头01',
+        'camera_2': '摄像头02',
+        'camera_3': '摄像头03',
+        'camera_4': '摄像头04',
+        'camera_5': '摄像头05',
+        'camera_6': '摄像头06'
       }
-      return cameraNames[this.currentCameraId] || '监控点'
+      return cameraNames[this.currentCameraId] || '摄像头'
     },
     
     // 获取当前时间
@@ -626,7 +669,6 @@ export default {
         this.selectedWarnings = this.filteredWarningList.map(item => item.id)
         this.$message.success(`已选择 ${this.selectedWarnings.length} 项预警`)
       }
-      this.filterType = 'all'
     },
     
     // 选择当前页
@@ -647,7 +689,6 @@ export default {
         this.selectedWarnings = [...otherSelectedIds, ...currentPageIds]
         this.$message.success(`已选择本页 ${currentPageIds.length} 项预警`)
       }
-      this.filterType = 'page'
     },
     
     // 批量处理
@@ -670,9 +711,6 @@ export default {
       
       try {
         this.loading = true
-        
-        // 更新筛选类型
-        this.filterType = 'batch'
         
         // 模拟API调用处理时间
         await new Promise(resolve => setTimeout(resolve, 800))
@@ -860,31 +898,31 @@ export default {
         this.loading = true
         
         // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 300))
+        await new Promise(resolve => setTimeout(resolve, 500))
         
-        // 更新本地数据 - 只添加处理记录，不改变状态
+        // 更新本地数据状态 - 添加新的处理记录
         const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
         if (index !== -1) {
-          // 添加处理记录到操作历史（如果预警对象有operationHistory）
+          // 确保有操作历史数组
           if (!this.warningList[index].operationHistory) {
             this.$set(this.warningList[index], 'operationHistory', [])
           }
           
+          // 添加新的处理中记录
           const newRecord = {
             id: Date.now() + Math.random(),
             status: 'completed',
-            statusText: '处理记录',
+            statusText: '处理中',
             time: this.getCurrentTime(),
             description: `处理意见：${this.remarkForm.remark}`,
-            operationType: 'process',
+            operationType: 'processing',
             operator: this.getCurrentUserName()
           }
           
           this.warningList[index].operationHistory.unshift(newRecord)
-          // 不再改变预警状态为completed，保持预警可继续处理
         }
         
-        this.$message.success('处理记录已添加，可继续添加多次处理记录')
+        this.$message.success('处理记录已添加')
         this.closeRemarkDialog()
       } catch (error) {
         console.error('处理失败:', error)
@@ -991,22 +1029,17 @@ export default {
     // 获取预警类型文本
     getWarningTypeText(type) {
       const typeMap = {
-        '未戴安全帽': '安全违规',
-        '未穿工作服': '安全违规',
-        '闲杂人员': '人员违规',
-        '吸烟': '消防违规',
-        '安全帽识别': '安全违规',
-        '工服识别': '安全违规',
-        '玻璃运输车打卡': '车辆违规',
-        '烟火检测': '消防违规',
-        'CH4 超上限预警': '气体检测预警',
-        'CO 浓度预警': '气体检测预警',
-        'H2S 浓度预警': '气体检测预警',
-        '火焰探测器预警': '消防预警',
-        '温度超限预警': '环境监测预警',
-        '压力超限预警': '设备监测预警'
+        '未戴安全帽': '安全防护违规',
+        '未穿工作服': '安全防护违规',
+        '闲杂人员': '人员管理违规',
+        '违规吸烟': '消防安全违规',
+        '高空作业未系安全带': '高空作业违规',
+        '未穿反光背心': '安全防护违规',
+        '安全帽识别': '安全防护违规',
+        '工服识别': '安全防护违规',
+        '烟火检测': '消防安全违规'
       };
-      return typeMap[type] || '其他预警';
+      return typeMap[type] || '其他安全违规';
     },
     
     // 获取预警等级标签文本
@@ -1108,9 +1141,6 @@ export default {
       // 清空选中项
       this.selectedWarnings = []
       
-      // 重置筛选状态
-      this.filterType = 'all'
-      
       // 提示当前查看的位置
       const selectedLocation = this.locationList.find(location => location.id === locationId)
       if (selectedLocation) {
@@ -1119,6 +1149,283 @@ export default {
         } else {
           this.$message.success(`正在查看"${selectedLocation.name}"的预警信息`)
         }
+      }
+    },
+    
+    // 获取预警图标
+    getWarningIcon(level) {
+      const iconMap = {
+        '一级预警': 'el-icon-warning',
+        '二级预警': 'el-icon-warning-outline',
+        '三级预警': 'el-icon-warning-outline',
+        '四级预警': 'el-icon-warning-outline'
+      };
+      return iconMap[level] || 'el-icon-warning';
+    },
+    
+    // 开始处理预警 - 与预警详情对话框保持一致
+    startProcessingWarning(warning) {
+      // 初始化操作历史（如果没有）
+      this.initOperationHistory(warning)
+      
+      // 更新待处理记录为已完成状态
+      if (warning.operationHistory) {
+        warning.operationHistory = warning.operationHistory.map(record => {
+          if (record.operationType === 'pending' && record.status === 'active') {
+            return {
+              ...record,
+              status: 'completed',
+              description: '预警已确认，开始处理'
+            }
+          }
+          return record
+        })
+      }
+      
+      // 弹出处理意见对话框
+      this.currentWarningId = warning.id
+      this.remarkDialogVisible = true
+    },
+    
+    // 初始化操作历史 - 与预警详情对话框保持一致
+    initOperationHistory(warning) {
+      if (!warning) return
+      
+      // 如果预警有保存的操作历史，则直接返回
+      if (warning.operationHistory && Array.isArray(warning.operationHistory) && warning.operationHistory.length > 0) {
+        return
+      }
+      
+      // 如果没有操作历史，则创建默认的初始记录
+      const operationHistory = []
+      
+      // 添加预警产生记录（始终存在的初始记录）
+      operationHistory.push({
+        id: Date.now() + Math.random(),
+        status: 'completed',
+        statusText: '预警产生',
+        time: warning.time || this.getCurrentTime(),
+        description: `${warning.type || '系统检测'}：${warning.description || '检测到异常情况，请及时处理'}`,
+        operationType: 'create',
+        operator: '系统'
+      })
+      
+      // 添加待处理记录（始终显示）
+      operationHistory.push({
+        id: Date.now() + Math.random() + 1,
+        status: 'active',
+        statusText: '待处理',
+        time: warning.createTime || this.getCurrentTime(),
+        description: '预警已产生，等待处理人员确认并开始处理',
+        operationType: 'pending',
+        operator: ''
+      })
+      
+      // 设置操作历史
+      this.$set(warning, 'operationHistory', operationHistory)
+    },
+    
+    // 结束处理 - 与预警详情对话框保持一致
+    async finishProcessing() {
+      try {
+        this.loading = true
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // 更新本地数据状态
+        const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
+        if (index !== -1) {
+          // 确保有操作历史数组
+          if (!this.warningList[index].operationHistory) {
+            this.$set(this.warningList[index], 'operationHistory', [])
+          }
+          
+          // 添加新的已处理记录
+          const newRecord = {
+            id: Date.now() + Math.random(),
+            status: 'completed',
+            statusText: '已处理',
+            time: this.getCurrentTime(),
+            description: '预警处理已完成，可以进行后续操作',
+            operationType: 'completed',
+            operator: this.getCurrentUserName()
+          }
+          
+          this.warningList[index].operationHistory.unshift(newRecord)
+        }
+        
+        this.$message.success('处理已完成，现在可以进行归档等操作')
+        this.closeRemarkDialog()
+      } catch (error) {
+        console.error('结束处理失败:', error)
+        this.$message.error('结束处理失败')
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    // 检查处理按钮是否应该禁用
+    isProcessingDisabled(warning) {
+      if (!warning.operationHistory || warning.operationHistory.length === 0) {
+        return false // 没有历史记录，可以处理
+      }
+      
+      // 如果已归档，禁用处理按钮
+      const hasArchived = warning.operationHistory.some(record => 
+        record.operationType === 'archive' || record.operationType === 'falseAlarm'
+      ) || warning.status === 'archived'
+      
+      if (hasArchived) {
+        return true
+      }
+      
+      // 如果已完成处理，禁用处理按钮
+      const hasCompletedProcessing = warning.operationHistory.some(record => 
+        record.operationType === 'completed'
+      )
+      
+      return hasCompletedProcessing
+    },
+    
+    // 获取当前预警状态
+    getCurrentWarningStatus(warning) {
+      if (!warning.operationHistory || warning.operationHistory.length === 0) {
+        return {
+          text: '待处理',
+          class: 'status-pending'
+        }
+      }
+      
+      // 检查是否已归档
+      const hasArchived = warning.operationHistory.some(record => 
+        record.operationType === 'archive' || record.operationType === 'falseAlarm'
+      ) || warning.status === 'archived'
+      
+      if (hasArchived) {
+        return {
+          text: '已归档',
+          class: 'status-archived'
+        }
+      }
+      
+      // 检查是否有已处理状态
+      const hasCompletedProcessing = warning.operationHistory.some(record => 
+        record.operationType === 'completed'
+      )
+      
+      if (hasCompletedProcessing) {
+        return {
+          text: '已处理',
+          class: 'status-completed'
+        }
+      }
+      
+      // 检查是否有处理中状态
+      const hasActiveProcessing = warning.operationHistory.some(record => 
+        record.operationType === 'processing'
+      )
+      
+      if (hasActiveProcessing) {
+        return {
+          text: '处理中',
+          class: 'status-processing'
+        }
+      }
+      
+      // 检查是否已经确认开始处理（待处理状态完成）
+      const hasPendingCompleted = warning.operationHistory.some(record => 
+        record.operationType === 'pending' && record.status === 'completed'
+      )
+      
+      if (hasPendingCompleted) {
+        return {
+          text: '处理中',
+          class: 'status-processing'
+        }
+      }
+      
+      // 默认为待处理
+      return {
+        text: '待处理',
+        class: 'status-pending'
+      }
+    },
+    
+    // 格式化时间
+    formatTime(timeString) {
+      try {
+        // 如果是完整的时间字符串，格式化为更友好的显示
+        if (timeString.includes(' ')) {
+          const [date, time] = timeString.split(' ');
+          const [year, month, day] = date.split('-');
+          return `${year}年${month}月${day}日 ${time}`;
+        }
+        return timeString;
+      } catch (error) {
+        return timeString;
+      }
+    },
+    
+    // 显示删除确认对话框
+    showDeleteDialog() {
+      if (this.selectedWarnings.length === 0) {
+        this.$message.warning('请先选择要删除的预警项')
+        return
+      }
+      this.deleteDialogVisible = true
+    },
+    
+    // 确认删除选中的预警
+    async confirmDelete() {
+      if (this.selectedWarnings.length === 0) {
+        this.$message.warning('请先选择要删除的预警项')
+        return
+      }
+      
+      try {
+        this.deleteLoading = true
+        
+        // 模拟API调用删除时间
+        await new Promise(resolve => setTimeout(resolve, 800))
+        
+        // 从预警列表中移除选中的项
+        this.warningList = this.warningList.filter(item => 
+          !this.selectedWarnings.includes(item.id)
+        )
+        
+        this.$message.success(`已成功删除 ${this.selectedWarnings.length} 项预警`)
+        
+        // 清空选择
+        this.selectedWarnings = []
+        this.closeDeleteDialog()
+      } catch (error) {
+        console.error('删除失败:', error)
+        this.$message.error('删除失败，请稍后重试')
+      } finally {
+        this.deleteLoading = false
+      }
+    },
+    
+    // 关闭删除对话框
+    closeDeleteDialog() {
+      this.deleteDialogVisible = false
+      this.deleteLoading = false
+    },
+    
+    // 跳转到复判记录页面
+    goToReviewRecords() {
+      try {
+        // 使用正确的路由名称跳转
+        this.$router.push({
+          name: 'reviewRecords'
+        }).catch((error) => {
+          console.error('路由跳转失败:', error)
+          this.$message.error('页面跳转失败，请稍后重试')
+        })
+      } catch (error) {
+        console.error('路由跳转失败:', error)
+        this.$message.error('页面跳转失败，请稍后重试')
       }
     }
   }
@@ -1166,18 +1473,7 @@ export default {
             />
           </div>
           
-          <div class="select-wrapper">
-            <el-select 
-              v-model="searchForm.status" 
-              placeholder="特处理" 
-              size="small"
-              clearable
-              @change="handleSearch"
-            >
-              <el-option label="待处理" value="pending" />
-              <el-option label="已处理" value="completed" />
-            </el-select>
-          </div>
+
           
           <div class="select-wrapper">
             <el-select 
@@ -1194,6 +1490,62 @@ export default {
             </el-select>
           </div>
           
+          <div class="select-wrapper">
+            <el-select 
+              v-model="searchForm.warningType" 
+              placeholder="预警类型" 
+              size="small"
+              clearable
+              @change="handleSearch"
+            >
+              <el-option label="安全帽违规" value="safety_helmet" />
+              <el-option label="安全带违规" value="safety_belt" />
+              <el-option label="防护服违规" value="protective_clothing" />
+              <el-option label="无关人员" value="unauthorized_personnel" />
+              <el-option label="吸烟违规" value="smoking" />
+              <el-option label="高空作业违规" value="high_altitude" />
+            </el-select>
+          </div>
+          
+          <div class="select-wrapper">
+            <el-select 
+              v-model="searchForm.warningSkill" 
+              placeholder="预警技能" 
+              size="small"
+              clearable
+              @change="handleSearch"
+            >
+              <el-option 
+                v-for="skill in warningSkillOptions"
+                :key="skill.value"
+                :label="skill.label" 
+                :value="skill.value" 
+              />
+            </el-select>
+          </div>
+          
+          <div class="input-wrapper">
+            <el-input
+              v-model="searchForm.warningName"
+              placeholder="预警名称"
+              size="small"
+              clearable
+              @change="handleSearch"
+              @clear="handleSearch"
+            />
+          </div>
+          
+          <div class="input-wrapper">
+            <el-input
+              v-model="searchForm.warningId"
+              placeholder="预警ID"
+              size="small"
+              clearable
+              @change="handleSearch"
+              @clear="handleSearch"
+            />
+          </div>
+          
           <div class="reset-button">
             <el-button 
               size="small" 
@@ -1207,26 +1559,25 @@ export default {
           <div class="filter-buttons">
             <el-button 
               size="small" 
-              :class="{ active: filterType === 'all' && selectedWarnings.length > 0 }"
               @click="handleSelectAll"
             >全选</el-button>
             <el-button 
               size="small" 
-              :class="{ active: filterType === 'page' && selectedWarnings.length > 0 }"
               @click="handleSelectPage"
             >选择本页</el-button>
             <el-button 
               size="small" 
-              :class="{ active: filterType === 'batch' }"
               type="warning"
               :disabled="selectedWarnings.length === 0"
               @click="handleBatchProcess"
             >批量处理</el-button>
             <el-button 
               size="small" 
-              :class="{ active: filterType === 'pending' }"
-              @click="filterType = filterType === 'pending' ? 'all' : 'pending'; handleSearch()"
-            >仅查看未处理事件</el-button>
+              type="danger"
+              icon="el-icon-delete"
+              :disabled="selectedWarnings.length === 0"
+              @click="showDeleteDialog"
+            >删除</el-button>
           </div>
           
           <div class="action-buttons">
@@ -1236,6 +1587,12 @@ export default {
               icon="el-icon-download"
               @click="exportData"
             >导出数据</el-button>
+            <el-button 
+              type="info" 
+              size="small" 
+              icon="el-icon-document-copy"
+              @click="goToReviewRecords"
+            >复判记录</el-button>
             <el-button 
               size="small" 
               icon="el-icon-refresh"
@@ -1261,8 +1618,16 @@ export default {
               ]"
               @click="showWarningDetail(item)"
             >
-              <div class="warning-level-badge" :class="getLevelClass(item.level)">
-                <span class="level-badge-text">{{ getLevelBadgeText(item.level) }}</span>
+              <!-- 等级和状态标签容器 -->
+              <div class="warning-badges-container">
+                <div class="warning-level-badge" :class="getLevelClass(item.level)">
+                  <span class="level-badge-text">{{ getLevelBadgeText(item.level) }}</span>
+                </div>
+                
+                <!-- 预警状态标签，与等级标签挨在一起显示 -->
+                <div class="warning-status-badge" :class="getCurrentWarningStatus(item).class">
+                  {{ getCurrentWarningStatus(item).text }}
+                </div>
               </div>
             
               <!-- 右上角选择框 -->
@@ -1275,10 +1640,13 @@ export default {
                 </el-checkbox>
               </div>
               
-              <div class="warning-image" :class="getLevelClass(item.level)">
-                <div class="warning-icon">
-                  <i class="el-icon-warning-outline"></i>
-                  <div class="icon-text">加载失败</div>
+              <div class="warning-image">
+                <div v-if="item.imageUrl" class="warning-real-image">
+                  <img :src="item.imageUrl" :alt="item.type" />
+                </div>
+                <div v-else class="warning-video-preview">
+                  <i :class="getWarningIcon(item.level)"></i>
+                  <span>预警监控画面</span>
                 </div>
               </div>
               
@@ -1294,46 +1662,53 @@ export default {
                     <span class="label">违规位置：</span>
                     <span class="value">{{ item.location || item.deviceInfo.position || '未知位置' }}</span>
                   </div>
-                  <div class="info-item">
-                    <span class="label">处理备注：</span>
-                    <div class="remark-content" v-if="item.remark">{{ item.remark }}</div>
-                    <div class="remark-empty" v-else>未添加备注</div>
-                  </div>
+
                   <div class="info-item time-item">
-                    <span class="time">{{ item.time }}</span>
+                    <span class="time">{{ formatTime(item.time) }}</span>
                   </div>
                 </div>
                 
                 <div class="warning-footer">
                   <!-- 处理按钮始终可用，允许多次处理 -->
-                  <el-button 
-                    type="success" 
-                    size="mini" 
-                    plain
-                    @click.stop="handleWarning(item.id, 'markProcessed')"
-                  >处理</el-button>
-                  
-                  <el-button 
-                    class="report-btn" 
-                    size="mini" 
-                    @click.stop="handleWarning(item.id, 'report')"
-                  >上报</el-button>
-                  
-                  <el-button 
-                    class="false-alarm-btn" 
-                    size="mini" 
-                    type="warning"
-                    plain
-                    @click.stop="handleWarning(item.id, 'falseAlarm')"
-                  >误报</el-button>
-                  
-                  <el-button 
-                    class="archive-btn" 
-                    size="mini" 
-                    type="danger"
-                    plain
-                    @click.stop="handleWarning(item.id, 'archive')"
-                  >归档</el-button>
+                  <div class="item-actions">
+                    <!-- 按钮排列顺序与预警详情对话框保持一致：上报、归档、误报、处理 -->
+                    <el-button 
+                      size="mini" 
+                      class="action-btn report-btn"
+                      @click.stop="handleWarning(item.id, 'report')"
+                      :disabled="isProcessingDisabled(item)"
+                    >
+                      上报
+                    </el-button>
+                    
+                    <el-button 
+                      size="mini" 
+                      class="action-btn archive-btn"
+                      @click.stop="handleWarning(item.id, 'archive')"
+                      :disabled="!isProcessingDisabled(item)"
+                    >
+                      归档
+                    </el-button>
+                    
+                    <el-button 
+                      size="mini" 
+                      class="action-btn false-alarm-btn"
+                      @click.stop="handleWarning(item.id, 'falseAlarm')"
+                    >
+                      误报
+                    </el-button>
+                    
+                    <el-button 
+                      size="mini" 
+                      type="success" 
+                      plain
+                      class="action-btn"
+                      @click.stop="handleWarning(item.id, 'markProcessed')"
+                      :disabled="isProcessingDisabled(item)"
+                    >
+                      {{ isProcessingDisabled(item) ? '已完成' : '处理' }}
+                    </el-button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1394,11 +1769,11 @@ export default {
       </el-form>
       <div class="process-tip">
         <i class="el-icon-info" style="color: #909399; margin-right: 4px;"></i>
-        <span style="color: #909399; font-size: 13px;">填写处理意见后，将在处理进展中添加一条处理记录，可多次添加处理记录</span>
+        <span style="color: #909399; font-size: 13px;">填写处理意见后，可点击"确认处理"添加处理记录，或点击"结束处理"完成整个处理流程</span>
       </div>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="closeRemarkDialog">取 消</el-button>
         <el-button type="primary" @click="saveRemark">确认处理</el-button>
+        <el-button type="success" @click="finishProcessing">结束处理</el-button>
       </span>
     </el-dialog>
     
@@ -1538,6 +1913,34 @@ export default {
       @handle-archive="handleArchiveFromDetail"
       @handle-false-alarm="handleFalseAlarmFromDetail"
     />
+    
+    <!-- 删除确认对话框 -->
+    <el-dialog
+      title="删除预警"
+      :visible.sync="deleteDialogVisible"
+      width="400px"
+      center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <div class="delete-dialog-content">
+        <div class="delete-warning-icon">
+          <i class="el-icon-warning-outline" style="color: #f56c6c; font-size: 36px;"></i>
+        </div>
+        <div class="delete-text">
+          <p class="delete-title">确定要删除选中的预警吗？</p>
+          <p class="delete-desc">您已选择 <strong>{{ selectedWarnings.length }}</strong> 项预警，删除后将无法恢复</p>
+          <div class="delete-tip">
+            <i class="el-icon-info" style="color: #e6a23c; margin-right: 4px;"></i>
+            <span style="color: #e6a23c; font-size: 13px;">此操作不可逆，请谨慎操作</span>
+          </div>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="closeDeleteDialog" :disabled="deleteLoading">取 消</el-button>
+        <el-button type="danger" @click="confirmDelete" :loading="deleteLoading">确认删除</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -1691,7 +2094,8 @@ export default {
 }
 
 .date-picker-wrapper,
-.select-wrapper {
+.select-wrapper,
+.input-wrapper {
   margin-right: 12px;
   margin-bottom: 8px;
 }
@@ -1701,6 +2105,10 @@ export default {
 }
 
 .select-wrapper {
+  width: 140px;
+}
+
+.input-wrapper {
   width: 140px;
 }
 
@@ -1777,77 +2185,41 @@ export default {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
-.warning-level-badge {
+/* 等级和状态标签容器 */
+.warning-badges-container {
   position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 10;
-  color: #fff;
-  padding: 4px 10px 4px 8px;
-  border-radius: 0 0 4px 0;
-  font-size: 11px;
-  font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  min-width: 35px;
-  min-height: 20px;
+  top: 6px;
+  left: 6px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 100%, 0 100%);
+  gap: 6px;
+  z-index: 2;
 }
 
-.warning-level-badge::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: -4px;
-  width: 0;
-  height: 0;
-  border-top: 10px solid;
-  border-bottom: 10px solid;
-  border-left: 4px solid;
-  border-right: 0;
-  border-top-color: inherit;
-  border-bottom-color: inherit;
-  border-left-color: inherit;
+.warning-level-badge {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  /* 移除之前的复杂样式，使用简洁的设计 */
 }
 
+/* 等级标签背景颜色 - 与实时监控页面保持一致 */
 .warning-level-badge.level-1-bg {
-  background: linear-gradient(135deg, #ff4757 0%, #e74c3c 100%);
-}
-
-.warning-level-badge.level-1-bg::after {
-  border-top-color: #e74c3c;
-  border-bottom-color: #e74c3c;
-  border-left-color: #e74c3c;
+  background-color: #f56c6c;
 }
 
 .warning-level-badge.level-2-bg {
-  background: linear-gradient(135deg, #ffa502 0%, #e67e22 100%);
-}
-
-.warning-level-badge.level-2-bg::after {
-  border-top-color: #e67e22;
-  border-bottom-color: #e67e22;
-  border-left-color: #e67e22;
+  background-color: #e6a23c;
 }
 
 .warning-level-badge.level-3-bg {
-  background: linear-gradient(135deg, #3742fa 0%, #2f3542 100%);
+  background-color: #409EFF;
 }
 
-.warning-level-badge.level-3-bg::after {
-  border-top-color: #2f3542;
-  border-bottom-color: #2f3542;
-  border-left-color: #2f3542;
-}
-
-.level-badge-text {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
+.warning-level-badge.level-4-bg {
+  background-color: #67c23a;
 }
 
 .warning-image {
@@ -1857,22 +2229,66 @@ export default {
   justify-content: center;
   position: relative;
   overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(45deg, #0a1526, #1e3c72);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
 }
 
-.warning-icon {
+.warning-real-image,
+.warning-video-preview {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: rgba(0, 0, 0, 0.25);
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  position: relative;
 }
 
-.warning-icon i {
+.warning-real-image {
+  padding: 0;
+  overflow: hidden;
+}
+
+.warning-real-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 6px;
+  transition: transform 0.3s ease;
+}
+
+.warning-real-image:hover img {
+  transform: scale(1.05);
+}
+
+.warning-video-preview i {
   font-size: 36px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  opacity: 0.8;
 }
 
-.icon-text {
+.warning-video-preview span {
   font-size: 13px;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 根据预警等级设置不同的图标颜色和动画效果 */
+.warning-card.level-1-border .warning-video-preview i {
+  color: #f56c6c;
+  animation: pulse 1.5s infinite;
+}
+
+.warning-card.level-2-border .warning-video-preview i {
+  color: #e6a23c;
+}
+
+.warning-card.level-3-border .warning-video-preview i {
+  color: #409EFF;
 }
 
 .warning-content {
@@ -1910,34 +2326,7 @@ export default {
   color: #606266;
 }
 
-.remark-content {
-  color: #606266;
-  font-size: 12px;
-  line-height: 1.4;
-  margin-top: 4px;
-  padding: 6px 8px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
 
-.remark-empty {
-  color: #c0c4cc;
-  font-size: 12px;
-  font-style: italic;
-  margin-top: 4px;
-  padding: 6px 8px;
-  background-color: #fafafa;
-  border-radius: 4px;
-  border: 1px dashed #e4e7ed;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
 
 .warning-level {
   font-weight: 500;
@@ -2142,7 +2531,8 @@ export default {
     margin-right: 0;
   }
   
-  .select-wrapper {
+  .select-wrapper,
+  .input-wrapper {
     width: calc(33.33% - 8px);
     min-width: 120px;
   }
@@ -2164,7 +2554,8 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .select-wrapper {
+  .select-wrapper,
+  .input-wrapper {
     width: 100%;
     margin-right: 0;
   }
@@ -2340,5 +2731,138 @@ export default {
   display: flex;
   align-items: center;
   border-left: 3px solid #909399;
+}
+
+/* 动画效果 */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 底部按钮样式 - 与预警详情对话框保持一致 */
+.action-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  margin: 0 2px;
+}
+
+
+
+.report-btn {
+  background-color: #e6a23c;
+  border-color: #e6a23c;
+  color: white;
+}
+
+.report-btn:hover {
+  background-color: #eeb462;
+  border-color: #eeb462;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.3);
+}
+
+.archive-btn {
+  background-color: #f56c6c;
+  border-color: #f56c6c;
+  color: white;
+}
+
+.archive-btn:hover {
+  background-color: #f78989;
+  border-color: #f78989;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
+}
+
+.false-alarm-btn {
+  background-color: #909399;
+  border-color: #909399;
+  color: white;
+}
+
+.false-alarm-btn:hover {
+  background-color: #a6a9ad;
+  border-color: #a6a9ad;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(144, 147, 153, 0.3);
+}
+
+/* 预警状态标签样式 - 与实时监控页面保持完全一致 */
+.warning-status-badge {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* 旧的状态样式已移除，使用带warning-status-badge前缀的新样式 */
+
+/* 状态标签颜色 - 与实时监控页面保持一致 */
+.warning-status-badge.status-pending {
+  background-color: #909399;
+}
+
+.warning-status-badge.status-processing {
+  background-color: #409EFF;
+}
+
+.warning-status-badge.status-completed {
+  background-color: #67c23a;
+}
+
+.warning-status-badge.status-archived {
+  background-color: #606266;
+}
+
+/* 删除对话框样式 */
+.delete-dialog-content {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 0;
+}
+
+.delete-warning-icon {
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.delete-text {
+  flex: 1;
+}
+
+.delete-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+  margin: 0 0 8px 0;
+}
+
+.delete-desc {
+  font-size: 14px;
+  color: #606266;
+  margin: 0 0 12px 0;
+}
+
+.delete-tip {
+  padding: 8px 12px;
+  background-color: #fef7e0;
+  border: 1px solid #faecd8;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
 }
 </style>

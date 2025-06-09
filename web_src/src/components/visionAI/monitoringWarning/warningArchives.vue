@@ -40,8 +40,8 @@ export default {
       archiveInfo: {
         name: '厂区A10车间预警档案',
         location: '厂区A10车间',
-        timeRange: '2023-01-01 00:00:00-2023-06-30 23:59:59',
-        createTime: '2023-06-05 15:49:04',
+        timeRange: '2024-12-18 15:49:04',
+        createTime: '2024-12-18 15:49:04',
         description: '-',
         image: ''
       },
@@ -51,8 +51,8 @@ export default {
           id: 1,
           name: '厂区A10车间预警档案',
           location: '厂区A10车间',
-          timeRange: '2023-01-01 00:00:00-2023-06-30 23:59:59',
-          createTime: '2023-06-05 15:49:04',
+          timeRange: '2024-12-18 15:49:04',
+          createTime: '2024-12-18 15:49:04',
           description: '-',
           image: ''
         },
@@ -60,8 +60,8 @@ export default {
           id: 2,
           name: '东15风机预警档案',
           location: '东15风机',
-          timeRange: '2023-01-01 00:00:00-2023-06-30 23:59:59',
-          createTime: '2023-06-10 09:25:18',
+          timeRange: '2024-12-18 09:25:18',
+          createTime: '2024-12-18 09:25:18',
           description: '东15风机特殊情况监控',
           image: ''
         },
@@ -69,8 +69,8 @@ export default {
           id: 3,
           name: 'EF两区特检测区预警档案',
           location: 'EF两区特检测区',
-          timeRange: '2023-01-01 00:00:00-2023-06-30 23:59:59',
-          createTime: '2023-05-20 16:40:33',
+          timeRange: '2024-12-17 16:40:33',
+          createTime: '2024-12-17 16:40:33',
           description: '特检区域重点监控',
           image: ''
         },
@@ -78,8 +78,8 @@ export default {
           id: 4,
           name: '降盐水泵废水站预警档案',
           location: '降盐水泵废水站',
-          timeRange: '2023-01-01 00:00:00-2023-06-30 23:59:59',
-          createTime: '2023-05-15 11:23:46',
+          timeRange: '2024-12-17 11:23:46',
+          createTime: '2024-12-17 11:23:46',
           description: '废水处理站安全监控',
           image: ''
         }
@@ -267,17 +267,14 @@ export default {
         }
         
         // 生成时间
-        const currentYear = new Date().getFullYear();
-        const randomMonth = Math.floor(Math.random() * 6) + 1;
+        const currentYear = 2024;
+        const randomMonth = Math.floor(Math.random() * 6) + 7; // 7-12月，更接近现在
         const randomDay = Math.floor(Math.random() * 28) + 1;
         const randomHour = Math.floor(Math.random() * 24);
         const randomMinute = Math.floor(Math.random() * 60);
+        const randomSecond = Math.floor(Math.random() * 60);
         
-        const startDate = `${currentYear}/${randomMonth}/${randomDay}`;
-        const startTime = `${randomHour.toString().padStart(2, '0')}:${randomMinute.toString().padStart(2, '0')}:00`;
-        const endTime = `${randomHour.toString().padStart(2, '0')}:${(randomMinute + Math.floor(Math.random() * 5) + 1).toString().padStart(2, '0')}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`;
-        
-        const warningTime = `${startDate} ${startTime}-${startDate} ${endTime}`;
+        const warningTime = `${currentYear}-${randomMonth.toString().padStart(2, '0')}-${randomDay.toString().padStart(2, '0')} ${randomHour.toString().padStart(2, '0')}:${randomMinute.toString().padStart(2, '0')}:${randomSecond.toString().padStart(2, '0')}`;
         
         data.push({
           id: i,
@@ -659,6 +656,20 @@ export default {
     // 处理视频片段移除
     removeVideo() {
       this.addForm.violationVideo = '';
+    },
+    // 格式化时间
+    formatTime(timeString) {
+      try {
+        // 如果是完整的时间字符串，格式化为更友好的显示
+        if (timeString && timeString.includes(' ')) {
+          const [date, time] = timeString.split(' ');
+          const [year, month, day] = date.split('-');
+          return `${year}年${month}月${day}日 ${time}`;
+        }
+        return timeString;
+      } catch (error) {
+        return timeString;
+      }
     }
   }
 }
@@ -690,7 +701,7 @@ export default {
             <div class="archive-content">
               <div class="archive-name">{{ archive.name }}</div>
               <div class="archive-location">位置: {{ archive.location }}</div>
-              <div class="archive-time">创建: {{ archive.createTime }}</div>
+              <div class="archive-time">创建: {{ formatTime(archive.createTime) }}</div>
             </div>
           </div>
         </div>
@@ -709,11 +720,11 @@ export default {
                 </div>
                 <div class="info-item">
                   <span class="label">档案时间：</span>
-                  <span class="value">{{ archiveInfo.timeRange }}</span>
+                  <span class="value">{{ formatTime(archiveInfo.timeRange) }}</span>
                 </div>
                 <div class="info-item">
                   <span class="label">创建时间：</span>
-                  <span class="value">{{ archiveInfo.createTime }}</span>
+                  <span class="value">{{ formatTime(archiveInfo.createTime) }}</span>
                 </div>
                 <div class="info-item">
                   <span class="label">档案描述：</span>
@@ -761,7 +772,11 @@ export default {
             </template>
           </el-table-column>
           <el-table-column label="设备名称" prop="deviceName" min-width="150" align="center"></el-table-column>
-          <el-table-column label="预警时间" prop="warningTime" min-width="180" align="center"></el-table-column>
+          <el-table-column label="预警时间" prop="warningTime" min-width="180" align="center">
+            <template slot-scope="scope">
+              {{ formatTime(scope.row.warningTime) }}
+            </template>
+          </el-table-column>
           <el-table-column label="预警等级" width="100" align="center">
             <template slot-scope="scope">
               <span class="level-tag" :class="{

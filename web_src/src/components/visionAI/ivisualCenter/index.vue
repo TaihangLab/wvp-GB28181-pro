@@ -435,93 +435,102 @@ export default {
         loading: false
       };
       
-      // 初始化预警列表
+      // 初始化预警列表 - 与预警管理页面保持一致
       this.warningList = [
-        { event: '未戴安全帽', time: '2023-03-28 08:23:15', status: 'pending', statusText: '待处理' },
-        { event: '区域入侵', time: '2023-03-28 09:45:22', status: 'processing', statusText: '处理中' },
-        { event: '垃圾堆积', time: '2023-03-28 10:12:35', status: 'completed', statusText: '已完成' },
-        { event: '人员聚集', time: '2023-03-28 11:30:42', status: 'pending', statusText: '待处理' },
-        { event: '未戴安全帽', time: '2023-03-28 13:15:18', status: 'completed', statusText: '已完成' },
-        { event: '烟雾识别', time: '2023-03-28 14:37:51', status: 'processing', statusText: '处理中' },
-        { event: '区域入侵', time: '2023-03-28 15:20:33', status: 'pending', statusText: '待处理' },
-        { event: '垃圾堆积', time: '2023-03-28 16:45:27', status: 'completed', statusText: '已完成' },
-        { event: '未戴安全帽', time: '2023-03-28 17:12:05', status: 'completed', statusText: '已完成' },
-        { event: '区域入侵', time: '2023-03-28 18:33:19', status: 'pending', statusText: '待处理' }
+        { event: '未戴安全帽', time: '2024-01-15 10:30:25', status: 'pending', statusText: '待处理' },
+        { event: '未穿工作服', time: '2024-01-15 10:28:15', status: 'pending', statusText: '待处理' },
+        { event: '闲杂人员', time: '2024-01-15 10:15:42', status: 'pending', statusText: '待处理' },
+        { event: '违规吸烟', time: '2024-01-15 09:58:30', status: 'completed', statusText: '已完成' },
+        { event: '高空作业未系安全带', time: '2024-01-15 09:45:12', status: 'pending', statusText: '待处理' },
+        { event: '未穿反光背心', time: '2024-01-15 09:32:18', status: 'pending', statusText: '待处理' },
+        { event: '未戴安全帽', time: '2024-01-15 08:45:33', status: 'processing', statusText: '处理中' },
+        { event: '未穿工作服', time: '2024-01-15 08:22:15', status: 'completed', statusText: '已完成' },
+        { event: '违规吸烟', time: '2024-01-15 07:58:42', status: 'completed', statusText: '已完成' },
+        { event: '高空作业未系安全带', time: '2024-01-15 07:15:28', status: 'processing', statusText: '处理中' }
       ];
       
-      // 初始化设备预警
+      // 初始化设备预警 - 与预警管理页面保持一致
       this.deviceWarnings = [
-        { name: '生产车间A区监控', count: 15 },
-        { name: '装配车间北区', count: 12 },
-        { name: '机械加工区西门', count: 9 },
-        { name: '原料仓库大门', count: 6 },
-        { name: '成品仓库监控', count: 3 },
-        { name: '办公楼一层大厅', count: 2 },
-        { name: '研发中心后门', count: 5 },
-        { name: '食堂后厨监控', count: 4 },
-        { name: '园区东门', count: 7 },
-        { name: '停车场西区', count: 8 }
+        { name: '摄像头01-工地东北角', count: 15 },
+        { name: '摄像头03-工地南侧', count: 12 },
+        { name: '摄像头02-材料区', count: 9 },
+        { name: '摄像头05-休息区', count: 6 },
+        { name: '摄像头04-施工作业区', count: 5 },
+        { name: '摄像头06-工地东北角', count: 4 },
+        { name: '摄像头07-塔吊区域', count: 3 },
+        { name: '摄像头08-脚手架区域', count: 2 },
+        { name: '摄像头09-设备存放区', count: 7 },
+        { name: '摄像头10-危险作业区', count: 8 }
       ];
       
-      // 初始化预警类型
+      // 初始化预警类型 - 与预警管理页面保持一致
       this.warningTypes = [
         { name: '未戴安全帽', count: 9, value: 100 },
-        { name: '区域入侵', count: 7, value: 78 },
-        { name: '垃圾堆积', count: 5, value: 56 },
-        { name: '人员聚集', count: 4, value: 44 },
-        { name: '烟雾识别', count: 2, value: 22 }
+        { name: '未穿工作服', count: 7, value: 78 },
+        { name: '闲杂人员', count: 5, value: 56 },
+        { name: '违规吸烟', count: 4, value: 44 },
+        { name: '高空作业未系安全带', count: 3, value: 33 },
+        { name: '未穿反光背心', count: 2, value: 22 }
       ];
       
-      // 初始化组织预警
+      // 初始化组织预警 - 与施工现场主题保持一致
       this.topWarnings = [
-        { name: '生产车间A', count: 15, value: 100 },
-        { name: '装配车间', count: 12, value: 80 },
-        { name: '机械加工区', count: 9, value: 60 },
-        { name: '原料仓库', count: 6, value: 40 },
-        { name: '成品仓库', count: 3, value: 20 }
+        { name: '工地东北角', count: 15, value: 100 },
+        { name: '工地南侧', count: 12, value: 80 },
+        { name: '施工作业区', count: 9, value: 60 },
+        { name: '材料区', count: 6, value: 40 },
+        { name: '休息区', count: 3, value: 20 }
       ];
       
-      // 初始化预警图片数据
+      // 初始化预警图片数据 - 使用预警管理页面的真实数据
       this.warningImages = [
         {
-          image: 'https://via.placeholder.com/800x600/333333/FFFFFF?text=预警图片1',
-          event: '识别大块异物ZMR',
-          time: '2025.06.03 15:17',
-          level: 'high',
-          levelText: '四级',
-          location: '测试zmr'
+          image: require('../monitoringWarning/images/5.jpg'),
+          event: '未戴安全帽',
+          time: '2024.01.15 10:30',
+          level: 'urgent',
+          levelText: '一级',
+          location: '工地东北角'
         },
         {
-          image: 'https://via.placeholder.com/800x600/444444/FFFFFF?text=预警图片2',
-          event: '未戴安全帽',
-          time: '2025.06.03 14:52',
+          image: require('../monitoringWarning/images/4.jpg'),
+          event: '未穿工作服',
+          time: '2024.01.15 10:28',
+          level: 'high',
+          levelText: '二级',
+          location: '工地南侧'
+        },
+        {
+          image: require('../monitoringWarning/images/5.jpg'),
+          event: '闲杂人员',
+          time: '2024.01.15 10:15',
           level: 'medium',
           levelText: '三级',
-          location: '生产车间A区'
+          location: '材料区'
         },
         {
-          image: 'https://via.placeholder.com/800x600/555555/FFFFFF?text=预警图片3',
-          event: '区域入侵',
-          time: '2025.06.03 14:30',
-          level: 'low',
+          image: require('../monitoringWarning/images/6.jpg'),
+          event: '违规吸烟',
+          time: '2024.01.15 09:58',
+          level: 'high',
           levelText: '二级',
-          location: '装配车间北门'
+          location: '休息区'
         },
         {
-          image: 'https://via.placeholder.com/800x600/666666/FFFFFF?text=预警图片4',
-          event: '垃圾堆积',
-          time: '2025.06.03 13:45',
-          level: 'low',
-          levelText: '一级',
-          location: '原料仓库东侧'
-        },
-        {
-          image: 'https://via.placeholder.com/800x600/777777/FFFFFF?text=预警图片5',
-          event: '烟雾识别',
-          time: '2025.06.03 12:20',
+          image: require('../monitoringWarning/images/1.jpg'),
+          event: '高空作业未系安全带',
+          time: '2024.01.15 09:45',
           level: 'urgent',
-          levelText: '紧急',
-          location: '机械加工区'
+          levelText: '一级',
+          location: '施工作业区'
+        },
+        {
+          image: require('../monitoringWarning/images/3.jpg'),
+          event: '未穿反光背心',
+          time: '2024.01.15 09:32',
+          level: 'medium',
+          levelText: '三级',
+          location: '工地东北角'
         }
       ];
       
@@ -931,32 +940,32 @@ export default {
     
     // 更新设备表格数据
     generateMockData() {
-      // 生成模拟的预警列表
+      // 生成模拟的预警列表 - 与预警管理页面保持一致
       this.warningList = [
-        { event: '未戴安全帽', time: '2023-03-28 08:23:15', status: 'pending', statusText: '待处理' },
-        { event: '区域入侵', time: '2023-03-28 09:45:22', status: 'processing', statusText: '处理中' },
-        { event: '垃圾堆积', time: '2023-03-28 10:12:35', status: 'completed', statusText: '已完成' },
-        { event: '人员聚集', time: '2023-03-28 11:30:42', status: 'pending', statusText: '待处理' },
-        { event: '未戴安全帽', time: '2023-03-28 13:15:18', status: 'completed', statusText: '已完成' },
-        { event: '烟雾识别', time: '2023-03-28 14:37:51', status: 'processing', statusText: '处理中' },
-        { event: '区域入侵', time: '2023-03-28 15:20:33', status: 'pending', statusText: '待处理' },
-        { event: '垃圾堆积', time: '2023-03-28 16:45:27', status: 'completed', statusText: '已完成' },
-        { event: '未戴安全帽', time: '2023-03-28 17:12:05', status: 'completed', statusText: '已完成' },
-        { event: '区域入侵', time: '2023-03-28 18:33:19', status: 'pending', statusText: '待处理' }
+        { event: '未戴安全帽', time: '2024-01-15 10:30:25', status: 'pending', statusText: '待处理' },
+        { event: '未穿工作服', time: '2024-01-15 10:28:15', status: 'pending', statusText: '待处理' },
+        { event: '闲杂人员', time: '2024-01-15 10:15:42', status: 'pending', statusText: '待处理' },
+        { event: '违规吸烟', time: '2024-01-15 09:58:30', status: 'completed', statusText: '已完成' },
+        { event: '高空作业未系安全带', time: '2024-01-15 09:45:12', status: 'pending', statusText: '待处理' },
+        { event: '未穿反光背心', time: '2024-01-15 09:32:18', status: 'pending', statusText: '待处理' },
+        { event: '未戴安全帽', time: '2024-01-15 08:45:33', status: 'processing', statusText: '处理中' },
+        { event: '未穿工作服', time: '2024-01-15 08:22:15', status: 'completed', statusText: '已完成' },
+        { event: '违规吸烟', time: '2024-01-15 07:58:42', status: 'completed', statusText: '已完成' },
+        { event: '高空作业未系安全带', time: '2024-01-15 07:15:28', status: 'processing', statusText: '处理中' }
       ];
       
-      // 生成模拟的设备预警
+      // 生成模拟的设备预警 - 与预警管理页面保持一致
       this.deviceWarnings = [
-        { name: '生产车间A区监控', count: 15 },
-        { name: '装配车间北区', count: 12 },
-        { name: '机械加工区西门', count: 9 },
-        { name: '原料仓库大门', count: 6 },
-        { name: '成品仓库监控', count: 3 },
-        { name: '办公楼一层大厅', count: 2 },
-        { name: '研发中心后门', count: 5 },
-        { name: '食堂后厨监控', count: 4 },
-        { name: '园区东门', count: 7 },
-        { name: '停车场西区', count: 8 }
+        { name: '摄像头01-工地东北角', count: 15 },
+        { name: '摄像头03-工地南侧', count: 12 },
+        { name: '摄像头02-材料区', count: 9 },
+        { name: '摄像头05-休息区', count: 6 },
+        { name: '摄像头04-施工作业区', count: 5 },
+        { name: '摄像头06-工地东北角', count: 4 },
+        { name: '摄像头07-塔吊区域', count: 3 },
+        { name: '摄像头08-脚手架区域', count: 2 },
+        { name: '摄像头09-设备存放区', count: 7 },
+        { name: '摄像头10-危险作业区', count: 8 }
       ];
     },
     
@@ -1567,8 +1576,8 @@ export default {
 
 /* 预警图片查看器样式 */
 .warning-viewer {
-  height: calc(100% - 30px); /* 适应较小面板的高度 */
-  background: #000;
+  height: 100%; /* 占满整个面板高度 */
+  background: transparent; /* 改为透明背景，去掉黑色边框 */
   border-radius: 4px;
   overflow: hidden;
   display: flex;
@@ -1595,27 +1604,27 @@ export default {
 
 .main-image-container {
   flex: 1; /* 占据剩余空间 */
-  background: #000;
+  background: transparent; /* 改为透明背景，去掉黑色边框 */
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  overflow: hidden;
+  overflow: hidden; /* 恢复hidden，防止内容溢出 */
   height: calc(100% - 160px); /* 减去信息条60px和缩略图区域100px */
-  border-radius: 12px; /* 添加圆角效果 */
+  border-radius: 25px; /* 容器圆角与图片保持一致 */
+  padding: 15px; /* 增加内边距，为圆角留出空间 */
 }
 
-.main-warning-image {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  background: #000;
-  transition: opacity 0.3s ease;
-  aspect-ratio: 16/9; /* 16:9 比例 */
-  border-radius: 12px; /* 添加圆角效果 */
-}
+  .main-warning-image {
+    width: 100%; /* 占容器100%宽度 */
+    height: 100%; /* 占容器100%高度 */
+    object-fit: cover; /* 保持比例的同时填充 */
+    background: transparent; /* 改为透明背景 */
+    transition: opacity 0.3s ease;
+    aspect-ratio: 4/3; /* 强制4:3比例 */
+    border-radius: 10px; /* 适当的圆角，与容器配合 */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); /* 添加阴影效果 */
+  }
 
 .main-warning-image.loading {
   opacity: 0.5;
@@ -1625,15 +1634,16 @@ export default {
   position: absolute;
   bottom: 20px;
   right: 20px;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.4); /* 降低背景透明度，从0.8改为0.4 */
+  backdrop-filter: blur(8px); /* 减少模糊效果 */
+  border: 1px solid rgba(0, 255, 255, 0.2); /* 降低边框透明度 */
   border-radius: 8px;
   padding: 12px 15px; /* 减少padding */
   min-width: 200px; /* 减少最小宽度 */
   max-width: 280px; /* 添加最大宽度限制 */
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); /* 减轻阴影 */
   animation: slideInRight 0.3s ease-out;
+  z-index: 10; /* 确保信息叠加层在最上层 */
 }
 
 @keyframes slideInRight {
@@ -1705,9 +1715,9 @@ export default {
 
 .thumbnail-container-bottom {
   height: 100px; /* 增加缩略图区域高度 */
-  background: rgba(6, 30, 93, 0.8); /* 改为与面板一致的蓝色背景 */
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(0, 255, 255, 0.3);
+  background: transparent; /* 改为透明背景 */
+  backdrop-filter: none; /* 去掉模糊效果 */
+  border-top: none; /* 去掉顶部边框 */
   display: flex;
   align-items: center;
   padding: 0 20px;
@@ -1773,7 +1783,7 @@ export default {
   border: 3px solid rgba(255, 255, 255, 0.3); /* 默认白色半透明边框 */
   transition: all 0.3s ease;
   position: relative;
-  background: #000;
+  background: transparent; /* 改为透明背景 */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -1793,7 +1803,7 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  background: #000;
+  background: transparent; /* 改为透明背景 */
   aspect-ratio: 16/9;
 }
 
@@ -1807,14 +1817,14 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   gap: 20px;
-  z-index: 10;
+  z-index: 15; /* 提高z-index确保在图片之上 */
   pointer-events: none; /* 允许点击穿透到图片 */
 }
 
 .info-card {
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.4); /* 降低背景透明度，从0.7改为0.4 */
+  backdrop-filter: blur(8px); /* 减少模糊效果 */
+  border: 1px solid rgba(0, 255, 255, 0.2); /* 降低边框透明度 */
   border-radius: 8px;
   padding: 12px 16px;
   display: flex;
@@ -1822,12 +1832,12 @@ export default {
   gap: 12px;
   transition: all 0.3s ease;
   pointer-events: auto; /* 恢复卡片的点击事件 */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* 减轻阴影 */
 }
 
 .info-card:hover {
-  background: rgba(0, 0, 0, 0.8);
-  border-color: rgba(0, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.6); /* 降低悬停状态的背景透明度 */
+  border-color: rgba(0, 255, 255, 0.4); /* 降低悬停状态的边框透明度 */
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 255, 255, 0.2);
 }
