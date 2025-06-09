@@ -33,6 +33,7 @@ import realTimeMonitoring from '../components/visionAI/monitoringWarning/realTim
 import statisticsAnalysis from '../components/visionAI/monitoringWarning/statisticsAnalysis.vue'
 import warningArchives from '../components/visionAI/monitoringWarning/warningArchives.vue'
 import warningManagement from '../components/visionAI/monitoringWarning/warningManagement.vue'
+import reviewRecords from '../components/visionAI/monitoringWarning/reviewRecords.vue'
 import camera from '../components/visionAI/deviceManagement/camera.vue'
 import modelList from '../components/visionAI/modelManagement/modelList.vue'
 import deviceSkills from '../components/visionAI/skillManagement/deviceSkills.vue'
@@ -111,6 +112,11 @@ export default new VueRouter({
           path: '/monitoring/warningManage',
           name: 'warningManagement',
           component: warningManagement,
+        },
+        {
+          path: '/monitoring/reviewRecords',
+          name: 'reviewRecords',
+          component: reviewRecords,
         },
         {
           path: '/deviceManage/camera',

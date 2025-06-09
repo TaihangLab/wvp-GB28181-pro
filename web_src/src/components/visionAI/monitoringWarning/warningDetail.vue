@@ -25,29 +25,58 @@
           <div class="warning-left-content">
             <!-- 预警信息 -->
             <div class="warning-detail-info">
-              <div class="info-item">
-                <span class="label">设备名称：</span>
-                <span class="value device-name">{{ warning.device }}</span>
+              <!-- 基础信息卡片 -->
+              <div class="info-card">
+                <div class="card-title">
+                  <i class="el-icon-info"></i>
+                  基础信息
+                </div>
+                <div class="info-grid">
+                  <div class="info-row">
+                    <div class="info-cell">
+                      <span class="label">设备名称</span>
+                      <span class="value">{{ warning.device }}</span>
+                    </div>
+                    <div class="info-cell">
+                      <span class="label">违规位置</span>
+                      <span class="value">{{ warning.location || (warning.deviceInfo && warning.deviceInfo.position) || '未知位置' }}</span>
+                    </div>
+                  </div>
+                  <div class="info-row">
+                    <div class="info-cell">
+                      <span class="label">预警名称</span>
+                      <span class="value">{{ warning.type }}</span>
+                    </div>
+                    <div class="info-cell">
+                      <span class="label">预警类型</span>
+                      <span class="value">{{ getWarningTypeText(warning.type) }}</span>
+                    </div>
+                  </div>
+                  <!-- 复判信息行 (仅在复判记录页面显示) -->
+                  <div class="info-row" v-if="(warning.reviewType || warning.duration) && source === 'reviewRecords'">
+                    <div class="info-cell" v-if="warning.reviewType">
+                      <span class="label">复判分类</span>
+                      <span class="value review-classification" :class="'review-' + warning.reviewType">{{ getReviewClassificationText(warning.reviewType) }}</span>
+                    </div>
+                    <div class="info-cell" v-if="warning.duration">
+                      <span class="label">持续时间</span>
+                      <span class="value">{{ warning.duration }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="info-item">
-                <span class="label">预警名称：</span>
-                <span class="value warning-name">{{ warning.type }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">预警类型：</span>
-                <span class="value warning-type">{{ getWarningTypeText(warning.type) }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">违规位置：</span>
-                <span class="value location">{{ warning.location || (warning.deviceInfo && warning.deviceInfo.position) || '未知位置' }}</span>
-              </div>
-              <div class="info-item" v-if="warning.remark">
-                <span class="label">处理备注：</span>
-                <span class="value remark">{{ warning.remark }}</span>
-              </div>
-              <div class="info-item description-item">
-                <span class="label">预警描述：</span>
-                <span class="value description">{{ warning.description || '检测到工作人员未佩戴安全帽，存在安全隐患，请立即整改' }}</span>
+
+
+
+              <!-- 详细描述卡片 -->
+              <div class="info-card">
+                <div class="card-title">
+                  <i class="el-icon-document"></i>
+                  预警描述
+                </div>
+                <div class="info-content">
+                  <p class="description-content">{{ warning.description || '检测到工作人员未佩戴安全帽，存在安全隐患，请立即整改' }}</p>
+                </div>
               </div>
             </div>
             
@@ -149,6 +178,9 @@
         </template>
         <!-- 预警档案页面只显示关闭按钮 -->
         <template v-else-if="source === 'warningArchives'">
+        </template>
+        <!-- 复判记录页面只显示关闭按钮 -->
+        <template v-else-if="source === 'reviewRecords'">
         </template>
         <!-- 默认情况显示处理和关闭按钮 -->
         <template v-else>
@@ -968,6 +1000,14 @@ export default {
       } catch (error) {
         return timeString;
       }
+    },
+    // 获取复判分类文字
+    getReviewClassificationText(type) {
+      const typeMap = {
+        'manual': '人工审核',
+        'auto': '多模态大模型复判'
+      };
+      return typeMap[type] || '未知复判方式';
     }
   }
 }
@@ -1021,98 +1061,162 @@ export default {
   display: flex;
   gap: 24px;
   padding: 0 4px;
+  align-items: stretch;
 }
 
 /* 左侧内容 */
 .warning-left-content {
   flex: 2;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 右侧内容 */
 .warning-right-content {
   flex: 1;
   min-width: 280px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 预警信息样式 */
 .warning-detail-info {
-  background: linear-gradient(135deg, #f9f9f9 0%, #f5f7fa 100%);
-  padding: 20px;
-  border-radius: 12px;
-  border-left: 4px solid #409EFF;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   margin-bottom: 20px;
 }
 
-.info-item {
-  display: flex;
-  margin-bottom: 12px;
-  line-height: 1.6;
-  align-items: flex-start;
+/* 信息卡片样式 */
+.info-card {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.info-item:last-child {
+.info-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #c6e2ff;
+}
+
+/* 卡片标题 */
+.card-title {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 12px 16px;
+  border-bottom: 1px solid #e4e7ed;
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  display: flex;
+  align-items: center;
+}
+
+.card-title i {
+  margin-right: 8px;
+  color: #409EFF;
+  font-size: 16px;
+}
+
+/* 网格布局 */
+.info-grid {
+  padding: 16px;
+}
+
+.info-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.info-row:last-child {
   margin-bottom: 0;
 }
 
-.info-item .label {
-  color: #606266;
-  width: 80px;
-  flex-shrink: 0;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.info-item .value {
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 13px;
+.info-cell {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.info-item .device-name {
+.info-cell .label {
+  font-size: 12px;
+  color: #909399;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-cell .value {
+  font-size: 14px;
   color: #303133;
-  background: rgba(64, 158, 255, 0.1);
+  font-weight: 500;
+  background: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+  transition: all 0.2s ease;
 }
 
-.info-item .warning-name {
+.info-cell .value:hover {
+  background: #ecf5ff;
+  border-color: #c6e2ff;
+}
+
+/* 复判分类颜色样式 */
+.info-cell .value.review-classification {
+  font-weight: 600;
+  border-width: 2px;
+}
+
+.info-cell .value.review-manual {
   color: #f56c6c;
   background: rgba(245, 108, 108, 0.1);
+  border-color: #f56c6c;
 }
 
-.info-item .warning-type {
-  color: #e6a23c;
-  background: rgba(230, 162, 60, 0.1);
+.info-cell .value.review-auto {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
+  border-color: #409eff;
 }
 
-.info-item .location {
+/* 内容布局 */
+.info-content {
+  padding: 16px;
+}
+
+.info-text .label {
+  font-size: 12px;
+  color: #909399;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.description-content {
+  font-size: 14px;
   color: #303133;
-  background: rgba(103, 194, 58, 0.1);
-}
-
-.info-item .remark {
-  color: #67c23a;
-  background: rgba(103, 194, 58, 0.1);
-}
-
-.description-item {
-  align-items: flex-start;
-}
-
-.info-item .description {
-  color: #303133;
-  background: rgba(230, 162, 60, 0.1);
-  padding: 8px 12px;
   line-height: 1.6;
-  text-align: left;
+  background: #f8f9fa;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 /* 媒体内容样式 */
 .warning-media {
   display: flex;
   gap: 16px;
+  flex: 1;
 }
 
 .warning-image,
@@ -1206,8 +1310,8 @@ export default {
   border: 1px solid #ebeef5;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  /* 设置固定高度，与媒体内容区域高度保持一致 */
-  height: 470px;
+  /* 高度自适应，与左侧内容区域保持一致 */
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -1431,6 +1535,15 @@ export default {
 /* 待处理 */
 .timeline-item[data-type="pending"] .timeline-content::before {
   background: #909399;
+}
+
+/* 复判相关操作 */
+.timeline-item[data-type="review_completed"] .timeline-content::before {
+  background: #67c23a;
+}
+
+.timeline-item[data-type="review_start"] .timeline-content::before {
+  background: #409EFF;
 }
 
 .timeline-item.active .timeline-content {
@@ -1678,6 +1791,36 @@ export default {
   
   .action-btn {
     margin: 4px;
+  }
+  
+  /* 移动端信息卡片调整 */
+  .info-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .info-grid {
+    padding: 12px;
+  }
+  
+  .card-title {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .info-content {
+    padding: 12px;
+  }
+  
+  .info-cell .value {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  
+  .remark-content,
+  .description-content {
+    padding: 10px 12px;
+    font-size: 13px;
   }
 }
 </style> 
