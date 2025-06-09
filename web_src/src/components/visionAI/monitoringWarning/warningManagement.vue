@@ -1654,7 +1654,6 @@ export default {
         <span style="color: #909399; font-size: 13px;">填写处理意见后，可点击"确认处理"添加处理记录，或点击"结束处理"完成整个处理流程</span>
       </div>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="closeRemarkDialog">取 消</el-button>
         <el-button type="primary" @click="saveRemark">确认处理</el-button>
         <el-button type="success" @click="finishProcessing">结束处理</el-button>
       </span>
