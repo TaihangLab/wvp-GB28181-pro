@@ -40,7 +40,7 @@ export default {
       archiveInfo: {
         name: '厂区A10车间预警档案',
         location: '厂区A10车间',
-        timeRange: '2024-12-18 15:49:04',
+        timeRange: '2024-12-01 00:00:00-2024-12-31 23:59:59',
         createTime: '2024-12-18 15:49:04',
         description: '-',
         image: ''
@@ -51,7 +51,7 @@ export default {
           id: 1,
           name: '厂区A10车间预警档案',
           location: '厂区A10车间',
-          timeRange: '2024-12-18 15:49:04',
+          timeRange: '2024-12-01 00:00:00-2024-12-31 23:59:59',
           createTime: '2024-12-18 15:49:04',
           description: '-',
           image: ''
@@ -60,7 +60,7 @@ export default {
           id: 2,
           name: '东15风机预警档案',
           location: '东15风机',
-          timeRange: '2024-12-18 09:25:18',
+          timeRange: '2024-12-01 00:00:00-2024-12-20 23:59:59',
           createTime: '2024-12-18 09:25:18',
           description: '东15风机特殊情况监控',
           image: ''
@@ -69,7 +69,7 @@ export default {
           id: 3,
           name: 'EF两区特检测区预警档案',
           location: 'EF两区特检测区',
-          timeRange: '2024-12-17 16:40:33',
+          timeRange: '2024-11-15 00:00:00-2024-12-15 23:59:59',
           createTime: '2024-12-17 16:40:33',
           description: '特检区域重点监控',
           image: ''
@@ -78,7 +78,7 @@ export default {
           id: 4,
           name: '降盐水泵废水站预警档案',
           location: '降盐水泵废水站',
-          timeRange: '2024-12-17 11:23:46',
+          timeRange: '2024-11-01 00:00:00-2024-11-30 23:59:59',
           createTime: '2024-12-17 11:23:46',
           description: '废水处理站安全监控',
           image: ''
@@ -410,10 +410,15 @@ export default {
       this.editForm = { ...this.archiveInfo };
       
       // 处理时间范围：将字符串格式转换为数组格式
-      if (this.editForm.timeRange && typeof this.editForm.timeRange === 'string' && this.editForm.timeRange.includes('-')) {
-        const timeRange = this.editForm.timeRange.split('-');
-        if (timeRange.length === 2) {
-          this.editForm.timeRange = [timeRange[0].trim(), timeRange[1].trim()];
+      if (this.editForm.timeRange && typeof this.editForm.timeRange === 'string') {
+        // 使用正则表达式精确匹配时间范围格式
+        const rangePattern = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})-(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/;
+        const match = this.editForm.timeRange.match(rangePattern);
+        
+        if (match) {
+          this.editForm.timeRange = [match[1], match[2]];
+        } else {
+          this.editForm.timeRange = [];
         }
       } else {
         this.editForm.timeRange = [];
@@ -765,7 +770,7 @@ export default {
                   <span class="value">{{ archiveInfo.location }}</span>
                 </div>
                 <div class="info-item">
-                  <span class="label">档案时间：</span>
+                  <span class="label">时间范围：</span>
                   <span class="value">{{ formatTime(archiveInfo.timeRange) }}</span>
                 </div>
                 <div class="info-item">
