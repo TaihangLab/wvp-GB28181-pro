@@ -66,8 +66,6 @@
                 </div>
               </div>
 
-
-
               <!-- 详细描述卡片 -->
               <div class="info-card">
                 <div class="card-title">
@@ -782,7 +780,7 @@ export default {
       }
     },
     
-    // 处理误报事件 - 复制预警管理页面的逻辑
+    // 处理误报事件 - 与预警管理页面保持完全一致
     async handleFalseAlarmArchive() {
       try {
         let targetArchiveId = null;
@@ -804,6 +802,9 @@ export default {
           return;
         }
         
+        // 保存到智能复判记录
+        await this.saveToReviewRecords(this.warning);
+        
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 300));
         
@@ -812,7 +813,7 @@ export default {
           status: 'completed',
           statusText: '误报处理',
           time: this.getCurrentTime(),
-          description: `预警被标记为误报并自动归档到：${archiveName}`,
+          description: `预警被标记为误报并自动归档到：${archiveName}，已保存到智能复判记录`,
           operationType: 'falseAlarm',
           operator: this.getCurrentUserName(),
           archiveInfo: {
@@ -821,6 +822,7 @@ export default {
           }
         });
         
+        this.$message.success('误报事件已保存到智能复判');
         this.$emit('handle-false-alarm', this.warning);
         // 不关闭详情对话框，让用户可以继续查看操作历史
       } catch (error) {
@@ -828,6 +830,53 @@ export default {
         this.$message.error('误报归档失败');
       } finally {
         this.loading = false;
+      }
+    },
+    
+    // 保存到智能复判记录 - 与预警管理页面保持完全一致
+    async saveToReviewRecords(warningInfo) {
+      try {
+        // 创建复判记录数据
+        const reviewRecord = {
+          id: `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          originalWarningId: warningInfo.id,
+          warningType: warningInfo.type || warningInfo.deviceName,
+          deviceName: warningInfo.device || (warningInfo.deviceInfo && warningInfo.deviceInfo.name),
+          location: warningInfo.location || (warningInfo.deviceInfo && warningInfo.deviceInfo.position),
+          originalTime: warningInfo.time,
+          imageUrl: warningInfo.imageUrl,
+          level: warningInfo.level,
+          description: warningInfo.description,
+          reviewResult: 'false_alarm', // 复判结果：误报
+          reviewTime: this.getCurrentTime(),
+          reviewer: this.getCurrentUserName(),
+          reviewReason: '人工标记为误报',
+          confidence: 100, // 人工复判置信度100%
+          aiReviewResult: null, // AI复判结果（如果有的话）
+          aiConfidence: null,
+          status: 'completed',
+          createTime: this.getCurrentTime()
+        };
+        
+        // 保存到本地存储（实际项目中应该调用API保存到数据库）
+        let reviewRecords = JSON.parse(localStorage.getItem('intelligentReviewRecords') || '[]');
+        reviewRecords.unshift(reviewRecord);
+        
+        // 限制记录数量，避免本地存储过大
+        if (reviewRecords.length > 1000) {
+          reviewRecords = reviewRecords.slice(0, 1000);
+        }
+        
+        localStorage.setItem('intelligentReviewRecords', JSON.stringify(reviewRecords));
+        
+        // 模拟API调用保存时间
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        console.log('误报记录已保存到智能复判:', reviewRecord);
+        
+      } catch (error) {
+        console.error('保存到智能复判记录失败:', error);
+        throw error;
       }
     },
     // 获取预警等级文字
@@ -1167,22 +1216,61 @@ export default {
   border-color: #c6e2ff;
 }
 
-/* 复判分类颜色样式 */
+/* 复判分类科技感样式 - 渐变字体颜色，统一背景 */
 .info-cell .value.review-classification {
-  font-weight: 600;
-  border-width: 2px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+  background: #f8f9fa;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  position: relative;
+  transition: all 0.3s ease;
+  display: inline-block;
+  min-width: 120px;
+  text-align: center;
+  text-transform: uppercase;
 }
 
-.info-cell .value.review-manual {
-  color: #f56c6c;
-  background: rgba(245, 108, 108, 0.1);
-  border-color: #f56c6c;
-}
-
+/* 多模态大模型复判 - 蓝紫科技渐变字体 */
 .info-cell .value.review-auto {
-  color: #409eff;
-  background: rgba(64, 158, 255, 0.1);
-  border-color: #409eff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  border-color: rgba(102, 126, 234, 0.3);
+  box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.1);
+}
+
+.info-cell .value.review-auto:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  transform: translateY(-1px);
+}
+
+/* 人工审核 - 青绿科技渐变字体 */
+.info-cell .value.review-manual {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  border-color: rgba(17, 153, 142, 0.3);
+  box-shadow: 0 0 0 1px rgba(17, 153, 142, 0.1);
+}
+
+.info-cell .value.review-manual:hover {
+  background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  border-color: rgba(17, 153, 142, 0.5);
+  box-shadow: 0 2px 8px rgba(17, 153, 142, 0.2);
+  transform: translateY(-1px);
 }
 
 /* 内容布局 */

@@ -34,6 +34,7 @@ import statisticsAnalysis from '../components/visionAI/monitoringWarning/statist
 import warningArchives from '../components/visionAI/monitoringWarning/warningArchives.vue'
 import warningManagement from '../components/visionAI/monitoringWarning/warningManagement.vue'
 import reviewRecords from '../components/visionAI/monitoringWarning/reviewRecords.vue'
+import intelligentReview from '../components/visionAI/monitoringWarning/intelligentReview.vue'
 import camera from '../components/visionAI/deviceManagement/camera.vue'
 import modelList from '../components/visionAI/modelManagement/modelList.vue'
 import deviceSkills from '../components/visionAI/skillManagement/deviceSkills.vue'
@@ -117,6 +118,11 @@ export default new VueRouter({
           path: '/monitoring/reviewRecords',
           name: 'reviewRecords',
           component: reviewRecords,
+        },
+        {
+          path: '/monitoring/intelligentReview',
+          name: 'intelligentReview',
+          component: intelligentReview,
         },
         {
           path: '/deviceManage/camera',

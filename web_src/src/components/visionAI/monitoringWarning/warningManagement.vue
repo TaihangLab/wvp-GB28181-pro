@@ -17,7 +17,8 @@ export default {
         warningLevel: '',
         warningSkill: '', // 预警技能
         warningName: '', // 预警名称
-        warningId: '' // 预警ID
+        warningId: '', // 预警ID
+        status: '' // 处理状态
       },
       
       // 左侧位置数据
@@ -368,6 +369,19 @@ export default {
         )
       }
       
+      // 按处理状态过滤
+      if (this.searchForm.status) {
+        list = list.filter(item => {
+          const currentStatus = this.getCurrentWarningStatus(item)
+          const statusMap = {
+            'pending': '待处理',
+            'processing': '处理中', 
+            'completed': '已处理'
+          }
+          return currentStatus.text === statusMap[this.searchForm.status]
+        })
+      }
+      
       return list
     },
     
@@ -428,7 +442,8 @@ export default {
         warningLevel: '',
         warningSkill: '',
         warningName: '',
-        warningId: ''
+        warningId: '',
+        status: ''
       }
       this.dateRange = null
       this.getWarningList()
@@ -604,7 +619,6 @@ export default {
         }
         
         this.archivesList.push(newArchive)
-        this.$message.success('已自动创建默认档案')
         
         return newArchive.id
       } catch (error) {
@@ -871,13 +885,7 @@ export default {
       return ''
     },
     
-    // 获取边框颜色类名
-    getBorderClass(level) {
-      if (level === '一级预警') return 'level-1-border'
-      if (level === '二级预警') return 'level-2-border'
-      if (level === '三级预警') return 'level-3-border'
-      return ''
-    },
+
     
     // 获取文字颜色类名
     getLevelTextClass(level) {
@@ -1074,39 +1082,47 @@ export default {
           return
         }
         
+        // 获取当前预警信息
+        const warningIndex = this.warningList.findIndex(item => item.id === this.archiveWarningId)
+        if (warningIndex === -1) {
+          this.$message.error('未找到预警信息')
+          return
+        }
+        
+        const warningInfo = this.warningList[warningIndex]
+        
+        // 保存到智能复判记录
+        await this.saveToReviewRecords(warningInfo)
+        
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 300))
         
-        // 获取当前预警并添加误报记录到操作历史
-        const index = this.warningList.findIndex(item => item.id === this.archiveWarningId)
-        if (index !== -1) {
-          // 添加误报记录到操作历史
-          if (!this.warningList[index].operationHistory) {
-            this.$set(this.warningList[index], 'operationHistory', [])
-          }
-          
-          const newRecord = {
-            id: Date.now() + Math.random(),
-            status: 'completed',
-            statusText: '误报处理',
-            time: this.getCurrentTime(),
-            description: `预警被标记为误报并自动归档到：${archiveName}`,
-            operationType: 'falseAlarm',
-            operator: this.getCurrentUserName(),
-            archiveInfo: {
-              archiveId: targetArchiveId,
-              archiveName: archiveName
-            }
-          }
-          
-          this.warningList[index].operationHistory.unshift(newRecord)
-          
-          // 更新本地数据
-          this.warningList[index].status = 'archived'
-          this.warningList[index].archiveId = targetArchiveId
-          this.warningList[index].archiveTime = new Date().toLocaleString()
-          this.warningList[index].isFalseAlarm = true // 标记为误报
+        // 添加误报记录到操作历史
+        if (!this.warningList[warningIndex].operationHistory) {
+          this.$set(this.warningList[warningIndex], 'operationHistory', [])
         }
+        
+        const newRecord = {
+          id: Date.now() + Math.random(),
+          status: 'completed',
+          statusText: '误报处理',
+          time: this.getCurrentTime(),
+          description: `预警被标记为误报并自动归档到：${archiveName}，已保存到智能复判记录`,
+          operationType: 'falseAlarm',
+          operator: this.getCurrentUserName(),
+          archiveInfo: {
+            archiveId: targetArchiveId,
+            archiveName: archiveName
+          }
+        }
+        
+        this.warningList[warningIndex].operationHistory.unshift(newRecord)
+        
+        // 更新本地数据
+        this.warningList[warningIndex].status = 'archived'
+        this.warningList[warningIndex].archiveId = targetArchiveId
+        this.warningList[warningIndex].archiveTime = new Date().toLocaleString()
+        this.warningList[warningIndex].isFalseAlarm = true // 标记为误报
         
         // 如果在选中列表中，也移除
         const selectedIndex = this.selectedWarnings.indexOf(this.archiveWarningId)
@@ -1114,13 +1130,60 @@ export default {
           this.selectedWarnings.splice(selectedIndex, 1)
         }
         
-        this.$message.success('误报已自动归档到默认档案')
+        this.$message.success('误报事件已保存到智能复判')
         this.archiveWarningId = ''
       } catch (error) {
         console.error('误报归档失败:', error)
         this.$message.error('误报归档失败')
       } finally {
         this.loading = false
+      }
+    },
+    
+    // 保存到智能复判记录
+    async saveToReviewRecords(warningInfo) {
+      try {
+        // 创建复判记录数据
+        const reviewRecord = {
+          id: `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          originalWarningId: warningInfo.id,
+          warningType: warningInfo.type || warningInfo.deviceName,
+          deviceName: warningInfo.device || (warningInfo.deviceInfo && warningInfo.deviceInfo.name),
+          location: warningInfo.location || (warningInfo.deviceInfo && warningInfo.deviceInfo.position),
+          originalTime: warningInfo.time,
+          imageUrl: warningInfo.imageUrl,
+          level: warningInfo.level,
+          description: warningInfo.description,
+          reviewResult: 'false_alarm', // 复判结果：误报
+          reviewTime: this.getCurrentTime(),
+          reviewer: this.getCurrentUserName(),
+          reviewReason: '人工标记为误报',
+          confidence: 100, // 人工复判置信度100%
+          aiReviewResult: null, // AI复判结果（如果有的话）
+          aiConfidence: null,
+          status: 'completed',
+          createTime: this.getCurrentTime()
+        }
+        
+        // 保存到本地存储（实际项目中应该调用API保存到数据库）
+        let reviewRecords = JSON.parse(localStorage.getItem('intelligentReviewRecords') || '[]')
+        reviewRecords.unshift(reviewRecord)
+        
+        // 限制记录数量，避免本地存储过大
+        if (reviewRecords.length > 1000) {
+          reviewRecords = reviewRecords.slice(0, 1000)
+        }
+        
+        localStorage.setItem('intelligentReviewRecords', JSON.stringify(reviewRecords))
+        
+        // 模拟API调用保存时间
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        console.log('误报记录已保存到智能复判:', reviewRecord)
+        
+      } catch (error) {
+        console.error('保存到智能复判记录失败:', error)
+        throw error
       }
     },
     
@@ -1524,6 +1587,20 @@ export default {
             </el-select>
           </div>
           
+          <div class="select-wrapper">
+            <el-select 
+              v-model="searchForm.status" 
+              placeholder="处理状态" 
+              size="small"
+              clearable
+              @change="handleSearch"
+            >
+              <el-option label="待处理" value="pending" />
+              <el-option label="处理中" value="processing" />
+              <el-option label="已处理" value="completed" />
+            </el-select>
+          </div>
+          
           <div class="input-wrapper">
             <el-input
               v-model="searchForm.warningName"
@@ -1588,9 +1665,9 @@ export default {
               @click="exportData"
             >导出数据</el-button>
             <el-button 
-              type="info" 
+              class="tech-review-btn"
               size="small" 
-              icon="el-icon-document-copy"
+              icon="el-icon-cpu"
               @click="goToReviewRecords"
             >复判记录</el-button>
             <el-button 
@@ -1612,10 +1689,7 @@ export default {
           >
             <div 
               class="warning-card" 
-              :class="[
-                getBorderClass(item.level), 
-                { 'selected': selectedWarnings.includes(item.id) }
-              ]"
+              :class="{ 'selected': selectedWarnings.includes(item.id) }"
               @click="showWarningDetail(item)"
             >
               <!-- 等级和状态标签容器 -->
@@ -2164,12 +2238,12 @@ export default {
 }
 
 .warning-col {
-  width: calc(20% - 12.8px);
+  width: calc(16.66% - 13.33px);
   margin: 0;
 }
 
 .warning-card {
-  height: 360px;
+  height: 320px;
   background: #fff;
   border-radius: 6px;
   overflow: hidden;
@@ -2177,7 +2251,6 @@ export default {
   margin-bottom: 0;
   position: relative;
   transition: all 0.25s;
-  border-top: 3px solid transparent;
   width: 100%;
 }
 
@@ -2223,7 +2296,7 @@ export default {
 }
 
 .warning-image {
-  height: 140px;
+  height: 130px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2278,26 +2351,17 @@ export default {
 }
 
 /* 根据预警等级设置不同的图标颜色和动画效果 */
-.warning-card.level-1-border .warning-video-preview i {
-  color: #f56c6c;
-  animation: pulse 1.5s infinite;
-}
-
-.warning-card.level-2-border .warning-video-preview i {
-  color: #e6a23c;
-}
-
-.warning-card.level-3-border .warning-video-preview i {
+.warning-video-preview i {
   color: #409EFF;
 }
 
 .warning-content {
-  padding: 14px;
+  padding: 12px;
 }
 
 .warning-title {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   color: #303133;
   margin: 0 0 10px 0;
   white-space: nowrap;
@@ -2307,13 +2371,13 @@ export default {
 }
 
 .info-list {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .info-item {
   display: flex;
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -2346,15 +2410,16 @@ export default {
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
   border-top: 1px solid #ebeef5;
-  padding-top: 10px;
+  padding-top: 8px;
+  margin-top: 20px;
 }
 
 .warning-footer .el-button {
   margin: 0;
-  padding: 3px 8px;
-  font-size: 11px;
+  padding: 4px 10px;
+  font-size: 12px;
   min-width: auto;
 }
 
@@ -2395,19 +2460,7 @@ export default {
   border: 1px solid #67c23a;
 }
 
-/* 等级样式 */
-.level-1-border {
-  border-top-color: #f56c6c;
-}
-
-.level-2-border {
-  border-top-color: #e6a23c;
-}
-
-.level-3-border {
-  border-top-color: #409eff;
-}
-
+/* 等级样式 - 移除边框相关样式 */
 .level-1-bg {
   background-color: #fff0f0;
 }
@@ -2453,6 +2506,12 @@ export default {
 }
 
 /* 响应式调整 */
+@media (max-width: 1600px) {
+  .warning-col {
+    width: calc(20% - 12.8px);
+  }
+}
+
 @media (max-width: 1280px) {
   .warning-management-container {
     flex-direction: column;
@@ -2864,5 +2923,50 @@ export default {
   border-radius: 4px;
   display: flex;
   align-items: center;
+}
+
+/* 科技感复判记录按钮样式 */
+.tech-review-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.tech-review-btn:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  transform: translateY(-2px);
+  color: white;
+}
+
+.tech-review-btn:focus {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  color: white;
+}
+
+.tech-review-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+}
+
+.tech-review-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.tech-review-btn:hover::before {
+  left: 100%;
 }
 </style>
