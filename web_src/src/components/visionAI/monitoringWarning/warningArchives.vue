@@ -119,7 +119,7 @@ export default {
       editForm: {
         name: '',
         location: '',
-        timeRange: '',
+        timeRange: [],
         createTime: '',
         description: '',
         image: ''
@@ -131,9 +131,8 @@ export default {
         warningLevel: '',
         warningType: '',
         location: '',
-        remark: '',
         description: '',
-        warningTime: [],
+        warningTime: '',
         violationImage: '',
         violationVideo: ''
       },
@@ -150,7 +149,7 @@ export default {
       newArchiveForm: {
         name: '',
         location: '',
-        timeRange: '',
+        timeRange: [],
         description: '',
         image: ''
       },
@@ -409,6 +408,17 @@ export default {
     editArchive() {
       this.isEditing = true;
       this.editForm = { ...this.archiveInfo };
+      
+      // 处理时间范围：将字符串格式转换为数组格式
+      if (this.editForm.timeRange && typeof this.editForm.timeRange === 'string' && this.editForm.timeRange.includes('-')) {
+        const timeRange = this.editForm.timeRange.split('-');
+        if (timeRange.length === 2) {
+          this.editForm.timeRange = [timeRange[0].trim(), timeRange[1].trim()];
+        }
+      } else {
+        this.editForm.timeRange = [];
+      }
+      
       // 确保编辑时显示原有图片
       if (!this.editForm.image) {
         this.editForm.image = this.getPreviewImage();
@@ -417,13 +427,22 @@ export default {
     },
     // 保存编辑
     saveEdit() {
+      // 处理时间范围：将数组格式转换为字符串格式
+      const editedForm = { ...this.editForm };
+      if (editedForm.timeRange && Array.isArray(editedForm.timeRange) && editedForm.timeRange.length === 2) {
+        editedForm.timeRange = `${editedForm.timeRange[0]}-${editedForm.timeRange[1]}`;
+      } else if (!editedForm.timeRange || editedForm.timeRange.length === 0) {
+        const currentYear = new Date().getFullYear();
+        editedForm.timeRange = `${currentYear}-01-01 00:00:00-${currentYear}-12-31 23:59:59`;
+      }
+      
       // 更新档案信息
-      this.archiveInfo = { ...this.editForm };
+      this.archiveInfo = { ...editedForm };
       
       // 同时更新档案列表中的对应档案
       const index = this.archivesList.findIndex(item => item.id === this.currentArchiveId);
       if (index !== -1) {
-        this.archivesList[index] = { ...this.editForm, id: this.currentArchiveId };
+        this.archivesList[index] = { ...editedForm, id: this.currentArchiveId };
       }
       
       this.isEditing = false;
@@ -444,17 +463,16 @@ export default {
         warningLevel: '',
         warningType: '',
         location: '',
-        remark: '',
         description: '',
-        warningTime: [],
+        warningTime: '',
         violationImage: '',
         violationVideo: ''
       };
     },
     // 提交新预警
     submitNewWarning() {
-      // 验证时间段数组
-      const isTimeValid = this.addForm.warningTime && Array.isArray(this.addForm.warningTime) && this.addForm.warningTime.length === 2;
+      // 验证单个时间
+      const isTimeValid = this.addForm.warningTime && this.addForm.warningTime.trim() !== '';
       
       if (!this.addForm.name || !this.addForm.deviceName || !this.addForm.warningLevel || !isTimeValid || !this.addForm.warningType || !this.addForm.location) {
         this.$message.warning('请填写必要的信息（预警名称、设备名称、预警等级、预警时间、预警类型、违规位置）');
@@ -463,11 +481,6 @@ export default {
 
       const newId = this.allArchiveList.length > 0 ? Math.max(...this.allArchiveList.map(item => item.id)) + 1 : 1;
 
-      // 将日期格式从 "YYYY-MM-DD HH:mm:ss" 转换为 "YYYY/MM/DD HH:mm:ss-YYYY/MM/DD HH:mm:ss"
-      const startTime = this.addForm.warningTime[0].replace(/-/g, '/');
-      const endTime = this.addForm.warningTime[1].replace(/-/g, '/');
-      const formattedWarningTime = `${startTime}-${endTime}`;
-
       const newRecord = {
         id: newId,
         name: this.addForm.name,
@@ -475,9 +488,9 @@ export default {
         warningLevel: this.addForm.warningLevel,
         warningType: this.addForm.warningType,
         location: this.addForm.location,
-        remark: this.addForm.remark,
+        remark: '',
         image: this.addForm.violationImage || this.getPreviewImage(),
-        warningTime: formattedWarningTime,
+        warningTime: this.addForm.warningTime,
         violationImage: this.addForm.violationImage,
         violationVideo: this.addForm.violationVideo,
         description: this.addForm.description
@@ -494,7 +507,7 @@ export default {
       this.newArchiveForm = {
         name: '',
         location: '',
-        timeRange: '',
+        timeRange: [],
         description: '',
         image: ''
       };
@@ -520,11 +533,19 @@ export default {
       
       const createTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
       
+      // 处理时间范围
+      let timeRangeStr = '';
+      if (this.newArchiveForm.timeRange && this.newArchiveForm.timeRange.length === 2) {
+        timeRangeStr = `${this.newArchiveForm.timeRange[0]}-${this.newArchiveForm.timeRange[1]}`;
+      } else {
+        timeRangeStr = `${year}-01-01 00:00:00-${year}-12-31 23:59:59`;
+      }
+      
       const newArchive = {
         id: newArchiveId,
         name: this.newArchiveForm.name,
         location: this.newArchiveForm.location,
-        timeRange: this.newArchiveForm.timeRange || `${year}-01-01 00:00:00-${year}-12-31 23:59:59`,
+        timeRange: timeRangeStr,
         createTime: createTime,
         description: this.newArchiveForm.description || '-',
         image: this.newArchiveForm.image || this.getPreviewImage()
@@ -660,12 +681,37 @@ export default {
     // 格式化时间
     formatTime(timeString) {
       try {
-        // 如果是完整的时间字符串，格式化为更友好的显示
-        if (timeString && timeString.includes(' ')) {
+        if (!timeString) return timeString;
+        
+        // 检查是否是时间范围格式（包含" HH:mm:ss-"这样的模式）
+        const rangePattern = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})-(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/;
+        const match = timeString.match(rangePattern);
+        
+        if (match) {
+          // 这是时间范围格式
+          const startTime = match[1];
+          const endTime = match[2];
+          
+          // 格式化开始时间
+          const [startDate, startTimeStr] = startTime.split(' ');
+          const [startYear, startMonth, startDay] = startDate.split('-');
+          const formattedStart = `${startYear}年${startMonth}月${startDay}日 ${startTimeStr}`;
+          
+          // 格式化结束时间
+          const [endDate, endTimeStr] = endTime.split(' ');
+          const [endYear, endMonth, endDay] = endDate.split('-');
+          const formattedEnd = `${endYear}年${endMonth}月${endDay}日 ${endTimeStr}`;
+          
+          return `${formattedStart} 至 ${formattedEnd}`;
+        }
+        
+        // 如果是单个完整的时间字符串，格式化为更友好的显示
+        if (timeString.includes(' ')) {
           const [date, time] = timeString.split(' ');
           const [year, month, day] = date.split('-');
           return `${year}年${month}月${day}日 ${time}`;
         }
+        
         return timeString;
       } catch (error) {
         return timeString;
@@ -846,7 +892,20 @@ export default {
           <el-input v-model="editForm.location"></el-input>
         </el-form-item>
         <el-form-item label="时间范围">
-          <el-input v-model="editForm.timeRange"></el-input>
+          <el-date-picker
+            v-model="editForm.timeRange"
+            type="datetimerange"
+            range-separator="至"
+            start-placeholder="开始时间"
+            end-placeholder="结束时间"
+            style="width: 100%"
+            format="yyyy-MM-dd HH:mm:ss"
+            value-format="yyyy-MM-dd HH:mm:ss">
+          </el-date-picker>
+          <div class="form-tip">
+            <i class="el-icon-info"></i>
+            <span>可选项：不填写将自动设置为当年完整时间范围</span>
+          </div>
         </el-form-item>
         <el-form-item label="备注描述">
           <el-input type="textarea" v-model="editForm.description" rows="4"></el-input>
@@ -908,10 +967,8 @@ export default {
             <el-form-item label="预警时间" required>
               <el-date-picker
                 v-model="addForm.warningTime"
-                type="datetimerange"
-                range-separator="至"
-                start-placeholder="开始时间"
-                end-placeholder="结束时间"
+                type="datetime"
+                placeholder="选择预警时间"
                 style="width: 100%"
                 format="yyyy-MM-dd HH:mm:ss"
                 value-format="yyyy-MM-dd HH:mm:ss">
@@ -919,10 +976,6 @@ export default {
             </el-form-item>
           </el-col>
         </el-row>
-        
-        <el-form-item label="处理备注">
-          <el-input v-model="addForm.remark" placeholder="请输入处理备注"></el-input>
-        </el-form-item>
         
         <el-form-item label="预警描述">
           <el-input type="textarea" v-model="addForm.description" rows="3" placeholder="请输入预警详细描述"></el-input>
@@ -1025,8 +1078,21 @@ export default {
         <el-form-item label="所属位置" required>
           <el-input v-model="newArchiveForm.location"></el-input>
         </el-form-item>
-        <el-form-item label="时间范围" required>
-          <el-input v-model="newArchiveForm.timeRange"></el-input>
+        <el-form-item label="时间范围">
+          <el-date-picker
+            v-model="newArchiveForm.timeRange"
+            type="datetimerange"
+            range-separator="至"
+            start-placeholder="开始时间"
+            end-placeholder="结束时间"
+            style="width: 100%"
+            format="yyyy-MM-dd HH:mm:ss"
+            value-format="yyyy-MM-dd HH:mm:ss">
+          </el-date-picker>
+          <div class="form-tip">
+            <i class="el-icon-info"></i>
+            <span>可选项：不填写将自动设置为当年完整时间范围</span>
+          </div>
         </el-form-item>
         <el-form-item label="备注描述">
           <el-input type="textarea" v-model="newArchiveForm.description" rows="4" placeholder="请输入备注描述"></el-input>
@@ -1907,6 +1973,41 @@ export default {
 .edit-archive-btn {
   width: 100%;
   border-radius: 4px;
+}
+
+/* 表单提示文字样式 */
+.form-tip {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f4ff 100%);
+  border: 1px solid #bae7ff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #1890ff;
+  line-height: 1.4;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.form-tip:hover {
+  background: linear-gradient(135deg, #e6f7ff 0%, #d1edff 100%);
+  border-color: #91d5ff;
+  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.form-tip i {
+  font-size: 14px;
+  margin-right: 6px;
+  color: #52c41a;
+  flex-shrink: 0;
+}
+
+.form-tip span {
+  flex: 1;
+  font-weight: 500;
 }
 
 /* 时间段选择器样式优化 */
