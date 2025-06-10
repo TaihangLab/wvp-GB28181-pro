@@ -85,9 +85,13 @@
                   <i class="el-icon-picture"></i>
                   违规截图
                 </h4>
-                <div class="image-container">
+                <div class="image-container" @click="openImageViewer">
                   <div v-if="warning.imageUrl" class="real-image">
                     <img :src="warning.imageUrl" :alt="warning.type" />
+                    <div class="media-overlay">
+                      <i class="el-icon-zoom-in"></i>
+                      <span>点击放大查看</span>
+                    </div>
                   </div>
                   <div v-else class="placeholder-image">
                     <i :class="getWarningIcon(warning.level)"></i>
@@ -101,10 +105,14 @@
                   <i class="el-icon-video-camera"></i>
                   视频片段
                 </h4>
-                <div class="video-container">
+                <div class="video-container" @click="openVideoViewer">
                   <div class="placeholder-video">
                     <i class="el-icon-video-camera"></i>
                     <span>视频片段</span>
+                    <div class="media-overlay">
+                      <i class="el-icon-video-play"></i>
+                      <span>点击播放视频</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -314,6 +322,67 @@
       </span>
     </el-dialog>
 
+         <!-- 简单图片放大显示 -->
+     <div 
+       v-if="imageViewerVisible" 
+       class="simple-image-overlay"
+       @click="closeImageViewer">
+       <div class="simple-image-container" @click.stop>
+         <img 
+           v-if="warning && warning.imageUrl"
+           :src="warning.imageUrl" 
+           :alt="warning.type"
+           class="simple-enlarged-image" />
+       </div>
+     </div>
+
+    <!-- 简单视频播放器 -->
+    <div 
+      v-if="videoViewerVisible" 
+      class="simple-video-overlay"
+      @click="closeVideoViewer">
+      <div class="simple-video-container" @click.stop>
+        <div class="simple-video-player">
+          <!-- 视频预览区域 -->
+          <div class="video-preview">
+            <img 
+              v-if="warning && warning.imageUrl"
+              :src="warning.imageUrl" 
+              :alt="warning.type" />
+          </div>
+          
+          <!-- 简化的视频控制条 - 只保留必要按钮 -->
+          <div class="simple-video-controls">
+            <el-button 
+              size="mini" 
+              :icon="isVideoPlaying ? 'el-icon-video-pause' : 'el-icon-video-play'"
+              circle
+              @click="toggleVideoPlay">
+            </el-button>
+            
+            <div class="progress-container">
+              <span class="time-display">{{ currentTime }} / {{ totalTime }}</span>
+              <div class="progress-bar">
+                <el-slider 
+                  v-model="videoProgress"
+                  :max="100"
+                  :show-tooltip="false"
+                  @change="seekVideo">
+                </el-slider>
+              </div>
+            </div>
+            
+            <el-button 
+              size="mini" 
+              icon="el-icon-close"
+              circle
+              @click="closeVideoViewer">
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -354,7 +423,19 @@ export default {
       },
       
       // 处理进展时间线 - 改为数据属性，动态记录操作历史
-      operationHistory: []
+      operationHistory: [],
+      
+      // 图片查看器相关
+      imageViewerVisible: false,
+      
+      // 视频播放器相关
+      videoViewerVisible: false,
+      isVideoPlaying: false,
+      videoProgress: 0,
+      currentTime: '00:00',
+      totalTime: '02:15',
+      volume: 80,
+      isMuted: false
     }
   },
   watch: {
@@ -372,6 +453,12 @@ export default {
   },
   mounted() {
     this.initArchivesList();
+    // 添加键盘事件监听
+    document.addEventListener('keydown', this.handleKeydown);
+  },
+  destroyed() {
+    // 移除键盘事件监听
+    document.removeEventListener('keydown', this.handleKeydown);
   },
   computed: {
     // 可用档案列表
@@ -1057,9 +1144,130 @@ export default {
         'auto': '多模态大模型复判'
       };
       return typeMap[type] || '未知复判方式';
-    }
-  }
-}
+    },
+    
+    // ==================== 简单图片查看器相关方法 ====================
+    
+    // 打开图片查看器
+    openImageViewer() {
+      if (this.warning && this.warning.imageUrl) {
+        this.imageViewerVisible = true;
+      } else {
+        this.$message.warning('暂无违规截图');
+      }
+    },
+    
+    // 关闭图片查看器
+    closeImageViewer() {
+      this.imageViewerVisible = false;
+    },
+    
+    // 处理键盘事件
+    handleKeydown(event) {
+      if (event.key === 'Escape') {
+        if (this.imageViewerVisible) {
+          this.closeImageViewer();
+        } else if (this.videoViewerVisible) {
+          this.closeVideoViewer();
+        }
+      }
+    },
+    
+    // ==================== 视频播放器相关方法 ====================
+    
+    // 打开视频播放器
+    openVideoViewer() {
+      this.resetVideoPlayer();
+      this.videoViewerVisible = true;
+    },
+    
+    // 关闭视频播放器
+    closeVideoViewer() {
+      this.videoViewerVisible = false;
+      this.resetVideoPlayer();
+    },
+    
+    // 重置视频播放器状态
+    resetVideoPlayer() {
+      this.isVideoPlaying = false;
+      this.videoProgress = 0;
+      this.currentTime = '00:00';
+      this.volume = 80;
+      this.isMuted = false;
+    },
+    
+    // 切换播放/暂停
+    toggleVideoPlay() {
+      this.isVideoPlaying = !this.isVideoPlaying;
+      
+      if (this.isVideoPlaying) {
+        this.startVideoProgress();
+      } else {
+        this.stopVideoProgress();
+      }
+    },
+    
+    // 开始播放进度更新
+    startVideoProgress() {
+      this.videoTimer = setInterval(() => {
+        if (this.videoProgress < 100) {
+          this.videoProgress += 1;
+          this.updateCurrentTime();
+        } else {
+          this.isVideoPlaying = false;
+          this.stopVideoProgress();
+        }
+      }, 1350); // 模拟2分15秒的视频，135秒/100步 = 1.35秒每步
+    },
+    
+    // 停止播放进度更新
+    stopVideoProgress() {
+      if (this.videoTimer) {
+        clearInterval(this.videoTimer);
+        this.videoTimer = null;
+      }
+    },
+    
+    // 更新当前播放时间
+    updateCurrentTime() {
+      const totalSeconds = 135; // 2分15秒
+      const currentSeconds = Math.floor((this.videoProgress / 100) * totalSeconds);
+      const minutes = Math.floor(currentSeconds / 60);
+      const seconds = currentSeconds % 60;
+      this.currentTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    },
+    
+    // 拖拽进度条
+    seekVideo(value) {
+      this.videoProgress = value;
+      this.updateCurrentTime();
+    },
+    
+    // 切换静音
+    toggleMute() {
+      this.isMuted = !this.isMuted;
+    },
+    
+    // 切换全屏
+    toggleFullscreen() {
+    },
+    
+         // 下载视频
+     downloadVideo() {
+       // 实际项目中这里应该提供真实的视频下载链接
+     }
+   },
+   
+   // 组件销毁时清理定时器
+   beforeDestroy() {
+     if (this.videoTimer) {
+       clearInterval(this.videoTimer);
+     }
+     // 清理全局事件监听
+     document.removeEventListener('mousemove', this.onDrag);
+     document.removeEventListener('mouseup', this.endDrag);
+   }
+ }
 </script>
 
 <style scoped>
@@ -1337,6 +1545,14 @@ export default {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.image-container:hover,
+.video-container:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .real-image,
@@ -1389,6 +1605,43 @@ export default {
 
 .placeholder-video i {
   color: #409EFF;
+}
+
+/* 媒体覆盖层样式 */
+.media-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s ease;
+  color: white;
+  font-size: 14px;
+  z-index: 1;
+}
+
+.image-container:hover .media-overlay,
+.video-container:hover .media-overlay {
+  opacity: 1;
+}
+
+.media-overlay i {
+  font-size: 48px;
+  margin-bottom: 12px;
+  color: white !important;
+  animation: none;
+}
+
+.media-overlay span {
+  color: white;
+  font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* 处理进展时间线样式 */
@@ -1909,6 +2162,279 @@ export default {
   .description-content {
     padding: 10px 12px;
     font-size: 13px;
+  }
+}
+
+/* ==================== 简单图片放大样式 ==================== */
+.simple-image-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.simple-image-container {
+  max-width: 60vw;
+  max-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding: 0;
+}
+
+.simple-enlarged-image {
+  max-width: 800px;
+  max-height: 600px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  cursor: default;
+  animation: zoomIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ==================== 简单视频播放器样式 ==================== */
+.simple-video-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.simple-video-container {
+  max-width: 70vw;
+  max-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding: 0;
+}
+
+.simple-video-player {
+  width: 900px;
+  max-width: 100%;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  animation: zoomIn 0.3s ease-out;
+  cursor: default;
+}
+
+/* 通用视频播放相关样式 */
+
+.video-preview {
+  position: relative;
+  height: 450px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px 8px 0 0;
+}
+
+.video-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.8);
+}
+
+/* 播放覆盖层样式已移除 - 按需求去掉视频中央播放键 */
+
+/* 简化的视频控制条 - 毛玻璃效果 */
+.simple-video-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.progress-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 16px;
+}
+
+.time-display {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Monaco', 'Consolas', monospace;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.progress-bar {
+  flex: 1;
+}
+
+.progress-bar .el-slider__runway {
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  height: 4px;
+  border-radius: 2px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.progress-bar .el-slider__bar {
+  background: linear-gradient(90deg, #409EFF 0%, #66b3ff 100%);
+  border-radius: 2px;
+  box-shadow: 0 1px 6px rgba(64, 158, 255, 0.3);
+}
+
+.progress-bar .el-slider__button {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #409EFF;
+  background: radial-gradient(circle, white 0%, #f0f8ff 100%);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.4);
+  transition: all 0.3s ease;
+}
+
+.progress-bar .el-slider__button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 12px rgba(64, 158, 255, 0.6);
+}
+
+.simple-video-controls .el-button {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.simple-video-controls .el-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.simple-video-controls .el-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+
+
+/* 媒体查看器响应式调整 */
+@media (max-width: 768px) {
+  .simple-image-container {
+    max-width: 85vw;
+    max-height: 70vh;
+    padding: 0;
+  }
+  
+  .simple-enlarged-image {
+    max-width: 90vw;
+    max-height: 60vh;
+    border-radius: 6px;
+  }
+  
+  .simple-video-container {
+    max-width: 90vw;
+    max-height: 80vh;
+  }
+  
+  .simple-video-player {
+    width: 100%;
+  }
+  
+  .simple-video-controls {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+  }
+  
+  .progress-container {
+    order: 1;
+    margin: 0;
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .progress-bar {
+    width: 100%;
+  }
+  
+  .simple-video-controls .el-button {
+    order: 2;
+  }
+  
+  .video-preview {
+    height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .simple-enlarged-image {
+    max-width: 95vw;
+    max-height: 50vh;
   }
 }
 </style> 
