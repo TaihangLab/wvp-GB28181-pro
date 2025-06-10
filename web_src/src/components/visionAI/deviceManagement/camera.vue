@@ -10,12 +10,12 @@
             <span class="title-text">摄像头分类</span>
           </div>
         </h3>
-        
+
         <div class="location-filter-container">
-          <div 
-            class="location-item-wrapper" 
+          <div
+            class="location-item-wrapper"
             @click="filterAllCameraTypes">
-            <el-tag 
+            <el-tag
               :color="currentCameraTypeFilter === 0 ? '#409EFF' : '#f5f7fa'"
               :effect="currentCameraTypeFilter === 0 ? 'dark' : 'plain'"
               :style="{ color: currentCameraTypeFilter === 0 ? '#ffffff' : '#333333' }"
@@ -27,7 +27,7 @@
           <div class="locations-grid">
             <!-- 国标摄像头 -->
             <div class="location-item-wrapper" @click="filterByCameraType(1)">
-              <el-tag 
+              <el-tag
                 :color="currentCameraTypeFilter === 1 ? '#409EFF' : '#f8f9fc'"
                 :effect="currentCameraTypeFilter === 1 ? 'dark' : 'plain'"
                 :style="{ color: currentCameraTypeFilter === 1 ? '#ffffff' : '#67C23A' }"
@@ -49,7 +49,7 @@
             </div>
             <!-- 拉流摄像头 -->
             <div class="location-item-wrapper" @click="filterByCameraType(3)">
-              <el-tag 
+              <el-tag
                 :color="currentCameraTypeFilter === 3 ? '#409EFF' : '#f8f9fc'"
                 :effect="currentCameraTypeFilter === 3 ? 'dark' : 'plain'"
                 :style="{ color: currentCameraTypeFilter === 3 ? '#ffffff' : '#F56C6C' }"
@@ -76,9 +76,9 @@
           </div>
         </div>
 
-        <el-table 
-          :data="deviceList" 
-          style="width: 100%" 
+        <el-table
+          :data="deviceList"
+          style="width: 100%"
           v-loading="loading"
           element-loading-text="加载中..."
           empty-text="暂无摄像头数据">
@@ -149,7 +149,7 @@
           <!-- 搜索和筛选工具栏 -->
           <div class="skill-toolbar">
             <div class="skill-search-container">
-              <el-input 
+              <el-input
                 v-model="skillSearchKeyword"
                 placeholder="请输入技能名称搜索"
                 prefix-icon="el-icon-search"
@@ -175,21 +175,21 @@
                 <span class="pagination-text">
                   共 {{ skillOptionsTotal }} 个{{ skillTotalPages > 1 ? ' | ' + skillCurrentPage + '/' + skillTotalPages + ' 页' : '' }}
                 </span>
-                <el-pagination 
+                <el-pagination
                   v-if="skillOptionsTotal > skillPageSize"
-                  :current-page.sync="skillCurrentPage" 
-                  :page-size.sync="skillPageSize" 
+                  :current-page.sync="skillCurrentPage"
+                  :page-size.sync="skillPageSize"
                   :page-sizes="[12, 24, 36, 48]"
-                  layout="sizes, prev, pager, next" 
-                  :total="skillOptionsTotal" 
+                  layout="sizes, prev, pager, next"
+                  :total="skillOptionsTotal"
                   @size-change="handleSkillSizeChange"
-                  @current-change="handleSkillCurrentChange" 
+                  @current-change="handleSkillCurrentChange"
                   background
                   small>
                 </el-pagination>
               </div>
             </div>
-            
+
             <div v-if="skillOptionsLoading" class="skills-loading">
               <i class="el-icon-loading"></i> 正在加载技能列表...
           </div>
@@ -197,8 +197,8 @@
               <i class="el-icon-info"></i> 暂无可用技能
           </div>
             <div v-else class="skills-grid">
-              <div 
-                v-for="skill in filteredSkillOptions" 
+              <div
+                v-for="skill in filteredSkillOptions"
                 :key="skill.id"
                 :class="['skill-card', {selected: isSkillSelected(skill.value), disabled: skill.status === false}]"
                 @click="skill.status !== false ? toggleSkillSelection(skill.value) : $message.warning('该技能未启用，无法配置')">
@@ -302,10 +302,10 @@
         </div>
         <el-form :model="skillForm" label-width="85px" :rules="rules" ref="skillForm" class="skill-form">
           <el-form-item label="任务名称" prop="name">
-            <el-input 
-              v-model="skillForm.name" 
-              placeholder="请输入任务名称" 
-              prefix-icon="el-icon-document-add" 
+            <el-input
+              v-model="skillForm.name"
+              placeholder="请输入任务名称"
+              prefix-icon="el-icon-document-add"
               style="width: 80%; max-width: 500px;"
               :maxlength="50"
               show-word-limit
@@ -315,11 +315,11 @@
           </el-form-item>
 
           <el-form-item label="任务描述" prop="description">
-            <el-input 
-              v-model="skillForm.description" 
-              placeholder="请简要描述任务的检测目标和用途" 
-              type="textarea" 
-              :rows="3" 
+            <el-input
+              v-model="skillForm.description"
+              placeholder="请简要描述任务的检测目标和用途"
+              type="textarea"
+              :rows="3"
               style="width: 80%; max-width: 500px;"
               :maxlength="200"
               show-word-limit
@@ -370,16 +370,16 @@
               <div class="fence-wrapper">
                 <div class="fence-preview">
                   <div class="image-editor">
-                    <img :src="skillForm.electronicFence.image" alt="围栏图片" 
+                    <img :src="skillForm.electronicFence.image" alt="围栏图片"
                       :class="['fence-image', {'loading': skillForm.electronicFence.imageLoading}]"
                       @click="handleImageClick" @load="handleImageLoad" @error="handleImageError">
-                    
+
                     <!-- 图像加载中的状态显示 -->
                     <div v-if="skillForm.electronicFence.imageLoading" class="fence-image-loading">
                       <i class="el-icon-loading"></i>
                       <p>正在加载图像...</p>
                     </div>
-                    
+
                     <div class="fence-polygon"
                       v-if="skillForm.electronicFence.points.length > 0 || skillForm.electronicFence.currentPolygon.length > 0">
                       <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
@@ -400,49 +400,49 @@
                         <g v-if="skillForm.electronicFence.isDrawing && skillForm.electronicFence.currentPolygon.length > 0">
                           <!-- 添加提示线连接最后一个点和第一个点 -->
                           <polyline v-if="skillForm.electronicFence.currentPolygon.length > 2"
-                            :points="`${skillForm.electronicFence.currentPolygon[skillForm.electronicFence.currentPolygon.length-1].x},${skillForm.electronicFence.currentPolygon[skillForm.electronicFence.currentPolygon.length-1].y} ${skillForm.electronicFence.currentPolygon[0].x},${skillForm.electronicFence.currentPolygon[0].y}`" 
+                            :points="`${skillForm.electronicFence.currentPolygon[skillForm.electronicFence.currentPolygon.length-1].x},${skillForm.electronicFence.currentPolygon[skillForm.electronicFence.currentPolygon.length-1].y} ${skillForm.electronicFence.currentPolygon[0].x},${skillForm.electronicFence.currentPolygon[0].y}`"
                             fill="none"
-                            stroke="#4caf50" 
-                            stroke-width="2" 
+                            stroke="#4caf50"
+                            stroke-width="2"
                             stroke-dasharray="5,5" />
-                          
+
                           <polyline v-if="skillForm.electronicFence.currentPolygon.length > 1"
                             :points="formatPolygonPoints(skillForm.electronicFence.currentPolygon)" fill="none"
                             stroke="#f56c6c" stroke-width="2" stroke-dasharray="5,5" />
-                          
+
                           <!-- 非第一个点 -->
                           <circle v-for="(point, index) in skillForm.electronicFence.currentPolygon"
                             v-if="index !== 0"
-                            :key="`current-${index}`" 
-                            :cx="point.x" 
-                            :cy="point.y" 
-                            r="8" 
-                            fill="#f56c6c" 
+                            :key="`current-${index}`"
+                            :cx="point.x"
+                            :cy="point.y"
+                            r="8"
+                            fill="#f56c6c"
                             stroke="#fff"
-                            stroke-width="2" 
-                            @click.stop="handleCurrentPointClick(index)" 
+                            stroke-width="2"
+                            @click.stop="handleCurrentPointClick(index)"
                             style="cursor: pointer;" />
-                          
+
                           <!-- 添加背景圆圈 -->
                           <circle v-if="skillForm.electronicFence.currentPolygon.length > 2"
-                            :cx="skillForm.electronicFence.currentPolygon[0].x" 
-                            :cy="skillForm.electronicFence.currentPolygon[0].y" 
-                            r="16" 
-                            fill="none" 
-                            stroke="#4caf50" 
-                            stroke-width="2" 
+                            :cx="skillForm.electronicFence.currentPolygon[0].x"
+                            :cy="skillForm.electronicFence.currentPolygon[0].y"
+                            r="16"
+                            fill="none"
+                            stroke="#4caf50"
+                            stroke-width="2"
                             style="pointer-events: none;" />
-                            
+
                           <!-- 第一个点单独渲染，没有hover效果 -->
                           <circle v-if="skillForm.electronicFence.currentPolygon.length > 0"
-                            :cx="skillForm.electronicFence.currentPolygon[0].x" 
-                            :cy="skillForm.electronicFence.currentPolygon[0].y" 
-                            r="10" 
+                            :cx="skillForm.electronicFence.currentPolygon[0].x"
+                            :cy="skillForm.electronicFence.currentPolygon[0].y"
+                            r="10"
                             :fill="skillForm.electronicFence.currentPolygon.length > 2 ? '#4caf50' : '#f56c6c'"
                             stroke="#fff"
-                            stroke-width="2" 
-                            @click.stop="skillForm.electronicFence.currentPolygon.length > 2 ? completeFence() : null" 
-                            style="cursor: pointer; pointer-events: all;" 
+                            stroke-width="2"
+                            @click.stop="skillForm.electronicFence.currentPolygon.length > 2 ? completeFence() : null"
+                            style="cursor: pointer; pointer-events: all;"
                             :title="skillForm.electronicFence.currentPolygon.length > 2 ? '点击闭合围栏' : ''" />
                         </g>
                       </svg>
@@ -479,10 +479,10 @@
             style="margin-left: 10px; margin-top: 10px;">
             <div class="fence-settings">
               <div class="setting-item">
-                <span class="setting-label">触发模式：</span>
+                <span class="setting-label">触发机制：</span>
                 <el-radio-group v-model="skillForm.electronicFence.triggerMode" size="small">
-                  <el-radio-button label="inside">进入围栏触发</el-radio-button>
-                  <el-radio-button label="outside">离开围栏触发</el-radio-button>
+                  <el-radio-button label="inside">围栏内</el-radio-button>
+                  <el-radio-button label="outside">围栏外</el-radio-button>
                 </el-radio-group>
               </div>
 
@@ -497,9 +497,9 @@
       </el-dialog>
 
       <!-- 技能详情对话框 -->
-      <el-dialog 
-        :visible.sync="skillDetailDialogVisible" 
-        width="40%" 
+      <el-dialog
+        :visible.sync="skillDetailDialogVisible"
+        width="40%"
         :close-on-click-modal="false"
         custom-class="skill-params-dialog"
         center>
@@ -514,7 +514,7 @@
             </div>
           </div>
         </div>
-        
+
         <div v-if="skillDetailData && skillDetailData.params" class="skill-params-content">
           <div class="params-overview">
             <div class="overview-card">
@@ -530,10 +530,10 @@
               </div>
             </div>
           </div>
-          
+
           <div class="params-list">
-            <div 
-              v-for="(value, key, index) in skillDetailData.params" 
+            <div
+              v-for="(value, key, index) in skillDetailData.params"
               :key="index"
               class="param-card">
               <div class="param-header">
@@ -550,17 +550,17 @@
                   </el-tooltip>
                 </div>
               </div>
-              
+
               <div class="param-content">
                 <!-- 根据参数类型显示不同的UI组件 -->
                 <template v-if="Array.isArray(value)">
                   <div class="array-param">
                     <div class="array-tags">
-                      <el-tag 
-                        v-for="(item, idx) in value" 
-                        :key="idx" 
-                        size="small" 
-                        type="info" 
+                      <el-tag
+                        v-for="(item, idx) in value"
+                        :key="idx"
+                        size="small"
+                        type="info"
                         class="array-tag">
                         <i class="el-icon-collection-tag"></i>
                         {{ item }}
@@ -568,23 +568,23 @@
                     </div>
                   </div>
                 </template>
-                
+
                 <template v-else-if="typeof value === 'boolean'">
                   <div class="boolean-param">
-                    <el-select 
-                      v-model="skillDetailData.params[key]" 
-                      placeholder="请选择布尔值" 
+                    <el-select
+                      v-model="skillDetailData.params[key]"
+                      placeholder="请选择布尔值"
                       class="boolean-select">
-                      <el-option 
-                        :value="true" 
+                      <el-option
+                        :value="true"
                         label="true">
                         <div class="boolean-option">
                           <i class="el-icon-check boolean-icon success"></i>
                           <span class="boolean-text success">true</span>
                         </div>
                       </el-option>
-                      <el-option 
-                        :value="false" 
+                      <el-option
+                        :value="false"
                         label="false">
                         <div class="boolean-option">
                           <i class="el-icon-close boolean-icon danger"></i>
@@ -594,7 +594,7 @@
                     </el-select>
                   </div>
                 </template>
-                
+
                 <template v-else-if="typeof value === 'object' && value !== null">
                   <div class="object-param">
                     <div class="json-container">
@@ -602,11 +602,11 @@
                     </div>
                   </div>
                 </template>
-                
+
                 <template v-else-if="typeof value === 'number'">
                   <div class="number-param">
-                    <el-input-number 
-                      v-model="skillDetailData.params[key]" 
+                    <el-input-number
+                      v-model="skillDetailData.params[key]"
                       :placeholder="`${isInteger(value) ? '整数' : '小数'}值 (默认: ${value})`"
                       class="number-input"
                       :step="getNumberStep(value)"
@@ -615,11 +615,11 @@
                     </el-input-number>
                   </div>
                 </template>
-                
+
                 <template v-else>
                   <div class="string-param">
-                    <el-input 
-                      v-model="skillDetailData.params[key]" 
+                    <el-input
+                      v-model="skillDetailData.params[key]"
                       :placeholder="`请输入参数值 (当前${String(value).length}字符)`"
                       class="string-input"
                       :prefix-icon="'el-icon-edit'">
@@ -630,7 +630,7 @@
             </div>
           </div>
         </div>
-        
+
         <div v-else-if="skillDetailData === null" class="skill-params-loading">
           <div class="loading-content">
             <div class="loading-spinner">
@@ -640,7 +640,7 @@
             <div class="loading-subtitle">请稍候，正在获取参数配置信息</div>
           </div>
         </div>
-        
+
         <div v-else class="skill-params-empty">
           <div class="empty-content">
             <div class="empty-icon">
@@ -650,18 +650,18 @@
             <div class="empty-subtitle">该技能暂无可配置的参数项</div>
           </div>
         </div>
-        
+
         <div slot="footer" class="dialog-footer">
           <el-button @click="skillDetailDialogVisible = false">取消</el-button>
-          <el-button 
-            type="primary" 
-            @click="saveSkillDetails" 
+          <el-button
+            type="primary"
+            @click="saveSkillDetails"
             v-if="skillDetailData && skillDetailData.params">
             保存配置
           </el-button>
         </div>
       </el-dialog>
-      
+
       <!-- 设备详情对话框 -->
       <el-dialog title="摄像头详情" :visible.sync="deviceDetailDialogVisible" width="60%" :close-on-click-modal="false">
         <div v-if="deviceDetailData" class="device-detail-content">
@@ -694,15 +694,15 @@
             <el-descriptions-item label="创建时间">{{ deviceDetailData.createTime || '-' }}</el-descriptions-item>
             <el-descriptions-item label="更新时间">{{ deviceDetailData.updateTime || '-' }}</el-descriptions-item>
           </el-descriptions>
-          
+
           <el-divider content-position="left">设备详细信息</el-divider>
-          
+
           <div class="device-specific-info">
             <el-descriptions :column="2" border size="small">
               <!-- 动态展示所有设备属性 -->
-              <el-descriptions-item 
-                v-for="(value, key) in getDeviceSpecificInfo(deviceDetailData)" 
-                :label="formatPropertyLabel(key)" 
+              <el-descriptions-item
+                v-for="(value, key) in getDeviceSpecificInfo(deviceDetailData)"
+                :label="formatPropertyLabel(key)"
                 :key="key">
                 <!-- 根据属性类型显示不同的格式 -->
                 <template v-if="typeof value === 'boolean'">
@@ -720,9 +720,9 @@
               </el-descriptions-item>
             </el-descriptions>
           </div>
-          
+
           <el-divider content-position="left">关联技能</el-divider>
-          
+
           <div v-if="deviceDetailData.skill_names && deviceDetailData.skill_names.length > 0" class="skills-list">
             <el-tag
               v-for="skill in deviceDetailData.skill_names"
@@ -753,5 +753,5 @@ export default cameraComponent
 </style>
 
 
-      
+
 
