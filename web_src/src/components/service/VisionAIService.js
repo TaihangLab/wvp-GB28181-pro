@@ -352,6 +352,11 @@ export const skillAPI = {
     return visionAIAxios.get('/api/v1/skill-classes', { params: apiParams });
   },
 
+  // 热加载技能类
+  reloadSkillClasses() {
+    return visionAIAxios.post('/api/v1/skill-classes/reload');
+  },
+
   // 获取AI任务技能类列表
   getAITaskSkillClasses(params = {}) {
     // 处理分页参数和查询参数

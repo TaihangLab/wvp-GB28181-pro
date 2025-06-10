@@ -7,6 +7,7 @@
           <el-button type="primary" icon="el-icon-plus" size="small" @click="handleImportSkill">导入技能</el-button>
           <el-button type="danger" icon="el-icon-delete" size="small" :disabled="!selectedSkills.length" @click="handleBatchDelete">批量删除</el-button>
           <el-button type="info" icon="el-icon-check" size="small" @click="selectAllCurrentPage">选择本页</el-button>
+          <el-button type="success" icon="el-icon-refresh-right" size="small" @click="handleReloadSkillClasses" :loading="reloading">加载技能</el-button>
         </div>
         
         <div class="right-controls">
@@ -56,8 +57,9 @@
           <el-button 
             class="refresh-btn" 
             size="small" 
-            icon="el-icon-refresh" 
-            @click="fetchSkills"
+            icon="el-icon-refresh-left" 
+            @click="handleRefreshData"
+            :loading="refreshing"
             title="刷新数据"
           ></el-button>
         </div>
@@ -637,6 +639,8 @@ export default {
       fileList: [],
       importing: false, // 导入中状态
       loading: false,   // 数据加载状态
+      reloading: false, // 热加载状态
+      refreshing: false, // 刷新状态
 
       // 编辑相关
       editForm: {
@@ -1290,6 +1294,54 @@ export default {
       this.pageSize = size;
       this.currentPage = 1; // 重置到第一页
       this.fetchSkills();
+    },
+
+    // 处理刷新数据按钮点击
+    async handleRefreshData() {
+      try {
+        this.refreshing = true;
+        this.$message({
+          message: '正在刷新数据...',
+          type: 'info',
+          duration: 1000
+        });
+        
+        await this.fetchSkills();
+        
+        this.$message.success('数据刷新成功');
+      } catch (error) {
+        console.error('刷新数据失败:', error);
+        this.$message.error('刷新数据失败，请检查网络连接');
+      } finally {
+        this.refreshing = false;
+      }
+    },
+
+    // 热加载技能类
+    async handleReloadSkillClasses() {
+      try {
+        this.reloading = true;
+        this.$message({
+          message: '正在加载技能...',
+          type: 'info',
+          duration: 1000
+        });
+
+        const response = await skillAPI.reloadSkillClasses();
+        
+        if (response.data.code === 0) {
+          this.$message.success('技能加载成功');
+          // 重新获取技能列表
+          this.fetchSkills();
+        } else {
+          this.$message.error(response.data.msg || '技能加载失败');
+        }
+      } catch (error) {
+        console.error('加载技能失败:', error);
+        this.$message.error('加载技能失败，请检查网络连接');
+      } finally {
+        this.reloading = false;
+      }
     },
 
     // 格式化日期时间
