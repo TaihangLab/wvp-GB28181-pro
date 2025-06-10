@@ -288,7 +288,7 @@
                 <el-tag size="mini" effect="plain" class="skill-type-tag" v-if="currentSkillInfo.type">
                   {{ currentSkillInfo.type }}
                 </el-tag>
-                <el-button type="text" icon="el-icon-setting" @click.stop="viewSkillDetails" style="margin-left: 5px;" title="配置技能参数"></el-button>
+                <el-button type="text" icon="el-icon-setting" @click.stop="showSkillParamsConfig" style="margin-left: 5px;" title="技能参数配置"></el-button>
                 <div class="skill-status">
                   <el-switch v-model="skillForm.status" active-color="#67C23A" inactive-color="#909399">
                   </el-switch>
@@ -497,50 +497,169 @@
       </el-dialog>
 
       <!-- 技能详情对话框 -->
-      <el-dialog title="技能参数配置" :visible.sync="skillDetailDialogVisible" width="35%" :close-on-click-modal="false">
-        <div v-if="skillDetailData && skillDetailData.params" class="skill-detail-content">
-          <div class="detail-params-title">技能参数设置</div>
-          <el-row class="detail-params-container" v-for="(value, key, index) in skillDetailData.params" :key="index">
-            <el-col :span="10" class="param-label">
-              {{ key }}
-              <el-tooltip v-if="getParamTooltip(key)" :content="getParamTooltip(key)" placement="top">
-                <i class="el-icon-question"></i>
-              </el-tooltip>
-            </el-col>
-            <el-col :span="14" class="param-value">
-              <!-- 根据参数类型显示不同的UI组件 -->
-              <template v-if="Array.isArray(value)">
-                <div class="array-value">
-                  <el-tag 
-                    v-for="(item, idx) in value" 
-                    :key="idx" 
-                    size="small" 
-                    type="info" 
-                    class="array-item">
-                    {{ item }}
-                  </el-tag>
+      <el-dialog 
+        :visible.sync="skillDetailDialogVisible" 
+        width="40%" 
+        :close-on-click-modal="false"
+        custom-class="skill-params-dialog"
+        center>
+        <div slot="title" class="dialog-header">
+          <div class="dialog-header-content">
+            <div class="skill-icon-wrapper">
+              <i class="el-icon-setting"></i>
+            </div>
+            <div class="dialog-title-info">
+              <h3 class="dialog-title">技能参数配置</h3>
+              <p class="dialog-subtitle" v-if="currentSkillInfo">{{ currentSkillInfo.name_zh || currentSkill }} 参数设置</p>
+            </div>
+          </div>
+        </div>
+        
+        <div v-if="skillDetailData && skillDetailData.params" class="skill-params-content">
+          <div class="params-overview">
+            <div class="overview-card">
+              <div class="overview-icon">
+                <i class="el-icon-data-board"></i>
+              </div>
+              <div class="overview-info">
+                <div class="overview-title">参数总览</div>
+                <div class="overview-stats">
+                  <span class="param-count">{{ Object.keys(skillDetailData.params).length }} 个参数</span>
+                  <span class="param-types">{{ getParamTypesCount() }}</span>
                 </div>
-              </template>
-              <template v-else-if="typeof value === 'object' && value !== null">
-                <pre class="json-value">{{ JSON.stringify(value, null, 2) }}</pre>
-              </template>
-              <template v-else>
-                <el-input v-model="skillDetailData.params[key]" placeholder="请输入参数值"></el-input>
-              </template>
-            </el-col>
-          </el-row>
+              </div>
+            </div>
+          </div>
+          
+          <div class="params-list">
+            <div 
+              v-for="(value, key, index) in skillDetailData.params" 
+              :key="index"
+              class="param-card">
+              <div class="param-header">
+                <div class="param-info">
+                  <div class="param-name">
+                    <i :class="getParamTypeIcon(value)"></i>
+                    <span class="name-text">{{ key }}</span>
+                    <el-tag size="mini" :type="getParamTypeColor(value)" class="param-type-tag">
+                      {{ getParamTypeLabel(value) }}{{ Array.isArray(value) ? ` (${value.length}项)` : '' }}
+                    </el-tag>
+                  </div>
+                  <el-tooltip v-if="getParamTooltip(key)" :content="getParamTooltip(key)" placement="top">
+                    <i class="el-icon-question param-help"></i>
+                  </el-tooltip>
+                </div>
+              </div>
+              
+              <div class="param-content">
+                <!-- 根据参数类型显示不同的UI组件 -->
+                <template v-if="Array.isArray(value)">
+                  <div class="array-param">
+                    <div class="array-tags">
+                      <el-tag 
+                        v-for="(item, idx) in value" 
+                        :key="idx" 
+                        size="small" 
+                        type="info" 
+                        class="array-tag">
+                        <i class="el-icon-collection-tag"></i>
+                        {{ item }}
+                      </el-tag>
+                    </div>
+                  </div>
+                </template>
+                
+                <template v-else-if="typeof value === 'boolean'">
+                  <div class="boolean-param">
+                    <el-select 
+                      v-model="skillDetailData.params[key]" 
+                      placeholder="请选择布尔值" 
+                      class="boolean-select">
+                      <el-option 
+                        :value="true" 
+                        label="true">
+                        <div class="boolean-option">
+                          <i class="el-icon-check boolean-icon success"></i>
+                          <span class="boolean-text success">true</span>
+                        </div>
+                      </el-option>
+                      <el-option 
+                        :value="false" 
+                        label="false">
+                        <div class="boolean-option">
+                          <i class="el-icon-close boolean-icon danger"></i>
+                          <span class="boolean-text danger">false</span>
+                        </div>
+                      </el-option>
+                    </el-select>
+                  </div>
+                </template>
+                
+                <template v-else-if="typeof value === 'object' && value !== null">
+                  <div class="object-param">
+                    <div class="json-container">
+                      <pre class="json-content">{{ JSON.stringify(value, null, 2) }}</pre>
+                    </div>
+                  </div>
+                </template>
+                
+                <template v-else-if="typeof value === 'number'">
+                  <div class="number-param">
+                    <el-input-number 
+                      v-model="skillDetailData.params[key]" 
+                      :placeholder="`${isInteger(value) ? '整数' : '小数'}值 (默认: ${value})`"
+                      class="number-input"
+                      :step="getNumberStep(value)"
+                      :precision="getNumberPrecision(value)"
+                      :controls-position="'right'">
+                    </el-input-number>
+                  </div>
+                </template>
+                
+                <template v-else>
+                  <div class="string-param">
+                    <el-input 
+                      v-model="skillDetailData.params[key]" 
+                      :placeholder="`请输入参数值 (当前${String(value).length}字符)`"
+                      class="string-input"
+                      :prefix-icon="'el-icon-edit'">
+                    </el-input>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
         </div>
-        <div v-else-if="skillDetailData === null" class="skill-detail-loading">
-          <i class="el-icon-loading"></i> 正在加载技能参数...
+        
+        <div v-else-if="skillDetailData === null" class="skill-params-loading">
+          <div class="loading-content">
+            <div class="loading-spinner">
+              <i class="el-icon-loading"></i>
+            </div>
+            <div class="loading-text">正在加载技能参数...</div>
+            <div class="loading-subtitle">请稍候，正在获取参数配置信息</div>
+          </div>
         </div>
-        <div v-else class="skill-detail-empty">
-          <i class="el-icon-info"></i>
-          <p>未能获取到技能参数信息</p>
+        
+        <div v-else class="skill-params-empty">
+          <div class="empty-content">
+            <div class="empty-icon">
+              <i class="el-icon-document-remove"></i>
+            </div>
+            <div class="empty-title">无可配置参数</div>
+            <div class="empty-subtitle">该技能暂无可配置的参数项</div>
+          </div>
         </div>
-        <span slot="footer" class="dialog-footer">
-          <el-button size="small" @click="skillDetailDialogVisible = false">取消</el-button>
-          <el-button type="primary" size="small" @click="saveSkillDetails" v-if="skillDetailData && skillDetailData.params">保存</el-button>
-        </span>
+        
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="skillDetailDialogVisible = false">取消</el-button>
+          <el-button 
+            type="primary" 
+            @click="saveSkillDetails" 
+            v-if="skillDetailData && skillDetailData.params">
+            保存配置
+          </el-button>
+        </div>
       </el-dialog>
       
       <!-- 设备详情对话框 -->

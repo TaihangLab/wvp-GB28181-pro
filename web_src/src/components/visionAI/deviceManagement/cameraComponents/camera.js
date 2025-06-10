@@ -579,6 +579,36 @@ export default {
           this.tempConfiguredSkill = skill;
         }
 
+        // 为新创建的技能加载默认参数（每次都重新加载，确保数据独立）
+        // 从API获取该技能类的默认参数
+        skillAPI.getAITaskSkillDetail(skillInfo.id)
+          .then(response => {
+            let params = {};
+            if (response.data && (response.data.code === 0 || response.data.success)) {
+              const skillDetail = response.data.data;
+              if (skillDetail && skillDetail.default_config && skillDetail.default_config.params) {
+                params = skillDetail.default_config.params;
+              }
+            }
+            
+            this.skillDetailData = {
+              id: skillInfo.id,
+              name: skillInfo.value,
+              name_zh: skillInfo.name_zh,
+              params: { ...params }
+            };
+            console.log('为新技能加载默认参数:', this.skillDetailData);
+          })
+          .catch(error => {
+            console.error('获取技能默认参数失败:', error);
+            this.skillDetailData = {
+              id: skillInfo.id,
+              name: skillInfo.value,
+              name_zh: skillInfo.name_zh,
+              params: {}
+            };
+          });
+
         // 打开配置技能对话框
         this.skillDialogVisible = true;
         
@@ -783,36 +813,57 @@ export default {
                   return;
                 }
               
-                // 获取技能参数，无论用户是否点击过保存按钮
-                this.getSkillParams(skillInfo ? skillInfo.id : null, skillKey)
-                  .then(params => {
-                    // 添加获取到的参数到任务数据中
-                    if (params && Object.keys(params).length > 0) {
-                        taskData.skill_config.params = params;
-                      console.log('使用获取到的参数:', params);
-                    } else {
-                      // 如果无法获取默认参数，则尝试使用已保存的参数
-                      if (deviceIndex !== -1 && this.deviceList[deviceIndex].config && 
-                          this.deviceList[deviceIndex].config[skillKey] && 
-                          this.deviceList[deviceIndex].config[skillKey].customParams) {
-                        // 如果设备配置中已有自定义参数，直接使用
-                          taskData.skill_config.params = { ...this.deviceList[deviceIndex].config[skillKey].customParams };
-                      } else if (config && config.customParams) {
-                        // 兼容旧逻辑，如果配置对象中有自定义参数，使用配置对象中的
-                          taskData.skill_config.params = { ...config.customParams };
+                // 优先使用用户自定义的参数，没有则获取默认参数
+                let finalParams = {};
+                
+                // 1. 首先检查是否有用户自定义的参数（从参数配置页面保存的）
+                if (deviceIndex !== -1 && this.deviceList[deviceIndex].config && 
+                    this.deviceList[deviceIndex].config[skillKey] && 
+                    this.deviceList[deviceIndex].config[skillKey].customParams) {
+                  finalParams = { ...this.deviceList[deviceIndex].config[skillKey].customParams };
+                  console.log('使用设备配置中的自定义参数:', finalParams);
+                  taskData.skill_config.params = finalParams;
+                  this.createAITaskWithParams(taskData, deviceIndex, skillKey, config);
+                  return;
+                }
+                
+                // 2. 检查当前参数对话框中是否有修改的参数
+                if (this.skillDetailData && this.skillDetailData.params && 
+                    Object.keys(this.skillDetailData.params).length > 0) {
+                  finalParams = { ...this.skillDetailData.params };
+                  console.log('使用当前对话框中的参数:', finalParams);
+                  taskData.skill_config.params = finalParams;
+                  this.createAITaskWithParams(taskData, deviceIndex, skillKey, config);
+                  return;
+                }
+                
+                // 3. 最后才获取默认参数
+                skillAPI.getAITaskSkillDetail(skillInfo.id)
+                  .then(response => {
+                    if (response.data && (response.data.code === 0 || response.data.success)) {
+                      const skillDetail = response.data.data;
+                      if (skillDetail && skillDetail.default_config && skillDetail.default_config.params) {
+                        finalParams = skillDetail.default_config.params;
                       }
                     }
-                    
-                    // 继续创建AI任务
+                    console.log('使用API获取的默认参数:', finalParams);
+                    taskData.skill_config.params = finalParams;
                     this.createAITaskWithParams(taskData, deviceIndex, skillKey, config);
                   })
                   .catch(error => {
                     console.error('获取技能参数失败:', error);
-                    // 如果获取参数失败，仍然尝试创建AI任务，但使用已有的参数
+                    // 如果获取参数失败，使用空参数创建任务
+                    taskData.skill_config.params = {};
                     this.createAITaskWithParams(taskData, deviceIndex, skillKey, config);
                   });
               } else {
                 // 更新模式，使用PUT请求更新任务
+                // 同样需要处理自定义参数
+                if (this.skillDetailData && this.skillDetailData.params && 
+                    Object.keys(this.skillDetailData.params).length > 0) {
+                  taskData.skill_config.params = { ...this.skillDetailData.params };
+                  console.log('更新模式：使用当前对话框中的参数:', taskData.skill_config.params);
+                }
                 this.updateAITask(taskData, deviceIndex, skillKey, config);
               }
             } else {
@@ -863,117 +914,15 @@ export default {
 
 
 
-    viewSkillDetails() {
-      if (!this.currentSkill) {
-        this.$message.warning('无法获取当前技能信息');
+    // 显示技能参数配置对话框
+    showSkillParamsConfig() {
+      if (!this.skillDetailData) {
+        this.$message.warning('暂无技能参数数据');
         return;
       }
       
-      // 显示加载状态
-      this.skillDetailData = null;
+      console.log('显示技能参数配置:', this.skillDetailData);
       this.skillDetailDialogVisible = true;
-      
-      // 获取当前技能名称
-      const skillName = this.currentSkill;
-      
-      // 首先尝试通过API获取所有技能列表
-      skillAPI.getAITaskSkillClasses({})
-        .then(response => {
-          if (response.data && response.data.code === 0) {
-            const skillList = response.data.data || [];
-            
-            // 使用多种条件查找匹配的技能
-            const matchedSkill = skillList.find(skill => 
-              skill.name === skillName || 
-              skill.name_zh === skillName || 
-              (skill.aliases && skill.aliases.includes(skillName)) ||
-              String(skill.id) === String(skillName)
-            );
-            
-            if (matchedSkill && matchedSkill.id) {
-              // 找到了技能ID，调用详情API
-              console.log('找到匹配的技能ID:', matchedSkill.id);
-              return skillAPI.getAITaskSkillDetail(matchedSkill.id);
-            } else {
-              // 如果找不到匹配的技能，不提供默认参数
-              console.warn('找不到匹配的技能');
-              this.skillDetailData = {
-                params: {}
-              };
-              return null;
-            }
-          } else {
-            throw new Error(response.data.msg || '获取技能列表失败');
-          }
-        })
-          .then(response => {
-          if (response) {
-            if (response.data && (response.data.code === 0 || response.data.success)) {
-              // 获取技能详情数据
-              const skillDetail = response.data.data;
-              
-              // 从 default_config 中提取 params 数据
-              if (skillDetail.default_config && skillDetail.default_config.params) {
-                this.skillDetailData = {
-                  id: skillDetail.id,
-                  name: skillDetail.name,
-                  name_zh: skillDetail.name_zh,
-                  params: { ...skillDetail.default_config.params }
-                };
-                
-                // 检查当前设备是否已有该技能的自定义配置
-                if (this.currentDeviceId) {
-                  console.log('检查设备配置，当前设备ID:', this.currentDeviceId);
-                  
-                  // 使用String转换确保类型一致
-                  const deviceIndex = this.deviceList.findIndex(device => {
-                    return String(device.id) === String(this.currentDeviceId);
-                  });
-                  
-                  console.log('查找到的设备索引:', deviceIndex);
-                  
-                  if (deviceIndex !== -1 && this.deviceList[deviceIndex].config) {
-                    const deviceConfig = this.deviceList[deviceIndex].config;
-                    // 尝试使用不同的键名查找配置
-                    const skillConfig = deviceConfig[skillDetail.name_zh] || deviceConfig[skillDetail.name];
-                    
-                    console.log('找到技能配置:', skillConfig ? '是' : '否');
-                    
-                    if (skillConfig && skillConfig.customParams) {
-                      // 如果有自定义参数，优先使用
-                      console.log('使用已存在的自定义参数');
-                      this.skillDetailData.params = { ...skillConfig.customParams };
-                    } else {
-                      console.log('没有找到已存在的自定义参数，使用默认参数');
-                    }
-                  } else {
-                    console.log('没有找到设备或设备没有配置对象，使用默认参数');
-                  }
-                }
-            } else {
-                // 如果没有 default_config.params，则不提供默认数据
-                this.skillDetailData = {
-                  id: skillDetail.id,
-                  name: skillDetail.name,
-                  name_zh: skillDetail.name_zh,
-                  params: skillDetail.params || {}
-                };
-              }
-            } else {
-              throw new Error(response.data.msg || '获取技能详情失败');
-            }
-          }
-          // 如果response为null，说明已经设置了默认值，不需要处理
-        })
-        .catch(error => {
-          console.error('获取技能详情出错:', error);
-          // 即使出错也显示空的参数对象而不是关闭对话框
-          if (!this.skillDetailData) {
-            this.skillDetailData = {
-              params: {}
-            };
-          }
-      });
     },
 
     // 格式化参数值显示
@@ -996,6 +945,118 @@ export default {
         'input_size': '输入图像尺寸，格式为宽×高'
       };
       return tooltips[key] || '';
+    },
+    
+    // 判断数字是否为整数
+    isInteger(value) {
+      return Number.isInteger(value);
+    },
+    
+    // 获取数字的步进值（根据当前值的最小位）
+    getNumberStep(value) {
+      if (Number.isInteger(value)) {
+        return 1;
+      }
+      
+      // 将数字转换为字符串，获取小数部分
+      const valueStr = value.toString();
+      const decimalPart = valueStr.split('.')[1];
+      
+      if (!decimalPart) {
+        return 1;
+      }
+      
+      // 如果是一位小数，使用0.01的步进
+      if (decimalPart.length === 1) {
+        return 0.01;
+      }
+      
+      // 其他情况根据小数位数计算步进值
+      return Math.pow(0.1, decimalPart.length);
+    },
+    
+    // 获取数字的精度（小数位数）
+    getNumberPrecision(value) {
+      if (Number.isInteger(value)) {
+        return 0;
+      }
+      
+      const valueStr = value.toString();
+      const decimalPart = valueStr.split('.')[1];
+      
+      if (!decimalPart) {
+        return 0;
+      }
+      
+      // 如果是一位小数，使用2位精度
+      if (decimalPart.length === 1) {
+        return 2;
+      }
+      
+      // 其他情况保持原有精度
+      return decimalPart.length;
+    },
+    
+    // 获取参数类型图标
+    getParamTypeIcon(value) {
+      if (Array.isArray(value)) {
+        return 'el-icon-menu';
+      } else if (typeof value === 'boolean') {
+        return 'el-icon-switch-button';
+      } else if (typeof value === 'object' && value !== null) {
+        return 'el-icon-document';
+      } else if (typeof value === 'number') {
+        return 'el-icon-s-data';
+      } else {
+        return 'el-icon-edit';
+      }
+    },
+    
+    // 获取参数类型标签
+    getParamTypeLabel(value) {
+      if (Array.isArray(value)) {
+        return '数组';
+      } else if (typeof value === 'boolean') {
+        return '布尔';
+      } else if (typeof value === 'object' && value !== null) {
+        return '对象';
+      } else if (typeof value === 'number') {
+        return this.isInteger(value) ? '整数' : '小数';
+      } else {
+        return '字符';
+      }
+    },
+    
+    // 获取参数类型颜色
+    getParamTypeColor(value) {
+      if (Array.isArray(value)) {
+        return 'primary';
+      } else if (typeof value === 'boolean') {
+        return 'success';
+      } else if (typeof value === 'object' && value !== null) {
+        return 'warning';
+      } else if (typeof value === 'number') {
+        return 'info';
+      } else {
+        return '';
+      }
+    },
+    
+    // 获取参数类型统计
+    getParamTypesCount() {
+      if (!this.skillDetailData || !this.skillDetailData.params) return '';
+      
+      const params = this.skillDetailData.params;
+      const types = {};
+      
+      Object.values(params).forEach(value => {
+        const type = this.getParamTypeLabel(value);
+        types[type] = (types[type] || 0) + 1;
+      });
+      
+      return Object.entries(types)
+        .map(([type, count]) => `${count}个${type}`)
+        .join(', ');
     },
     
     // 保存修改后的技能详情
@@ -1740,49 +1801,7 @@ export default {
       this.skillForm.timeRanges.splice(index, 1);
     },
 
-    // 添加getSkillParams方法来获取技能参数
-    getSkillParams(skillClassId, skillKey) {
-      return new Promise((resolve, reject) => {
-        if (!skillClassId) {
-          resolve({});
-          return;
-        }
-        
-        // 首先检查是否已有保存的参数
-        const deviceIndex = this.deviceList.findIndex(device => device.id === this.currentDeviceId);
-        if (deviceIndex !== -1 && 
-            this.deviceList[deviceIndex].config && 
-            this.deviceList[deviceIndex].config[skillKey] && 
-            this.deviceList[deviceIndex].config[skillKey].customParams) {
-          // 如果已有保存的参数，直接返回
-          resolve(this.deviceList[deviceIndex].config[skillKey].customParams);
-        return;
-      }
-      
-        // 尝试从API获取技能默认参数
-        skillAPI.getAITaskSkillDetail(skillClassId)
-        .then(response => {
-            if (response.data && (response.data.code === 0 || response.data.success)) {
-              // 获取技能详情数据
-              const skillDetail = response.data.data;
-              
-              // 从 default_config 中提取 params 数据
-              if (skillDetail && skillDetail.default_config && skillDetail.default_config.params) {
-                resolve(skillDetail.default_config.params);
-              } else {
-                resolve({});
-              }
-            } else {
-              // 如果API返回错误，返回空对象
-              resolve({});
-            }
-        })
-        .catch(error => {
-            console.error('获取技能默认参数失败:', error);
-            resolve({});
-          });
-        });
-    },
+
     
     // 添加createAITaskWithParams方法来创建AI任务
     createAITaskWithParams(taskData, deviceIndex, skillKey, config) {
@@ -2247,12 +2266,15 @@ export default {
       this.skillForm.electronicFence.imageLoading = true; // 显示加载状态
       this.getAndSetCameraSnapForFence(taskData.camera_id);
       
-      // 加载自定义参数
-      if (taskData.skill_config && taskData.skill_config.params) {
-        this.skillDetailData = {
-          params: { ...taskData.skill_config.params }
-        };
-      }
+      // 从任务的skill_config.params中加载参数（每次都重新创建，确保数据独立）
+      this.skillDetailData = {
+        id: this.currentSkillInfo ? this.currentSkillInfo.id : null,
+        name: this.currentSkillInfo ? this.currentSkillInfo.value : this.currentSkill,
+        name_zh: this.currentSkillInfo ? this.currentSkillInfo.name_zh : this.currentSkill,
+        params: taskData.skill_config && taskData.skill_config.params ? 
+          { ...taskData.skill_config.params } : {}
+      };
+      console.log('从任务数据加载技能参数:', this.skillDetailData);
     },
 
     // 更新AI任务
@@ -2374,6 +2396,9 @@ export default {
       // 重置更新模式
       this.isUpdateMode = false;
       this.currentTaskId = null;
+      
+      // 清理技能参数数据，避免数据残留
+      this.skillDetailData = null;
       
       // 关闭可能存在的loading实例
       try {
