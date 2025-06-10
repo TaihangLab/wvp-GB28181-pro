@@ -59,12 +59,23 @@ export default {
         warningId: ''
       },
       
+      // 实际执行的搜索条件（点击查询按钮后更新）
+      activeSearchForm: {
+        startDate: '',
+        endDate: '',
+        reviewType: '',
+        warningSkill: '',
+        warningLocation: '',
+        warningName: '',
+        warningId: ''
+      },
+      
              // 复判记录列表
        reviewList: [
          {
            id: '1',
            title: '人员越界',
-           image: 'https://via.placeholder.com/280x160/0a1526',
+           image: require('./images/5.jpg'),
            cameraName: '门禁1',
            location: '工地入口区域',
            startTime: '2025-06-06 19:51',
@@ -74,7 +85,7 @@ export default {
          {
            id: '2',
            title: '未穿着反光衣',
-           image: 'https://via.placeholder.com/280x160/1e3c72',
+           image: require('./images/3.jpg'),
            cameraName: '摄像头01',
            location: '工地东北角',
            startTime: '2025-06-06 14:58',
@@ -84,7 +95,7 @@ export default {
          {
            id: '3',
            title: '未佩戴安全帽',
-           image: 'https://via.placeholder.com/280x160/2c5aa0',
+           image: require('./images/5.jpg'),
            cameraName: '摄像头01',
            location: '工地东北角',
            startTime: '2025-06-06 14:57',
@@ -94,7 +105,7 @@ export default {
          {
            id: '4',
            title: '未佩戴安全帽',
-           image: 'https://via.placeholder.com/280x160/3b82d6',
+           image: require('./images/5.jpg'),
            cameraName: '摄像头01',
            location: '工地东北角',
            startTime: '2025-06-06 14:56',
@@ -104,7 +115,7 @@ export default {
          {
            id: '5',
            title: '人员穿越禁止区域',
-           image: 'https://via.placeholder.com/280x160/4a90e2',
+           image: require('./images/5.jpg'),
            cameraName: '摄像头02',
            location: '材料区',
            startTime: '2025-06-05 17:44',
@@ -114,7 +125,7 @@ export default {
          {
            id: '6',
            title: '未穿工作服',
-           image: 'https://via.placeholder.com/280x160/5b9bd5',
+           image: require('./images/4.jpg'),
            cameraName: '摄像头03',
            location: '工地南侧',
            startTime: '2025-06-05 16:32',
@@ -124,7 +135,7 @@ export default {
          {
            id: '7',
            title: '违规吸烟',
-           image: 'https://via.placeholder.com/280x160/70ad47',
+           image: require('./images/6.jpg'),
            cameraName: '摄像头05',
            location: '休息区',
            startTime: '2025-06-05 15:28',
@@ -134,7 +145,7 @@ export default {
          {
            id: '8',
            title: '高空作业未系安全带',
-           image: 'https://via.placeholder.com/280x160/c55a5a',
+           image: require('./images/1.jpg'),
            cameraName: '摄像头04',
            location: '施工作业区',
            startTime: '2025-06-05 14:15',
@@ -144,7 +155,7 @@ export default {
          {
            id: '9',
            title: '闲杂人员入侵',
-           image: 'https://via.placeholder.com/280x160/ffc000',
+           image: require('./images/5.jpg'),
            cameraName: '摄像头02',
            location: '材料区',
            startTime: '2025-06-05 13:45',
@@ -154,7 +165,7 @@ export default {
          {
            id: '10',
            title: '未穿反光背心',
-           image: 'https://via.placeholder.com/280x160/92d050',
+           image: require('./images/3.jpg'),
            cameraName: '摄像头06',
            location: '工地东北角',
            startTime: '2025-06-05 12:20',
@@ -164,7 +175,7 @@ export default {
          {
            id: '11',
            title: '安全帽佩戴异常',
-           image: 'https://via.placeholder.com/280x160/00b0f0',
+           image: require('./images/5.jpg'),
            cameraName: '摄像头01',
            location: '工地东北角',
            startTime: '2025-06-05 11:35',
@@ -174,7 +185,7 @@ export default {
          {
            id: '12',
            title: '危险区域人员滞留',
-           image: 'https://via.placeholder.com/280x160/7030a0',
+           image: require('./images/5.jpg'),
            cameraName: '摄像头07',
            location: '施工作业区',
            startTime: '2025-06-05 10:48',
@@ -184,7 +195,7 @@ export default {
          {
            id: '13',
            title: '工作服穿着不规范',
-           image: 'https://via.placeholder.com/280x160/d99594',
+           image: require('./images/4.jpg'),
            cameraName: '摄像头08',
            location: '工地南侧',
            startTime: '2025-06-05 09:22',
@@ -194,7 +205,7 @@ export default {
          {
            id: '14',
            title: '火源烟雾检测',
-           image: 'https://via.placeholder.com/280x160/f79646',
+           image: require('./images/6.jpg'),
            cameraName: '摄像头09',
            location: '休息区',
            startTime: '2025-06-05 08:55',
@@ -204,7 +215,7 @@ export default {
          {
            id: '15',
            title: '高空作业安全带检查',
-           image: 'https://via.placeholder.com/280x160/8faadc',
+           image: require('./images/1.jpg'),
            cameraName: '摄像头10',
            location: '施工作业区',
            startTime: '2025-06-04 17:30',
@@ -214,7 +225,7 @@ export default {
          {
            id: '16',
            title: '无关人员进入施工区',
-           image: 'https://via.placeholder.com/280x160/a9d18e',
+           image: require('./images/5.jpg'),
            cameraName: '摄像头11',
            location: '施工作业区',
            startTime: '2025-06-04 16:45',
@@ -224,7 +235,7 @@ export default {
          {
            id: '17',
            title: '反光服装缺失检测',
-           image: 'https://via.placeholder.com/280x160/bfbfbf',
+           image: require('./images/3.jpg'),
            cameraName: '摄像头12',
            location: '材料区',
            startTime: '2025-06-04 15:18',
@@ -234,7 +245,7 @@ export default {
          {
            id: '18',
            title: '防护用具佩戴检查',
-           image: 'https://via.placeholder.com/280x160/ff9999',
+           image: require('./images/2.jpg'),
            cameraName: '摄像头13',
            location: '工地南侧',
            startTime: '2025-06-04 14:22',
@@ -290,29 +301,29 @@ export default {
       let filtered = [...this.reviewList]
       
       // 按日期范围筛选
-      if (this.searchForm.startDate) {
+      if (this.activeSearchForm.startDate) {
         filtered = filtered.filter(item => {
           const itemDate = new Date(item.startTime)
-          const startDate = new Date(this.searchForm.startDate + ' 00:00:00')
+          const startDate = new Date(this.activeSearchForm.startDate + ' 00:00:00')
           return itemDate >= startDate
         })
       }
       
-      if (this.searchForm.endDate) {
+      if (this.activeSearchForm.endDate) {
         filtered = filtered.filter(item => {
           const itemDate = new Date(item.startTime)
-          const endDate = new Date(this.searchForm.endDate + ' 23:59:59')
+          const endDate = new Date(this.activeSearchForm.endDate + ' 23:59:59')
           return itemDate <= endDate
         })
       }
       
       // 按复判类型筛选
-      if (this.searchForm.reviewType) {
-        filtered = filtered.filter(item => item.reviewType === this.searchForm.reviewType)
+      if (this.activeSearchForm.reviewType) {
+        filtered = filtered.filter(item => item.reviewType === this.activeSearchForm.reviewType)
       }
       
       // 按预警技能筛选
-      if (this.searchForm.warningSkill) {
+      if (this.activeSearchForm.warningSkill) {
         filtered = filtered.filter(item => {
           // 根据预警技能关键词匹配
           const skillMap = {
@@ -325,29 +336,29 @@ export default {
             'area_intrusion_detection': ['区域', '禁止']
           }
           
-          const keywords = skillMap[this.searchForm.warningSkill] || []
+          const keywords = skillMap[this.activeSearchForm.warningSkill] || []
           return keywords.some(keyword => item.title.includes(keyword))
         })
       }
       
       // 按预警点位筛选
-      if (this.searchForm.warningLocation) {
+      if (this.activeSearchForm.warningLocation) {
         filtered = filtered.filter(item => 
-          item.cameraName.toLowerCase().includes(this.searchForm.warningLocation.toLowerCase())
+          item.cameraName.toLowerCase().includes(this.activeSearchForm.warningLocation.toLowerCase())
         )
       }
       
       // 按预警名称筛选
-      if (this.searchForm.warningName) {
+      if (this.activeSearchForm.warningName) {
         filtered = filtered.filter(item => 
-          item.title.toLowerCase().includes(this.searchForm.warningName.toLowerCase())
+          item.title.toLowerCase().includes(this.activeSearchForm.warningName.toLowerCase())
         )
       }
       
       // 按预警ID筛选
-      if (this.searchForm.warningId) {
+      if (this.activeSearchForm.warningId) {
         filtered = filtered.filter(item => 
-          item.id.toLowerCase().includes(this.searchForm.warningId.toLowerCase())
+          item.id.toLowerCase().includes(this.activeSearchForm.warningId.toLowerCase())
         )
       }
       
@@ -407,24 +418,40 @@ export default {
     
     // 搜索
     handleSearch() {
+      // 将搜索条件复制到活跃搜索条件，触发计算属性更新
+      this.activeSearchForm = { ...this.searchForm }
+      
       this.pagination.currentPage = 1
       this.selectedRecords = []
-      // 搜索时会自动触发计算属性filteredData的更新
-      const totalCount = this.reviewList.length
-      const filteredCount = this.totalRecords
       
-      if (filteredCount === totalCount) {
-        this.$message.success('显示全部记录')
-      } else if (filteredCount === 0) {
-        this.$message.warning('未找到匹配的记录，请调整搜索条件')
-      } else {
-        this.$message.success(`找到 ${filteredCount} 条匹配记录，共 ${totalCount} 条`)
-      }
+      // 等待计算属性更新后再显示结果
+      this.$nextTick(() => {
+        const totalCount = this.reviewList.length
+        const filteredCount = this.totalRecords
+        
+        if (filteredCount === totalCount) {
+          this.$message.success('显示全部记录')
+        } else if (filteredCount === 0) {
+          this.$message.warning('未找到匹配的记录，请调整搜索条件')
+        } else {
+          this.$message.success(`找到 ${filteredCount} 条匹配记录，共 ${totalCount} 条`)
+        }
+      })
     },
     
     // 重置搜索
     resetSearch() {
       this.searchForm = {
+        startDate: '',
+        endDate: '',
+        reviewType: '',
+        warningSkill: '',
+        warningLocation: '',
+        warningName: '',
+        warningId: ''
+      }
+      // 同时重置活跃搜索条件，立即显示全部数据
+      this.activeSearchForm = {
         startDate: '',
         endDate: '',
         reviewType: '',
@@ -994,7 +1021,6 @@ export default {
               placeholder="开始日期"
               size="small"
               value-format="yyyy-MM-dd"
-              @change="handleSearch"
             />
             <span class="date-separator">-</span>
             <el-date-picker
@@ -1003,7 +1029,6 @@ export default {
               placeholder="结束日期"
               size="small"
               value-format="yyyy-MM-dd"
-              @change="handleSearch"
             />
           </div>
           
@@ -1013,7 +1038,6 @@ export default {
               v-model="searchForm.reviewType" 
               placeholder="全部" 
               size="small"
-              @change="handleSearch"
             >
               <el-option 
                 v-for="option in reviewTypeOptions"
@@ -1030,7 +1054,6 @@ export default {
               v-model="searchForm.warningSkill" 
               placeholder="全部智能技能" 
               size="small"
-              @change="handleSearch"
             >
               <el-option 
                 v-for="option in warningSkillOptions"
@@ -1047,7 +1070,7 @@ export default {
               v-model="searchForm.warningLocation"
               placeholder="请输入预警点位"
               size="small"
-              @change="handleSearch"
+              @keyup.enter="handleSearch"
             />
           </div>
         </div>
@@ -1059,7 +1082,7 @@ export default {
               v-model="searchForm.warningName"
               placeholder="请输入预警名称"
               size="small"
-              @change="handleSearch"
+              @keyup.enter="handleSearch"
             />
           </div>
           
@@ -1069,7 +1092,7 @@ export default {
               v-model="searchForm.warningId"
               placeholder="请输入预警ID"
               size="small"
-              @change="handleSearch"
+              @keyup.enter="handleSearch"
             />
           </div>
           
@@ -1567,12 +1590,14 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  text-align: left;
 }
 
 .info-item {
   display: flex;
   font-size: 12px;
   line-height: 1.4;
+  text-align: left;
 }
 
 .info-item .label {
@@ -1580,12 +1605,14 @@ export default {
   min-width: 60px;
   flex-shrink: 0;
   font-weight: 500;
+  text-align: left;
 }
 
 .info-item .value {
   color: #606266;
   flex: 1;
   font-weight: 400;
+  text-align: left;
 }
 
 .time-item {
@@ -1729,10 +1756,12 @@ export default {
   
   .info-item {
     font-size: 11px;
+    text-align: left;
   }
   
   .info-item .label {
     min-width: 55px;
+    text-align: left;
   }
   
   .pagination-section {
@@ -1769,10 +1798,12 @@ export default {
   
   .info-item {
     font-size: 10px;
+    text-align: left;
   }
   
   .info-item .label {
     min-width: 50px;
+    text-align: left;
   }
 }
 
@@ -1801,6 +1832,7 @@ export default {
   
   .info-item {
     font-size: 11px;
+    text-align: left;
   }
 }
 

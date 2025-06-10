@@ -1044,10 +1044,17 @@ export default {
       }
     },
     
-    // 处理误报事件
+    // 处理误报事件 - 预警详情组件已经处理了误报逻辑，这里只需要更新本地状态
     handleFalseAlarmFromDialog(warning) {
       if (warning && warning.id) {
-        this.handleWarning(warning.id, 'falseAlarm');
+        // 只更新本地预警列表状态，不显示提示（预警详情组件已经显示了）
+        const index = this.warningList.findIndex(item => item.id === warning.id);
+        if (index !== -1) {
+          this.warningList[index].status = 'archived';
+          this.warningList[index].isFalseAlarm = true;
+          // 从实时预警列表中移除误报预警
+          this.warningList.splice(index, 1);
+        }
       }
     },
     
@@ -1091,18 +1098,21 @@ export default {
       }
     },
     
-    // 处理误报事件 - 复制预警管理页面的逻辑
+    // 处理误报事件 - 与预警管理页面保持完全一致
     async handleFalseAlarmArchive() {
       try {
         let targetArchiveId = null;
+        let archiveName = '';
         
         // 查找或创建默认档案
         const existingDefaultArchive = this.availableArchives.find(archive => archive.isDefault);
         if (existingDefaultArchive) {
           targetArchiveId = existingDefaultArchive.id;
+          archiveName = existingDefaultArchive.name;
         } else {
           // 如果没有默认档案，自动创建
           targetArchiveId = await this.createDefaultArchive();
+          archiveName = '默认档案';
         }
         
         if (!targetArchiveId) {
@@ -1110,25 +1120,81 @@ export default {
           return;
         }
         
+        // 获取当前预警信息
+        const warningIndex = this.warningList.findIndex(item => item.id === this.archiveWarningId);
+        if (warningIndex === -1) {
+          this.$message.error('未找到预警信息');
+          return;
+        }
+        
+        const warningInfo = this.warningList[warningIndex];
+        
+        // 保存到智能复判记录
+        await this.saveToReviewRecords(warningInfo);
+        
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 300));
         
         // 更新本地数据
-        const index = this.warningList.findIndex(item => item.id === this.archiveWarningId);
-        if (index !== -1) {
-          this.warningList[index].status = 'archived';
-          this.warningList[index].archiveId = targetArchiveId;
-          this.warningList[index].archiveTime = new Date().toLocaleString();
-          this.warningList[index].isFalseAlarm = true; // 标记为误报
-          // 从实时预警列表中移除误报预警
-          this.warningList.splice(index, 1);
-        }
+        this.warningList[warningIndex].status = 'archived';
+        this.warningList[warningIndex].archiveId = targetArchiveId;
+        this.warningList[warningIndex].archiveTime = new Date().toLocaleString();
+        this.warningList[warningIndex].isFalseAlarm = true; // 标记为误报
+        // 从实时预警列表中移除误报预警
+        this.warningList.splice(warningIndex, 1);
         
-        this.$message.success('误报已自动归档到默认档案');
+        this.$message.success('误报事件已保存到智能复判');
         this.archiveWarningId = '';
       } catch (error) {
         console.error('误报归档失败:', error);
         this.$message.error('误报归档失败');
+      }
+    },
+    
+    // 保存到智能复判记录 - 与预警管理页面保持完全一致
+    async saveToReviewRecords(warningInfo) {
+      try {
+        // 创建复判记录数据
+        const reviewRecord = {
+          id: `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          originalWarningId: warningInfo.id,
+          warningType: warningInfo.type || warningInfo.deviceName,
+          deviceName: warningInfo.device || (warningInfo.deviceInfo && warningInfo.deviceInfo.name),
+          location: warningInfo.location || (warningInfo.deviceInfo && warningInfo.deviceInfo.position),
+          originalTime: warningInfo.time,
+          imageUrl: warningInfo.imageUrl,
+          level: warningInfo.level,
+          description: warningInfo.description,
+          reviewResult: 'false_alarm', // 复判结果：误报
+          reviewTime: this.getCurrentTime(),
+          reviewer: this.getCurrentUserName(),
+          reviewReason: '人工标记为误报',
+          confidence: 100, // 人工复判置信度100%
+          aiReviewResult: null, // AI复判结果（如果有的话）
+          aiConfidence: null,
+          status: 'completed',
+          createTime: this.getCurrentTime()
+        };
+        
+        // 保存到本地存储（实际项目中应该调用API保存到数据库）
+        let reviewRecords = JSON.parse(localStorage.getItem('intelligentReviewRecords') || '[]');
+        reviewRecords.unshift(reviewRecord);
+        
+        // 限制记录数量，避免本地存储过大
+        if (reviewRecords.length > 1000) {
+          reviewRecords = reviewRecords.slice(0, 1000);
+        }
+        
+        localStorage.setItem('intelligentReviewRecords', JSON.stringify(reviewRecords));
+        
+        // 模拟API调用保存时间
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        console.log('误报记录已保存到智能复判:', reviewRecord);
+        
+      } catch (error) {
+        console.error('保存到智能复判记录失败:', error);
+        throw error;
       }
     },
     
@@ -1148,7 +1214,6 @@ export default {
         };
         
         this.archivesList.push(newArchive);
-        this.$message.success('已自动创建默认档案');
         
         return newArchive.id;
       } catch (error) {

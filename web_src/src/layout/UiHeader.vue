@@ -26,6 +26,7 @@
         <el-menu-item index="/monitoring/statistics">统计分析</el-menu-item>
         <el-menu-item index="/monitoring/warningArchive">预警档案</el-menu-item>
         <el-menu-item index="/monitoring/warningManage">预警管理</el-menu-item>
+        <el-menu-item index="/monitoring/intelligentReview">智能复判</el-menu-item>
       </el-submenu>
       
       <!-- 设备管理菜单 -->
