@@ -53,14 +53,25 @@
                     </div>
                   </div>
                   <!-- 复判信息行 (仅在复判记录页面显示) -->
-                  <div class="info-row" v-if="(warning.reviewType || warning.duration) && source === 'reviewRecords'">
-                    <div class="info-cell" v-if="warning.reviewType">
+                  <div class="info-row" v-if="warning.reviewType && source === 'reviewRecords'">
+                    <div class="info-cell">
                       <span class="label">复判分类</span>
-                      <span class="value review-classification" :class="'review-' + warning.reviewType">{{ getReviewClassificationText(warning.reviewType) }}</span>
-                    </div>
-                    <div class="info-cell" v-if="warning.duration">
-                      <span class="label">持续时间</span>
-                      <span class="value">{{ warning.duration }}</span>
+                      <span class="value review-classification" :class="'review-' + warning.reviewType">
+                        {{ getReviewClassificationText(warning.reviewType) }}
+                        <el-tooltip 
+                          v-if="warning.reviewType === 'auto'" 
+                          content="还原复判" 
+                          placement="top"
+                        >
+                          <span 
+                            class="restore-review-btn" 
+                            @click="handleRestoreReview"
+                            @click.stop
+                          >
+                            <i class="el-icon-refresh-left"></i>
+                          </span>
+                        </el-tooltip>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -513,6 +524,64 @@ export default {
     handleClose(done) {
       this.closeDialog();
       if (done) done();
+    },
+    
+    // 处理还原复判
+    async handleRestoreReview() {
+      if (!this.warning || !this.warning.id) {
+        this.$message.error('预警信息不完整');
+        return;
+      }
+      
+      try {
+        await this.$confirm(
+          '确定要还原此预警的复判结果吗？还原后该预警将重新进入预警管理页面等待处理。',
+          '还原复判确认',
+          {
+            confirmButtonText: '确定还原',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        );
+        
+        this.loading = true;
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // 创建要还原到预警管理页面的预警数据
+        const restoredWarning = {
+          id: this.warning.id,
+          type: this.warning.type,
+          device: this.warning.device,
+          deviceInfo: this.warning.deviceInfo,
+          location: this.warning.location,
+          time: this.warning.time,
+          level: this.warning.level,
+          imageUrl: this.warning.imageUrl,
+          description: this.warning.description,
+          status: 'pending', // 重新设置为待处理状态
+          // 重置操作历史，只保留预警触发记录
+          operationHistory: this.warning.operationHistory ? 
+            this.warning.operationHistory.filter(record => record.operationType === 'create') : []
+        };
+        
+        // 触发还原事件，通知父组件将预警添加到预警管理页面
+        this.$emit('restore-review', restoredWarning);
+        
+        this.$message.success('预警已成功还原到预警管理页面');
+        
+        // 关闭详情对话框
+        this.closeDialog();
+        
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('还原复判失败:', error);
+          this.$message.error('还原复判失败，请稍后重试');
+        }
+      } finally {
+        this.loading = false;
+      }
     },
     
     // 处理预警事件 - 复制预警管理页面的核心逻辑
@@ -1479,6 +1548,40 @@ export default {
   border-color: rgba(17, 153, 142, 0.5);
   box-shadow: 0 2px 8px rgba(17, 153, 142, 0.2);
   transform: translateY(-1px);
+}
+
+/* 还原复判按钮样式 */
+.restore-review-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  cursor: pointer;
+  margin-left: 8px;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(245, 87, 108, 0.2);
+  position: relative;
+  top: -1px;
+}
+
+.restore-review-btn:hover {
+  background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+  transform: scale(1.1) rotate(-5deg);
+  box-shadow: 0 4px 8px rgba(245, 87, 108, 0.3);
+}
+
+.restore-review-btn:active {
+  transform: scale(0.95);
+}
+
+.restore-review-btn i {
+  font-size: 10px;
+  line-height: 1;
 }
 
 /* 内容布局 */
