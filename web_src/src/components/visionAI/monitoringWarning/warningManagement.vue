@@ -18,51 +18,9 @@ export default {
         warningSkill: '', // 预警技能
         warningName: '', // 预警名称
         warningId: '', // 预警ID
-        status: '' // 处理状态
+        status: '', // 处理状态
+        location: '' // 违规位置
       },
-      
-      // 左侧位置数据
-      locationList: [
-        {
-          id: 'all',
-          name: '全部位置',
-          count: 0, // 动态计算
-          selected: true
-        },
-        {
-          id: 'northeast_corner',
-          name: '工地东北角',
-          count: 0,
-          selected: false
-        },
-        {
-          id: 'south_side',
-          name: '工地南侧',
-          count: 0,
-          selected: false
-        },
-        {
-          id: 'material_area',
-          name: '材料区',
-          count: 0,
-          selected: false
-        },
-        {
-          id: 'rest_area',
-          name: '休息区',
-          count: 0,
-          selected: false
-        },
-        {
-          id: 'construction_area',
-          name: '施工作业区',
-          count: 0,
-          selected: false
-        }
-      ],
-      
-      // 当前选中的位置
-      selectedLocationId: 'all',
       
       // 预警列表数据
       warningList: [
@@ -298,9 +256,11 @@ export default {
       // 过滤掉已归档的预警（已归档的预警不在预警管理页面显示）
       list = list.filter(item => item.status !== 'archived' && !item.isFalseAlarm)
       
-      // 按位置过滤
-      if (this.selectedLocationId && this.selectedLocationId !== 'all') {
-        list = list.filter(item => item.locationId === this.selectedLocationId)
+      // 按位置搜索过滤
+      if (this.searchForm.location) {
+        list = list.filter(item => 
+          item.location && item.location.toLowerCase().includes(this.searchForm.location.toLowerCase())
+        )
       }
       
       // 按开始日期过滤
@@ -385,25 +345,6 @@ export default {
       return list
     },
     
-    // 计算各位置的预警数量
-    locationListWithCount() {
-      const list = this.warningList.filter(item => item.status !== 'archived' && !item.isFalseAlarm)
-      
-      return this.locationList.map(location => {
-        let count = 0
-        if (location.id === 'all') {
-          count = list.length
-        } else {
-          count = list.filter(item => item.locationId === location.id).length
-        }
-        
-        return {
-          ...location,
-          count
-        }
-      })
-    },
-    
     // 当前页的数据
     currentPageData() {
       // 这里模拟每页12条数据，实际项目中可能需要结合分页组件
@@ -443,7 +384,8 @@ export default {
         warningSkill: '',
         warningName: '',
         warningId: '',
-        status: ''
+        status: '',
+        location: ''
       }
       this.dateRange = null
       this.getWarningList()
@@ -1187,34 +1129,6 @@ export default {
       }
     },
     
-    // 选择位置
-    selectLocation(locationId) {
-      // 如果点击的是当前已选中的位置，则不做任何操作
-      if (this.selectedLocationId === locationId) {
-        return
-      }
-      
-      this.selectedLocationId = locationId
-      
-      // 更新位置列表的选中状态
-      this.locationList.forEach(location => {
-        location.selected = location.id === locationId
-      })
-      
-      // 清空选中项
-      this.selectedWarnings = []
-      
-      // 提示当前查看的位置
-      const selectedLocation = this.locationList.find(location => location.id === locationId)
-      if (selectedLocation) {
-        if (locationId === 'all') {
-          this.$message.success(`正在查看所有位置的预警信息`)
-        } else {
-          this.$message.success(`正在查看"${selectedLocation.name}"的预警信息`)
-        }
-      }
-    },
-    
     // 获取预警图标
     getWarningIcon(level) {
       const iconMap = {
@@ -1497,28 +1411,6 @@ export default {
 
 <template>
   <div class="warning-management-container" v-loading="loading">
-    <!-- 左侧位置区域 -->
-    <div class="location-sidebar">
-      <div class="location-header">
-        <h3>位置区域</h3>
-      </div>
-      
-      <div class="location-list">
-        <div 
-          v-for="location in locationListWithCount" 
-          :key="location.id"
-          class="location-item"
-          :class="{ active: selectedLocationId === location.id }"
-          @click="selectLocation(location.id)"
-        >
-          <div class="location-content">
-            <div class="location-name">{{ location.name }}</div>
-            <div class="location-count">{{ location.count }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
     <div class="content-area">
       <!-- 搜索和筛选区域 -->
       <div class="search-filter-area">
@@ -1616,6 +1508,17 @@ export default {
             <el-input
               v-model="searchForm.warningId"
               placeholder="预警ID"
+              size="small"
+              clearable
+              @change="handleSearch"
+              @clear="handleSearch"
+            />
+          </div>
+          
+          <div class="input-wrapper">
+            <el-input
+              v-model="searchForm.location"
+              placeholder="违规位置"
               size="small"
               clearable
               @change="handleSearch"
@@ -1792,9 +1695,8 @@ export default {
         <!-- 没有数据时的提示 -->
         <div class="no-data" v-if="filteredWarningList.length === 0">
           <i class="el-icon-folder-opened"></i>
-          <p v-if="selectedLocationId === 'all'">暂无预警数据</p>
-          <p v-else>该位置暂无预警数据</p>
-          <span class="no-data-tip">可尝试切换其他位置或调整筛选条件</span>
+          <p>暂无预警数据</p>
+          <span class="no-data-tip">可尝试调整搜索条件或筛选条件</span>
         </div>
       </div>
     </div>
@@ -2020,134 +1922,17 @@ export default {
 
 <style scoped>
 .warning-management-container {
-  display: flex;
   height: calc(100vh - 60px);
   background: #f5f7fa;
   padding: 0;
 }
 
-/* 左侧位置区域样式 */
-.location-sidebar {
-  width: 200px;
-  background: #fff;
-  border-radius: 8px;
-  margin: 16px 0 16px 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.location-header {
-  padding: 20px 16px 16px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.location-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  text-align: left;
-  position: relative;
-  padding-left: 12px;
-}
-
-.location-header h3::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 16px;
-  background: linear-gradient(135deg, #409eff 0%, #36a3f7 100%);
-  border-radius: 2px;
-}
-
-.location-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 8px;
-}
-
-.location-item {
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-radius: 8px;
-  margin-bottom: 6px;
-  position: relative;
-  background: #fff;
-}
-
-.location-item:last-child {
-  margin-bottom: 0;
-}
-
-.location-item:hover {
-  background-color: #f5f7fa;
-  transform: translateX(2px);
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
-}
-
-.location-item.active {
-  background: linear-gradient(135deg, #409eff 0%, #36a3f7 100%);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-  transform: translateX(4px);
-}
-
-.location-content {
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.location-name {
-  font-size: 14px;
-  color: #303133;
-  font-weight: 500;
-  transition: color 0.3s ease;
-}
-
-.location-item.active .location-name {
-  color: #fff;
-  font-weight: 600;
-}
-
-.location-count {
-  background: #f0f2f5;
-  color: #606266;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  min-width: 20px;
-  text-align: center;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  border: 1px solid #e4e7ed;
-}
-
-.location-item:hover .location-count {
-  background: #ecf5ff;
-  color: #409eff;
-  border-color: #c6e2ff;
-}
-
-.location-item.active .location-count {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-/* 右侧内容区样式 */
+/* 内容区样式 */
 .content-area {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px 16px 16px 8px;
+  padding: 16px;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -2513,76 +2298,8 @@ export default {
 }
 
 @media (max-width: 1280px) {
-  .warning-management-container {
-    flex-direction: column;
-  }
-  
   .warning-col {
     width: calc(25% - 12px);
-  }
-  
-  .location-sidebar {
-    width: 100%;
-    height: auto;
-    margin: 0 0 16px 0;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  }
-  
-  .location-header {
-    padding: 16px 20px 12px;
-    background: #f8f9fa;
-    text-align: center;
-  }
-  
-  .location-header h3 {
-    font-size: 15px;
-    font-weight: 600;
-  }
-  
-  .location-list {
-    display: flex;
-    overflow-x: auto;
-    padding: 12px 16px;
-    gap: 8px;
-  }
-  
-  .location-item {
-    margin-bottom: 0;
-    border-radius: 20px;
-    white-space: nowrap;
-    min-width: auto;
-    flex-shrink: 0;
-    transform: none;
-  }
-  
-  .location-item:hover {
-    transform: translateY(-2px);
-  }
-  
-  .location-item.active {
-    background: linear-gradient(135deg, #409eff 0%, #36a3f7 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.25);
-  }
-  
-  .location-content {
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  
-  .location-name {
-    font-size: 13px;
-    font-weight: 500;
-  }
-  
-  .location-count {
-    margin-left: 0;
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 8px;
   }
   
   .date-picker-wrapper {

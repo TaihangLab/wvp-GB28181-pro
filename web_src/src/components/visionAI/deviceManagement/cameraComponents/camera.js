@@ -361,6 +361,12 @@ export default {
       
       this.fetchCameraList(params);
     },
+
+    // 处理摄像头管理按钮点击
+    handleCameraManagement() {
+      // 跳转到摄像头管理页面
+      this.$router.push({ name: 'CameraManagementMain' });
+    },
     
     // 处理查看详情
     handleViewDetails(row) {

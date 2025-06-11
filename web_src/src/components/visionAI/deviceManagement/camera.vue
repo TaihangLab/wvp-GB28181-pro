@@ -68,6 +68,8 @@
           <div class="left-operations">
             <!-- 添加刷新列表按钮 -->
             <el-button type="primary" icon="el-icon-refresh" @click="handleRefresh">刷新列表</el-button>
+            <!-- 添加摄像头管理按钮 -->
+            <el-button type="success" icon="el-icon-setting" @click="handleCameraManagement">摄像头管理</el-button>
           </div>
           <div class="right-operations">
             <el-input v-model="searchKeyword" placeholder="请输入设备名称搜索" style="width: 200px" clearable>
