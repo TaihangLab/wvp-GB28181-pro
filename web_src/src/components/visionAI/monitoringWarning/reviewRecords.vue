@@ -341,7 +341,7 @@ export default {
         })
       }
       
-      // 按预警点位筛选
+      // 按违规位置筛选
       if (this.activeSearchForm.warningLocation) {
         filtered = filtered.filter(item => 
           item.cameraName.toLowerCase().includes(this.activeSearchForm.warningLocation.toLowerCase())
@@ -511,9 +511,8 @@ export default {
           .filter(item => this.selectedRecords.includes(item.id))
           .map(item => ({
             预警名称: item.title,
-            预警点位: item.cameraName,
+            违规位置: item.cameraName,
             开始时间: item.startTime,
-            持续时间: item.duration,
             复判类型: this.getReviewTypeText(item.reviewType)
           }))
         
@@ -657,7 +656,7 @@ export default {
       // 计算预警产生时间（比开始时间早一些）
       const startTime = new Date(reviewItem.startTime)
       const warningTime = new Date(startTime.getTime() - 5 * 60 * 1000) // 提前5分钟
-      const reviewCompleteTime = new Date(startTime.getTime() + parseInt(reviewItem.duration) * 1000) // 加上持续时间
+      const reviewCompleteTime = new Date(startTime.getTime() + 10 * 60 * 1000) // 复判完成时间（开始时间后10分钟）
       
       return {
         id: reviewItem.id,
@@ -669,10 +668,9 @@ export default {
         },
         location: reviewItem.location,
         time: this.formatDateTimeToStandard(warningTime),
-        duration: reviewItem.duration,
         level: this.getWarningLevelByType(reviewItem.title), // 根据类型判断等级
         imageUrl: reviewItem.image,
-        description: `复判记录：${reviewItem.title}，持续时间：${reviewItem.duration}`,
+        description: `复判记录：${reviewItem.title}`,
         reviewType: reviewItem.reviewType, // 添加复判类型
         reviewTypeText: this.getReviewTypeText(reviewItem.reviewType), // 添加复判类型文本
         status: 'completed',
@@ -692,7 +690,7 @@ export default {
             status: 'completed',
             statusText: '开始复判',
             time: this.formatDateTimeToStandard(new Date(reviewItem.startTime)),
-            description: `开始进行${this.getReviewTypeText(reviewItem.reviewType)}，预计耗时：${reviewItem.duration}`,
+            description: `开始进行${this.getReviewTypeText(reviewItem.reviewType)}`,
             operationType: 'review_start',
             operator: reviewItem.reviewType === 'auto' ? '智能复判系统' : '复判人员'
           },
@@ -806,6 +804,50 @@ export default {
     handleFalseAlarmFromDetail(warning) {
       // 复判记录页面不需要处理误报操作
       console.log('复判记录页面：误报操作', warning)
+    },
+    
+    // 处理还原复判事件
+    async handleRestoreReview(restoredWarning) {
+      try {
+        console.log('还原复判的预警数据:', restoredWarning)
+        
+        // 这里应该调用API将预警数据存入预警管理页面
+        // 实际项目中需要调用后端API
+        // await this.$http.post('/api/warnings/restore', restoredWarning)
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // 从复判记录列表中移除该项（因为已经还原了）
+        this.reviewList = this.reviewList.filter(item => item.id !== restoredWarning.id)
+        
+        // 如果当前页没有数据了，回到上一页
+        if (this.currentPageData.length === 0 && this.pagination.currentPage > 1) {
+          this.pagination.currentPage--
+        }
+        
+        // 清除选中状态
+        this.selectedRecords = this.selectedRecords.filter(id => id !== restoredWarning.id)
+        
+        this.$message.success(`预警"${restoredWarning.type}"已成功还原到预警管理页面`)
+        
+        // 可以通过事件总线或者其他方式通知预警管理页面更新数据
+        // 这里使用localStorage来模拟跨页面通信
+        const restoredWarnings = JSON.parse(localStorage.getItem('restoredWarnings') || '[]')
+        restoredWarnings.push({
+          ...restoredWarning,
+          restoredAt: new Date().toISOString(),
+          restoredFrom: 'reviewRecords'
+        })
+        localStorage.setItem('restoredWarnings', JSON.stringify(restoredWarnings))
+        
+        // 触发全局事件，通知其他页面有新的还原预警
+        this.$bus && this.$bus.$emit('warning-restored', restoredWarning)
+        
+      } catch (error) {
+        console.error('还原复判失败:', error)
+        this.$message.error('还原复判失败，请稍后重试')
+      }
     },
     
     // 获取复判类型文本
@@ -1065,10 +1107,10 @@ export default {
           </div>
           
           <div class="search-item">
-            <label>预警点位：</label>
+            <label>违规位置：</label>
             <el-input
               v-model="searchForm.warningLocation"
-              placeholder="请输入预警点位"
+              placeholder="请输入违规位置"
               size="small"
               @keyup.enter="handleSearch"
             />
@@ -1180,6 +1222,7 @@ export default {
       @handle-report="handleReportFromDetail"
       @handle-archive="handleArchiveFromDetail"
       @handle-false-alarm="handleFalseAlarmFromDetail"
+      @restore-review="handleRestoreReview"
     />
   </div>
 </template>
