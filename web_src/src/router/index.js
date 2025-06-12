@@ -38,6 +38,8 @@ import intelligentReview from '../components/visionAI/monitoringWarning/intellig
 import camera from '../components/visionAI/deviceManagement/camera.vue'
 import modelList from '../components/visionAI/modelManagement/modelList.vue'
 import deviceSkills from '../components/visionAI/skillManagement/deviceSkills.vue'
+import multimodalReview from '../components/visionAI/skillManagement/multimodalReview.vue'
+import multimodalCreate from '../components/visionAI/skillManagement/multimodalCreate.vue'
 import logRecords from '../components/visionAI/smartControl/logRecords.vue'
 import edgeServer from '../components/visionAI/edgeManagement/edgeServer.vue'
 import edgeBox from '../components/visionAI/edgeManagement/edgeBox.vue'
@@ -142,6 +144,16 @@ export default new VueRouter({
           path: '/skillManage/deviceSkills',
           name: 'deviceSkills',
           component: deviceSkills,
+        },
+        {
+          path: '/skillManage/multimodalReview',
+          name: 'multimodalReview',
+          component: multimodalReview,
+        },
+        {
+          path: '/skillManage/multimodalCreate',
+          name: 'multimodalCreate',
+          component: multimodalCreate,
         },
         {
           path: '/intelligentControl/logRecord',
