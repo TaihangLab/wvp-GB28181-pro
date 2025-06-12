@@ -93,8 +93,8 @@
         <el-menu-item index="/visualCenter/parkManagement">园区封闭管理平台</el-menu-item>
       </el-submenu>
       
-      <!-- WVP菜单 -->
-      <el-submenu index="/videoMonitor" popper-class="modern-submenu">
+      <!-- WVP菜单 - 已隐藏流媒体中心 -->
+      <el-submenu index="/videoMonitor" popper-class="modern-submenu" v-if="false">
         <template slot="title">
           <i class="el-icon-video-play"></i>
           <span>流媒体中心</span>
