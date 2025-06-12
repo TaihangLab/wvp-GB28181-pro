@@ -36,6 +36,7 @@ import warningManagement from '../components/visionAI/monitoringWarning/warningM
 import reviewRecords from '../components/visionAI/monitoringWarning/reviewRecords.vue'
 import intelligentReview from '../components/visionAI/monitoringWarning/intelligentReview.vue'
 import camera from '../components/visionAI/deviceManagement/camera.vue'
+import CameraManagementMain from '../components/visionAI/deviceManagement/CameraManagementMain.vue'
 import modelList from '../components/visionAI/modelManagement/modelList.vue'
 import deviceSkills from '../components/visionAI/skillManagement/deviceSkills.vue'
 import multimodalReview from '../components/visionAI/skillManagement/multimodalReview.vue'
@@ -130,6 +131,11 @@ export default new VueRouter({
           path: '/deviceManage/camera',
           name: 'camera',
           component: camera,
+        },
+        {
+          path: '/deviceManage/cameraManagement',
+          name: 'CameraManagementMain',
+          component: CameraManagementMain,
         },
         {
           path: '/device/camera',
