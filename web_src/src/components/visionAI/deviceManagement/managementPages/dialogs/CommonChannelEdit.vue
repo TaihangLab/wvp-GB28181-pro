@@ -458,7 +458,7 @@ export default {
 @media (max-width: 900px) {
   .channel-form {
     grid-template-columns: 1fr;
-    gap: 1rem;
+  gap: 1rem;
   }
   
   .channel-form .form-box {
