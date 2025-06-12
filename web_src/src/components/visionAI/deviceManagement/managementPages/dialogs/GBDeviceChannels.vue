@@ -565,12 +565,24 @@ export default {
     
     // 设备录像
     showDeviceRecords(channel) {
-      this.$message.info(`查看 ${channel.name} 的设备录像`);
+      if (!this.currentDevice || !this.currentDevice.onLine) {
+        this.$message.warning('设备离线，无法查看录像');
+        return;
+      }
+      let deviceId = this.currentDevice.deviceId;
+      let channelId = channel.deviceId;
+      this.$router.push(`/gbRecordDetail/${deviceId}/${channelId}`);
     },
     
     // 云端录像
     showCloudRecords(channel) {
-      this.$message.info(`查看 ${channel.name} 的云端录像`);
+      if (!this.currentDevice || !this.currentDevice.onLine) {
+        this.$message.warning('设备离线，无法查看录像');
+        return;
+      }
+      let deviceId = this.currentDevice.deviceId;
+      let channelId = channel.deviceId;
+      this.$router.push(`/cloudRecordDetail/rtp/${deviceId}_${channelId}`);
     },
     
     // 开始录像 - 与channelList.vue一致

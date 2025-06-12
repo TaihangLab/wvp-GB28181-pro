@@ -361,7 +361,7 @@ export default {
       
       this.fetchCameraList(params);
     },
-
+    
     // 处理摄像头管理按钮点击
     handleCameraManagement() {
       // 跳转到摄像头管理页面
