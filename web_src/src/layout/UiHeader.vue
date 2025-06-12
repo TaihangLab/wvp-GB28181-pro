@@ -59,8 +59,7 @@
           <span>技能管理</span>
         </template>
         <el-menu-item index="/skillManage/deviceSkills">技能列表</el-menu-item>
-        <el-menu-item index="/skillManage/skillConfig">技能测试</el-menu-item>
-        <el-menu-item index="/skillManage/skillMonitor">技能监控</el-menu-item>
+        <el-menu-item index="/skillManage/multimodalReview">多模态大模型复判</el-menu-item>
       </el-submenu>
       
       <!-- 智能管控菜单 -->
