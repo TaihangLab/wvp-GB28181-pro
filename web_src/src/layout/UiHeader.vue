@@ -1,15 +1,15 @@
 <template>
   <div id="UiHeader">
-    <el-menu router 
-      :default-active="activeIndex" 
-      menu-trigger="click" 
-      background-color="#001F3F" 
-      text-color="#CCD6F6" 
-      active-text-color="#4BD8FF" 
-      mode="horizontal" 
-      :unique-opened="true" 
+    <el-menu router
+      :default-active="activeIndex"
+      menu-trigger="click"
+      background-color="#001F3F"
+      text-color="#CCD6F6"
+      active-text-color="#4BD8FF"
+      mode="horizontal"
+      :unique-opened="true"
       class="modern-menu">
-      
+
       <!-- Logo区域 -->
       <div class="logo-container">
         <img src="static/logo.png" alt="Logo" class="logo-image"/>
@@ -28,7 +28,7 @@
         <el-menu-item index="/monitoring/warningManage">预警管理</el-menu-item>
         <el-menu-item index="/monitoring/intelligentReview">智能复判</el-menu-item>
       </el-submenu>
-      
+
       <!-- 设备管理菜单 -->
       <el-submenu index="/deviceManage" popper-class="modern-submenu">
         <template slot="title">
@@ -40,7 +40,7 @@
         <el-menu-item index="/deviceManage/network">网络设备</el-menu-item>
         <el-menu-item index="/deviceManage/storage">存储设备</el-menu-item>
       </el-submenu>
-      
+
       <!-- 模型管理菜单 -->
       <el-submenu index="/modelManage" popper-class="modern-submenu">
         <template slot="title">
@@ -51,17 +51,18 @@
         <el-menu-item index="/modelManage/modelTrain">模型训练</el-menu-item>
         <el-menu-item index="/modelManage/modelDeploy">模型部署</el-menu-item>
       </el-submenu>
-      
+
       <!-- 技能管理菜单 -->
       <el-submenu index="/skillManage" popper-class="modern-submenu">
         <template slot="title">
           <i class="el-icon-magic-stick"></i>
           <span>技能管理</span>
         </template>
-        <el-menu-item index="/skillManage/deviceSkills">技能列表</el-menu-item>
+        <el-menu-item index="/skillManage/deviceSkills">视觉模型技能</el-menu-item>
+        <el-menu-item index="/skillManage/multimodalLlmSkills">多模态大模型技能</el-menu-item>
         <el-menu-item index="/skillManage/multimodalReview">多模态大模型复判</el-menu-item>
       </el-submenu>
-      
+
       <!-- 智能管控菜单 -->
       <el-submenu index="/intelligentControl" popper-class="modern-submenu">
         <template slot="title">
@@ -72,7 +73,7 @@
         <el-menu-item index="/edgeManage/edgeServer">边缘服务器</el-menu-item>
         <el-menu-item index="/edgeManage/edgeBox">边缘盒子</el-menu-item>
       </el-submenu>
-      
+
       <!-- 系统管理菜单 -->
       <el-submenu index="/systemManage" popper-class="modern-submenu">
         <template slot="title">
@@ -81,7 +82,7 @@
         </template>
         <el-menu-item index="/systemManage/appSettings">应用设置</el-menu-item>
       </el-submenu>
-      
+
       <!-- 可视中心菜单 -->
       <el-submenu index="/visualAI" popper-class="modern-submenu">
         <template slot="title">
@@ -92,7 +93,7 @@
         <el-menu-item index="/algorithmInference">算法推理平台</el-menu-item>
         <el-menu-item index="/visualCenter/parkManagement">园区封闭管理平台</el-menu-item>
       </el-submenu>
-      
+
       <!-- WVP菜单 - 已隐藏流媒体中心 -->
       <el-submenu index="/videoMonitor" popper-class="modern-submenu" v-if="false">
         <template slot="title">
@@ -108,7 +109,7 @@
         <el-menu-item index="/cloudRecord">云端录像</el-menu-item>
         <el-menu-item index="/mediaServerManger">节点管理</el-menu-item>
         <el-menu-item index="/platformList/15/1">国标级联</el-menu-item>
-        
+
         <el-submenu index="/channel" popper-append-to-body popper-class="modern-submenu nested-submenu">
           <template slot="title">通道管理</template>
           <el-menu-item index="/channel/region">行政区划</el-menu-item>
@@ -118,12 +119,12 @@
         <el-menu-item v-if="editUser" index="/userManager">
           <span>用户管理</span>
         </el-menu-item>
-        
+
         <el-menu-item index="/operations">
           <span>运维中心</span>
         </el-menu-item>
       </el-submenu>
-      
+
       <!-- 用户菜单 -->
       <el-submenu index="" class="user-menu" popper-class="modern-submenu">
         <template slot="title">
@@ -136,13 +137,13 @@
         </el-menu-item> -->
         <el-menu-item>
           <i class="el-icon-bell"></i>
-          <el-switch v-model="alarmNotify" 
-            active-color="#13ce66" 
-            inactive-color="#ff4949" 
+          <el-switch v-model="alarmNotify"
+            active-color="#13ce66"
+            inactive-color="#ff4949"
             @change="alarmNotifyChannge">
           </el-switch>
           <span class="switch-label">报警信息推送</span>
-        </el-menu-item> 
+        </el-menu-item>
         <el-menu-item @click="changePassword">
           <i class="el-icon-key"></i>
           <span>修改密码</span>
@@ -191,7 +192,7 @@ export default {
     setTimeout(() => {
       this.sseControl()
     }, 3000);
-    
+
     // 添加通道管理菜单的特殊处理
     this.$nextTick(() => {
       // 获取到通道管理的菜单项
@@ -380,7 +381,7 @@ export default {
 }
 
 /* 菜单项样式 */
-.modern-menu .el-menu-item, 
+.modern-menu .el-menu-item,
 .modern-menu .el-submenu__title {
   height: 60px;
   line-height: 60px;
@@ -390,13 +391,13 @@ export default {
   position: relative;
 }
 
-.modern-menu .el-menu-item:hover, 
+.modern-menu .el-menu-item:hover,
 .modern-menu .el-submenu__title:hover {
   background-color: rgba(75, 216, 255, 0.05) !important;
   color: #4BD8FF !important;
 }
 
-.modern-menu .el-menu-item i, 
+.modern-menu .el-menu-item i,
 .modern-menu .el-submenu__title i {
   margin-right: 5px;
   font-size: 18px;
@@ -404,7 +405,7 @@ export default {
   transition: transform 0.3s ease;
 }
 
-.modern-menu .el-menu-item:hover i, 
+.modern-menu .el-menu-item:hover i,
 .modern-menu .el-submenu__title:hover i {
   transform: translateY(-2px);
 }
@@ -467,33 +468,33 @@ export default {
 
 /* 调整菜单响应式行为 */
 @media screen and (max-width: 1200px) {
-  .modern-menu .el-menu-item, 
+  .modern-menu .el-menu-item,
   .modern-menu .el-submenu__title {
     padding: 0 10px;
   }
-  
+
   .logo-container {
     padding: 0 10px;
     margin-right: 10px;
   }
-  
+
   .logo-text {
     font-size: 16px;
   }
 }
 
 @media screen and (max-width: 992px) {
-  .modern-menu .el-menu-item span, 
+  .modern-menu .el-menu-item span,
   .modern-menu .el-submenu__title span {
     display: none;
   }
-  
-  .modern-menu .el-menu-item i, 
+
+  .modern-menu .el-menu-item i,
   .modern-menu .el-submenu__title i {
     margin-right: 0;
     font-size: 20px;
   }
-  
+
   .logo-text {
     display: none;
   }

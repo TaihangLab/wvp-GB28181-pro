@@ -39,6 +39,8 @@ import camera from '../components/visionAI/deviceManagement/camera.vue'
 import CameraManagementMain from '../components/visionAI/deviceManagement/CameraManagementMain.vue'
 import modelList from '../components/visionAI/modelManagement/modelList.vue'
 import deviceSkills from '../components/visionAI/skillManagement/deviceSkills.vue'
+import multimodalLlmSkills from '../components/visionAI/skillManagement/multimodalLlmSkills.vue'
+import multimodalCreateDetail from '../components/visionAI/skillManagement/LlmSkillCreateDialogDetail.vue'
 import multimodalReview from '../components/visionAI/skillManagement/multimodalReview.vue'
 import multimodalCreate from '../components/visionAI/skillManagement/multimodalCreate.vue'
 import logRecords from '../components/visionAI/smartControl/logRecords.vue'
@@ -150,6 +152,16 @@ export default new VueRouter({
           path: '/skillManage/deviceSkills',
           name: 'deviceSkills',
           component: deviceSkills,
+        },
+        {
+          path: '/skillManage/multimodalLlmSkills',
+          name: 'multimodalLlmSkills',
+          component: multimodalLlmSkills,
+        },
+        {
+          path: '/skillManage/multimodalCreateDetail',
+          name: 'multimodalCreateDetail',
+          component: multimodalCreateDetail,
         },
         {
           path: '/skillManage/multimodalReview',
