@@ -2028,7 +2028,7 @@ export default {
 }
 
 .warning-card {
-  height: 320px;
+  height: 370px;
   background: #fff;
   border-radius: 6px;
   overflow: hidden;
@@ -2081,7 +2081,7 @@ export default {
 }
 
 .warning-image {
-  height: 130px;
+  height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;

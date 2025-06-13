@@ -116,12 +116,24 @@
             </div>
 
             <div class="card-actions" @click.stop>
-              <el-button size="small" @click="editSkill(skill)">编辑</el-button>
+              <el-button 
+                size="small" 
+                @click="editSkill(skill)"
+                :disabled="skill.status === 'online'"
+                :title="skill.status === 'online' ? '已上线技能不可编辑' : '编辑技能'">
+                编辑
+              </el-button>
               <el-button size="small" @click="toggleSkillStatus(skill)">
                 {{ skill.status === 'online' ? '下线' : '上线' }}
               </el-button>
               <el-button size="small" @click="copySkill(skill)">复制</el-button>
-              <el-button size="small" @click="deleteSkill(skill)">删除</el-button>
+              <el-button 
+                size="small" 
+                @click="deleteSkill(skill)"
+                :disabled="skill.status === 'online'"
+                :title="skill.status === 'online' ? '已上线技能不可删除' : '删除技能'">
+                删除
+              </el-button>
             </div>
           </div>
         </div>
@@ -325,13 +337,23 @@ export default {
     // 头部操作
     createSkill() {
       this.$router.push({
-        path: '/skillManage/multimodalCreate'
+        path: '/skillManage/multimodalReviewCreate'
       })
     },
 
     batchImport() {
       if (this.selectedSkills.length === 0) {
         this.$message.warning('请先选择要删除的技能')
+        return
+      }
+
+      // 检查选中的技能中是否有已上线的技能
+      const selectedSkillData = this.skills.filter(skill => this.selectedSkills.includes(skill.id))
+      const onlineSkills = selectedSkillData.filter(skill => skill.status === 'online')
+      
+      if (onlineSkills.length > 0) {
+        const onlineSkillNames = onlineSkills.map(skill => skill.name).join('、')
+        this.$message.warning(`无法删除已上线的技能：${onlineSkillNames}。请先将这些技能下线后再删除。`)
         return
       }
 
@@ -412,7 +434,7 @@ export default {
     viewSkillDetail(skill) {
       // 跳转到技能详情页面，传递技能ID
       this.$router.push({
-        path: '/skillManage/multimodalCreate',
+        path: '/skillManage/multimodalReviewCreate',
         query: { 
           id: skill.id,
           mode: 'view' // 表示查看模式
@@ -421,9 +443,15 @@ export default {
     },
 
     editSkill(skill) {
+      // 检查技能状态，已上线的技能不可编辑
+      if (skill.status === 'online') {
+        this.$message.warning('已上线的技能不可编辑，请先下线后再编辑')
+        return
+      }
+      
       // 跳转到技能编辑页面，传递技能ID
       this.$router.push({
-        path: '/skillManage/multimodalCreate',
+        path: '/skillManage/multimodalReviewCreate',
         query: { 
           id: skill.id,
           mode: 'edit' // 表示编辑模式
@@ -444,10 +472,82 @@ export default {
     },
 
     copySkill(skill) {
-      this.$message.success(`已复制技能: ${skill.name}`)
+      // 先显示确认提示框
+      this.$confirm(
+        `复制后将生成一个新的多模态大技能，技能名称后缀自动+1，请确认操作`,
+        '复制多模态大模型复判提示',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+          customClass: 'copy-skill-dialog',
+          showClose: true,
+          showCancelButton: true,
+          closeOnClickModal: false,
+          closeOnPressEscape: false
+        }
+      ).then(() => {
+        // 用户确认后执行复制操作
+        const newSkillName = this.generateCopySkillName(skill.name)
+        
+        // 创建新技能对象
+        const newSkill = {
+          ...skill,
+          id: skillDataManager.generateSkillId(), // 生成新的ID
+          name: newSkillName,
+          status: 'offline' // 复制的技能默认为未上线状态
+        }
+        
+        // 添加到数据管理器
+        const addedSkill = skillDataManager.addSkill(newSkill)
+        
+        if (addedSkill) {
+          this.$message.success(`技能 "${skill.name}" 已复制为 "${newSkillName}"`)
+        } else {
+          this.$message.error('复制失败，请重试')
+        }
+      }).catch(() => {
+        this.$message.info('已取消复制')
+      })
+    },
+
+    // 生成复制技能的名称
+    generateCopySkillName(originalName) {
+      // 检查名称是否已经有数字后缀（支持多种格式：技能名1、技能名-1、技能名_1、技能名 1等）
+      const numberSuffixMatch = originalName.match(/^(.+?)[-_\s]*(\d+)$/)
+      
+      if (numberSuffixMatch) {
+        // 如果已有数字后缀，递增数字
+        const baseName = numberSuffixMatch[1].trim()
+        const currentNumber = parseInt(numberSuffixMatch[2])
+        return this.findAvailableSkillName(baseName, currentNumber + 1)
+      } else {
+        // 如果没有数字后缀，添加 "1"
+        return this.findAvailableSkillName(originalName.trim(), 1)
+      }
+    },
+
+    // 查找可用的技能名称（避免重复）
+    findAvailableSkillName(baseName, startNumber) {
+      let counter = startNumber
+      let newName = `${baseName}${counter}`
+      
+      // 检查名称是否已存在
+      while (this.skills.some(skill => skill.name === newName)) {
+        counter++
+        newName = `${baseName}${counter}`
+      }
+      
+      return newName
     },
 
     deleteSkill(skill) {
+      // 检查技能状态，已上线的技能不可删除
+      if (skill.status === 'online') {
+        this.$message.warning('已上线的技能不可删除，请先下线后再删除')
+        return
+      }
+      
       this.$confirm('确认删除该技能吗?', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
@@ -739,11 +839,11 @@ export default {
 
 .select-provider .el-input__inner,
 .select-category .el-input__inner {
-  height: 30px;
-  line-height: 30px;
+  height: 25px;
+  line-height: 25px;
   border-radius: 4px;
   border: 1px solid #dcdfe6;
-  font-size: 13px;
+  font-size: 8px;
 }
 
 .search-input {
@@ -751,8 +851,8 @@ export default {
 }
 
 .search-input .el-input__inner {
-  height: 30px;
-  line-height: 30px;
+  height: 25px;
+  line-height: 25px;
   border-radius: 4px;
   border: 1px solid #dcdfe6;
   font-size: 13px;
@@ -1167,6 +1267,19 @@ export default {
   background: white !important;
 }
 
+.card-actions .el-button.is-disabled {
+  background: #f5f7fa !important;
+  border-color: #e4e7ed !important;
+  color: #c0c4cc !important;
+  cursor: not-allowed !important;
+}
+
+.card-actions .el-button.is-disabled:hover {
+  background: #f5f7fa !important;
+  border-color: #e4e7ed !important;
+  color: #c0c4cc !important;
+}
+
 /* 分页样式 */
 .pagination-section {
   display: flex;
@@ -1263,6 +1376,107 @@ export default {
 
 .pagination-section >>> .el-pagination .el-select .el-input .el-input__inner:hover {
   border-color: #7c3aed !important;
+}
+
+/* 自定义复制技能确认对话框样式 */
+.copy-skill-dialog .el-message-box {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  background: white !important;
+  min-width: 420px !important;
+}
+
+.copy-skill-dialog .el-message-box__header {
+  padding: 20px 20px 10px 20px !important;
+  border-bottom: none !important;
+  position: relative !important;
+}
+
+.copy-skill-dialog .el-message-box__title {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #303133 !important;
+  line-height: 22px !important;
+  margin-left: 32px !important;
+}
+
+.copy-skill-dialog .el-message-box__content {
+  padding: 10px 20px 20px 52px !important;
+  color: #606266 !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+}
+
+.copy-skill-dialog .el-message-box__message {
+  margin-left: 0 !important;
+}
+
+.copy-skill-dialog .el-message-box__status {
+  position: absolute !important;
+  top: 20px !important;
+  left: 20px !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 22px !important;
+  height: 22px !important;
+  background-color: #faad14 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 4px rgba(250, 173, 20, 0.3) !important;
+}
+
+.copy-skill-dialog .el-message-box__status .el-icon-warning {
+  color: white !important;
+  font-size: 14px !important;
+  margin: 0 !important;
+}
+
+.copy-skill-dialog .el-message-box__btns {
+  padding: 10px 20px 20px 20px !important;
+  text-align: right !important;
+}
+
+.copy-skill-dialog .el-message-box__btns .el-button {
+  padding: 8px 20px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  margin-left: 12px !important;
+}
+
+.copy-skill-dialog .el-message-box__btns .el-button--default {
+  color: #606266 !important;
+  border-color: #dcdfe6 !important;
+  background-color: #ffffff !important;
+}
+
+.copy-skill-dialog .el-message-box__btns .el-button--default:hover {
+  color: #7c3aed !important;
+  border-color: #7c3aed !important;
+  background-color: #ffffff !important;
+}
+
+.copy-skill-dialog .el-message-box__btns .el-button--primary {
+  background-color: #409eff !important;
+  border-color: #409eff !important;
+  color: #ffffff !important;
+}
+
+.copy-skill-dialog .el-message-box__btns .el-button--primary:hover {
+  background-color: #66b1ff !important;
+  border-color: #66b1ff !important;
+}
+
+.copy-skill-dialog .el-message-box__close {
+  color: #909399 !important;
+  font-size: 16px !important;
+  top: 15px !important;
+  right: 15px !important;
+}
+
+.copy-skill-dialog .el-message-box__close:hover {
+  color: #606266 !important;
 }
 
 /* 响应式设计 */

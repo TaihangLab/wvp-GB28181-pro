@@ -29,7 +29,13 @@
             <el-button type="primary" @click="saveAndPublish">保存并上线</el-button>
           </div>
           <div class="header-right" v-else>
-            <!-- 查看模式下不显示编辑和状态切换按钮 -->
+            <!-- 查看模式下，仅未上线技能显示编辑按钮 -->
+            <el-button 
+              v-if="skillData.status === 'offline'"
+              @click="editCurrentSkill"
+              :title="'编辑技能'">
+              编辑技能
+            </el-button>
           </div>
         </div>
 
@@ -211,7 +217,7 @@
 import skillDataManager from '@/utils/skillDataManager'
 
 export default {
-  name: 'MultimodalCreate',
+  name: 'MultimodalReviewCreate',
   data() {
     return {
       skillForm: {
@@ -302,6 +308,12 @@ export default {
           description: skill.description
         }
         
+        // 检查如果技能已上线，且路由模式是编辑，则强制切换到查看模式
+        if (skill.status === 'online' && this.currentMode === 'edit') {
+          this.currentMode = 'view'
+          this.$message.warning('已上线的技能不可编辑，已自动切换到查看模式')
+        }
+        
         // 如果是查看模式，设置一个示例分析结果
         if (this.isViewMode) {
           this.analysisResult = '该技能已配置完成，能够有效识别图像中的目标对象，置信度达到95%以上。'
@@ -322,6 +334,12 @@ export default {
 
     // 编辑当前技能
     editCurrentSkill() {
+      // 检查技能状态，已上线的技能不可编辑
+      if (this.skillData.status === 'online') {
+        this.$message.warning('已上线的技能不可编辑，请先下线后再编辑')
+        return
+      }
+      
       // 保存原始数据，用于取消编辑时恢复
       this.originalSkillForm = {
         name: this.skillData.name || '',

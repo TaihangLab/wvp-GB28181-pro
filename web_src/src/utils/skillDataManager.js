@@ -303,6 +303,13 @@ class SkillDataManager {
   deleteSkill(skillId) {
     const index = this.skills.findIndex(skill => skill.id === skillId)
     if (index !== -1) {
+      const skill = this.skills[index]
+      // 检查技能状态，已上线的技能不可删除
+      if (skill.status === 'online') {
+        console.warn(`技能 "${skill.name}" 已上线，无法删除`)
+        return false
+      }
+      
       const deletedSkill = this.skills.splice(index, 1)[0]
       this.notifyListeners('delete', deletedSkill)
       return true
@@ -313,12 +320,26 @@ class SkillDataManager {
   // 批量删除技能
   deleteSkills(skillIds) {
     const deletedSkills = []
+    const onlineSkills = []
+    
     skillIds.forEach(id => {
       const index = this.skills.findIndex(skill => skill.id === id)
       if (index !== -1) {
-        deletedSkills.push(this.skills.splice(index, 1)[0])
+        const skill = this.skills[index]
+        // 检查技能状态，已上线的技能不可删除
+        if (skill.status === 'online') {
+          onlineSkills.push(skill)
+        } else {
+          deletedSkills.push(this.skills.splice(index, 1)[0])
+        }
       }
     })
+    
+    // 如果有已上线的技能，记录警告
+    if (onlineSkills.length > 0) {
+      const onlineSkillNames = onlineSkills.map(skill => skill.name).join('、')
+      console.warn(`以下技能已上线无法删除：${onlineSkillNames}`)
+    }
     
     if (deletedSkills.length > 0) {
       this.notifyListeners('batchDelete', deletedSkills)
