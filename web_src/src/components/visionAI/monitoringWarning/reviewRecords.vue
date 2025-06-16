@@ -257,7 +257,7 @@ export default {
       // 分页
       pagination: {
         currentPage: 1,
-        pageSize: 60,
+        pageSize: 12,
         total: 325
       },
       
@@ -266,6 +266,9 @@ export default {
       
       // 选中的记录
       selectedRecords: [],
+      
+      // 卡片悬停状态管理
+      cardHoverStates: {},
       
       // 统计面板显示状态
       showStatsPanel: true,
@@ -411,6 +414,9 @@ export default {
         await new Promise(resolve => setTimeout(resolve, 500))
         // 实际项目中，这里应该是API调用
         // this.reviewList = await getReviewListAPI(this.searchForm)
+        
+        // 清空悬停状态
+        this.cardHoverStates = {}
       } finally {
         this.loading = false
       }
@@ -462,6 +468,7 @@ export default {
       }
       this.pagination.currentPage = 1
       this.selectedRecords = []
+      this.cardHoverStates = {}
       this.$message.info('搜索条件已重置')
     },
     
@@ -574,6 +581,7 @@ export default {
     async handleRefresh() {
       this.loading = true
       this.selectedRecords = []
+      this.cardHoverStates = {}
       try {
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 500))
@@ -922,6 +930,16 @@ export default {
         console.error('Date formatting error:', error, date)
         return date
       }
+    },
+    
+    // 显示卡片选择框
+    showCardCheckbox(recordId) {
+      this.$set(this.cardHoverStates, recordId, true)
+    },
+    
+    // 隐藏卡片选择框
+    hideCardCheckbox(recordId) {
+      this.$set(this.cardHoverStates, recordId, false)
     }
   }
 }
@@ -1007,7 +1025,6 @@ export default {
       <div class="filter-section">
         <div class="filter-tabs">
           <el-button 
-            type="primary" 
             size="small"
             @click="handleSelectAll"
           >
@@ -1028,7 +1045,6 @@ export default {
           </el-button>
           <el-button 
             size="small"
-            type="danger"
             :disabled="selectedRecords.length === 0"
             @click="handleBatchDelete"
           >
@@ -1037,9 +1053,6 @@ export default {
         </div>
         
         <div class="filter-actions">
-          <div class="selection-info" v-if="selectedRecords.length > 0">
-            <span class="selection-text">已选择 {{ selectedRecords.length }} 项</span>
-          </div>
           <div class="filter-right">
             <el-button 
               type="text" 
@@ -1154,9 +1167,15 @@ export default {
             class="record-card"
             :class="{ 'selected': selectedRecords.includes(item.id) }"
             @click="viewDetail(item)"
+            @mouseenter="showCardCheckbox(item.id)"
+            @mouseleave="hideCardCheckbox(item.id)"
           >
             <!-- 选择框 -->
-            <div class="select-checkbox" @click="toggleSelect(item.id, $event)">
+            <div 
+              v-show="cardHoverStates[item.id] || selectedRecords.includes(item.id)" 
+              class="select-checkbox" 
+              @click="toggleSelect(item.id, $event)"
+            >
               <el-checkbox 
                 :value="selectedRecords.includes(item.id)"
                 @change="toggleSelect(item.id)"
@@ -1204,7 +1223,7 @@ export default {
           @size-change="handleSizeChange"
           @current-change="handlePageChange"
           :current-page="pagination.currentPage"
-          :page-sizes="[20, 40, 60, 100]"
+          :page-sizes="[12, 18, 24, 30]"
           :page-size="pagination.pageSize"
           :total="totalRecords"
           layout="sizes, prev, pager, next, jumper"
@@ -1230,7 +1249,7 @@ export default {
 <style scoped>
 .review-records-container {
   height: calc(100vh - 60px);
-  background: #f5f7fa;
+  background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
   padding: 12px;
   width: 100%;
   box-sizing: border-box;
@@ -1238,18 +1257,23 @@ export default {
   flex-direction: column;
 }
 
-/* 页面头部 */
+/* 页面头部 - 科技感样式 */
 .page-header {
-  background: #fff;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
 }
+
+
 
 .back-btn {
   font-size: 16px;
@@ -1261,15 +1285,20 @@ export default {
   color: #409eff;
 }
 
-/* 上半部分：数据统计卡片 */
+/* 上半部分：数据统计卡片 - 科技感样式 */
 .statistics-card {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
   margin-bottom: 12px;
   width: 100%;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
 }
+
+
 
 .stats-overview {
   display: flex;
@@ -1455,26 +1484,32 @@ export default {
   margin-left: 4px;
 }
 
-/* 下半部分：内容卡片 */
+/* 下半部分：内容卡片 - 科技感样式 */
 .content-card {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  position: relative;
 }
 
-/* 筛选区域 */
+
+
+/* 筛选区域 - 科技感样式 */
 .filter-section {
   padding: 12px 24px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .filter-tabs {
@@ -1487,11 +1522,13 @@ export default {
   gap: 16px;
 }
 
-/* 搜索区域 */
+/* 搜索区域 - 科技感样式 */
 .search-section {
   padding: 12px 24px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .search-row {
@@ -1583,23 +1620,30 @@ export default {
 }
 
 .record-card {
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  border: 1px solid #f3f4f6;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   height: 260px;
   display: flex;
   flex-direction: column;
   position: relative;
 }
 
+
+
+.record-card > * {
+  position: relative;
+  z-index: 2;
+}
+
 .record-card:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
-  border-color: #c6e2ff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-color: #3b82f6;
 }
 
 .card-image {
@@ -1879,52 +1923,60 @@ export default {
   }
 }
 
-/* 选择框样式 - 高透明度，不明显 */
+/* 选择框样式 - 与deviceSkills.vue保持一致 */
 .select-checkbox {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
   z-index: 10;
-  width: 20px;
-  height: 20px;
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.3;
-  transition: all 0.3s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
 }
 
-.select-checkbox:hover {
-  background-color: rgba(255, 255, 255, 0.5);
-  opacity: 0.7;
+.select-checkbox >>> .el-checkbox {
+  margin: 0;
 }
 
-.record-card:hover .select-checkbox {
-  opacity: 0.5;
+.select-checkbox >>> .el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
 }
 
-.record-card.selected .select-checkbox {
-  background-color: rgba(64, 158, 255, 0.15);
-  border: 1px solid rgba(64, 158, 255, 0.3);
-  opacity: 0.8;
+.select-checkbox >>> .el-checkbox__inner:hover {
+  border-color: #3b82f6 !important;
 }
 
-.select-checkbox .el-checkbox {
-  transform: scale(0.8);
+.select-checkbox >>> .el-checkbox__inner {
+  width: 18px !important;
+  height: 18px !important;
+  border: 2px solid #dcdfe6 !important;
+  border-radius: 3px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
 }
 
-.select-checkbox .el-checkbox__input.is-checked .el-checkbox__inner {
-  background-color: #409eff;
-  border-color: #409eff;
+.select-checkbox >>> .el-checkbox__inner::after {
+  height: 8px !important;
+  left: 5px !important;
+  top: 1px !important;
+  width: 3px !important;
+  border: 2px solid #fff !important;
+  border-left: 0 !important;
+  border-top: 0 !important;
 }
 
 /* 卡片选中状态 */
 .record-card.selected {
-  border-color: #c6e2ff;
-  box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.2), 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+}
+
+.record-card.selected .selection-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(59, 130, 246, 0.05);
+  z-index: 1;
 }
 
 /* 筛选按钮状态 */
@@ -1937,23 +1989,6 @@ export default {
   background-color: #f5f7fa;
   border-color: #e4e7ed;
   color: #c0c4cc;
-}
-
-/* 选择信息样式 */
-.selection-info {
-  display: flex;
-  align-items: center;
-  margin-right: 16px;
-}
-
-.selection-text {
-  font-size: 13px;
-  color: #409eff;
-  background-color: #ecf5ff;
-  padding: 4px 12px;
-  border-radius: 16px;
-  border: 1px solid #c6e2ff;
-  font-weight: 500;
 }
 
 /* 无数据提示样式 */
@@ -1981,5 +2016,155 @@ export default {
 .no-data-tip {
   font-size: 12px;
   color: #c0c4cc;
+}
+
+/* 科技感按钮样式 */
+.review-records-container >>> .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.review-records-container >>> .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.review-records-container >>> .el-button--default {
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.review-records-container >>> .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e40af;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
+}
+
+.review-records-container >>> .el-button--danger {
+  background: linear-gradient(135deg, #f56c6c 0%, #dc2626 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(245, 108, 108, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.review-records-container >>> .el-button--danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 10px rgba(245, 108, 108, 0.4);
+  transform: translateY(-1px);
+}
+
+.review-records-container >>> .el-button--text {
+  color: #4b5563;
+  transition: all 0.3s ease;
+}
+
+.review-records-container >>> .el-button--text:hover {
+  color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+/* 科技感输入框样式 */
+.review-records-container >>> .el-input__inner {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.review-records-container >>> .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.review-records-container >>> .el-select .el-input__inner {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+}
+
+.review-records-container >>> .el-select .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.review-records-container >>> .el-date-editor.el-input {
+  border-radius: 6px;
+}
+
+.review-records-container >>> .el-date-editor .el-input__inner {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+}
+
+.review-records-container >>> .el-date-editor .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* 科技感分页样式 */
+.review-records-container >>> .el-pagination {
+  justify-content: center;
+}
+
+.review-records-container >>> .el-pagination .el-pager li {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.review-records-container >>> .el-pagination .el-pager li:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.review-records-container >>> .el-pagination .el-pager li.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.review-records-container >>> .el-pagination button {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.review-records-container >>> .el-pagination button:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+/* 科技感复选框样式 */
+.review-records-container >>> .el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+.review-records-container >>> .el-checkbox__inner:hover {
+  border-color: #3b82f6 !important;
 }
 </style> 

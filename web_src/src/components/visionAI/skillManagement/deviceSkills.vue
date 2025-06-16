@@ -85,15 +85,20 @@
               shadow="hover" 
               :class="{ 'selected': isSelected(skill.id) }" 
               @click.native="viewSkillDetails(skill)"
+              @mouseenter.native="showCardCheckbox(skill.id)"
+              @mouseleave.native="hideCardCheckbox(skill.id)"
             >
               <div class="selection-overlay" v-if="isSelected(skill.id)"></div>
+              
+              <!-- 选择框 -->
               <div 
-                class="selection-mark" 
-                :class="{'selected': isSelected(skill.id)}"
-                @click.stop="toggleSelect(skill)" 
-                title="选择此技能"
-              >
-                <i class="el-icon-check" v-if="isSelected(skill.id)"></i>
+                v-show="cardHoverStates[skill.id] || selectedSkills.includes(skill.id)" 
+                class="card-checkbox"
+                @click.stop>
+                <el-checkbox 
+                  :value="selectedSkills.includes(skill.id)"
+                  @input="handleSkillSelect(skill.id, $event)">
+                </el-checkbox>
               </div>
               <div class="skill-thumbnail">
                 <img :src="skill.image_url || '/static/logo.png'" class="thumbnail-img" alt="技能图标">
@@ -597,6 +602,7 @@ export default {
       // 技能列表数据
       skillsList: [],
       selectedSkills: [], // 已选择的技能ID
+      cardHoverStates: {}, // 卡片悬停状态
 
       // 分页配置
       currentPage: 1,
@@ -1390,6 +1396,30 @@ export default {
         this.loadingDevices = false;
       }
     },
+
+    // 显示卡片复选框
+    showCardCheckbox(skillId) {
+      this.$set(this.cardHoverStates, skillId, true)
+    },
+
+    // 隐藏卡片复选框
+    hideCardCheckbox(skillId) {
+      this.$set(this.cardHoverStates, skillId, false)
+    },
+
+    // 技能选择
+    handleSkillSelect(skillId, checked) {
+      if (checked) {
+        if (!this.selectedSkills.includes(skillId)) {
+          this.selectedSkills.push(skillId)
+        }
+      } else {
+        const index = this.selectedSkills.indexOf(skillId)
+        if (index > -1) {
+          this.selectedSkills.splice(index, 1)
+        }
+      }
+    },
   }
 }
 </script>
@@ -1397,65 +1427,177 @@ export default {
 <style scoped>
 .device-skills-container {
   padding: 20px;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 100px);
 }
 
 .filter-section {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  padding: 12px 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   margin-bottom: 20px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  position: relative;
+  overflow: hidden;
 }
+
+
 
 .toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 2;
 }
 
 .left-controls {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .left-controls .el-button {
-  margin-right: 10px;
+  height: 32px;
+  padding: 6px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin-right: 0;
+}
+
+.left-controls .el-button--primary {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3);
+  position: relative;
+  overflow: hidden;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.left-controls .el-button--primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.left-controls .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4);
+  transform: translateY(-2px);
+}
+
+.left-controls .el-button--primary:hover::before {
+  left: 100%;
+}
+
+.left-controls .el-button:not(.el-button--primary) {
+  background: #f5f7fa;
+  border-color: #e4e7ed;
+  color: #606266;
+}
+
+.left-controls .el-button:not(.el-button--primary):hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
 }
 
 .right-controls {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .filter-item {
   display: flex;
   align-items: center;
-  margin-right: 15px;
+  margin-right: 0;
+  gap: 5px;
 }
 
 .filter-label {
-  margin-right: 8px;
-  font-size: 13px;
-  color: #606266;
+  font-size: 14px;
+  color: #1e40af;
   white-space: nowrap;
+  font-weight: 500;
+  margin-right: 0;
 }
 
 .filter-item .el-select {
   width: 130px;
 }
 
+.filter-item .el-select .el-input__inner {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.filter-item .el-select .el-input__inner:hover {
+  border-color: #3b82f6;
+}
+
+.filter-item .el-select .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
 .search-input {
   width: 220px;
-  margin-right: 10px;
+  margin-right: 0;
+}
+
+.search-input .el-input__inner {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.search-input .el-input__inner:hover {
+  border-color: #3b82f6;
+}
+
+.search-input .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .grid-view-btn, .list-view-btn, .refresh-btn {
   padding: 7px 10px;
-  margin-left: 5px;
+  margin-left: 0;
   color: #606266;
   background-color: #fff;
-  border: 1px solid #dcdfe6;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.grid-view-btn:hover, .list-view-btn:hover, .refresh-btn:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e40af;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }
 
 .skills-grid {
   margin-bottom: 20px;
+  padding: 20px;
+  background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+  border-radius: 16px;
 }
 
 .skills-grid .el-row {
@@ -1475,20 +1617,30 @@ export default {
   height: 100%;
   margin-bottom: 0;
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
   position: relative;
-  border-radius: 4px;
+  border-radius: 12px;
   overflow: hidden;
+  background: white;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+
+
+.skills-grid .skill-card > * {
+  position: relative;
+  z-index: 2;
 }
 
 .skills-grid .skill-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .skills-grid .skill-card.selected {
-  border: 1px solid #409EFF;
-  box-shadow: 0 8px 15px rgba(64,158,255,0.1);
+  border: 1px solid #3b82f6;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
 }
 
 .skills-grid .skill-card .selection-overlay {
@@ -1497,38 +1649,47 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(64, 158, 255, 0.05);
+  background-color: rgba(59, 130, 246, 0.05);
   z-index: 1;
 }
 
-.skills-grid .skill-card .selection-mark {
+.card-checkbox {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
-  background-color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(220, 220, 220, 0.8);
-  color: #c0c4cc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  transition: all 0.2s ease;
 }
 
-.skills-grid .skill-card .selection-mark.selected {
-  background-color: rgba(64, 158, 255, 0.15);
-  border-color: rgba(64, 158, 255, 0.3);
-  color: #409EFF;
+.card-checkbox >>> .el-checkbox {
+  margin: 0;
 }
 
-.skills-grid .skill-card .selection-mark:hover {
-  background-color: rgba(64, 158, 255, 0.1);
-  border-color: rgba(64, 158, 255, 0.2);
-  color: #409EFF;
+.card-checkbox >>> .el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+.card-checkbox >>> .el-checkbox__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.card-checkbox >>> .el-checkbox__inner {
+  width: 18px !important;
+  height: 18px !important;
+  border: 2px solid #dcdfe6 !important;
+  border-radius: 3px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+.card-checkbox >>> .el-checkbox__inner::after {
+  height: 8px !important;
+  left: 5px !important;
+  top: 1px !important;
+  width: 3px !important;
+  border: 2px solid #fff !important;
+  border-left: 0 !important;
+  border-top: 0 !important;
 }
 
 .skills-grid .skill-card .skill-thumbnail {
@@ -1590,22 +1751,27 @@ export default {
 }
 
 .status-mini-tag {
-  padding: 2px 6px;
+  padding: 2px 8px;
   height: 20px;
   line-height: 16px;
   margin-right: 6px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 11px;
 }
 
 .status-mini-tag.el-tag--success {
-  background-color: #67c23a;
-  border-color: #67c23a;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #10b981;
   color: white;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
 }
 
 .status-mini-tag.el-tag--info {
-  background-color: #909399;
-  border-color: #909399;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  border-color: #6b7280;
   color: white;
+  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
 }
 
 .version-text {
@@ -1652,11 +1818,54 @@ export default {
   justify-content: center;
   margin-top: -20px;
   padding: 20px 0;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* 深度选择器 */
 .pagination >>> .el-pagination {
   justify-content: center;
+}
+
+.pagination >>> .el-pagination .el-pager li {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.pagination >>> .el-pagination .el-pager li:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.pagination >>> .el-pagination .el-pager li.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.pagination >>> .el-pagination button {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.pagination >>> .el-pagination button:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
 /* 技能详情样式 */
@@ -1712,26 +1921,27 @@ export default {
 
 .info-card {
   margin-bottom: 20px;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px 0 rgba(59, 130, 246, 0.1);
   background-color: #fff;
   overflow: hidden;
+  border: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 .info-card-header {
   padding: 12px 15px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #e6e6e6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
   display: flex;
   align-items: center;
-  color: #303133;
-  font-weight: 500;
+  color: #1e40af;
+  font-weight: 600;
   font-size: 15px;
 }
 
 .info-card-header i {
   margin-right: 8px;
-  color: #409EFF;
+  color: #3b82f6;
 }
 
 .info-card-content {
@@ -1771,16 +1981,19 @@ export default {
 
 .model-tags .el-tag {
   font-size: 14px;
-  padding: 5px 10px;
+  padding: 5px 12px;
   margin-right: 0;
-  border: 1px solid #e6e6e6;
-  background-color: #f5f5f5;
-  color: #333;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 32px;
   margin-bottom: 0;
+  border-radius: 16px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
 }
 
 .description-item {
@@ -1810,7 +2023,7 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
-  color: #409EFF;
+  color: #3b82f6;
   font-weight: 500;
   margin-left: 4px;
 }
@@ -1823,25 +2036,27 @@ export default {
 
 /* 技能卡片详情状态标签样式 */
 .status-tag.el-tag--success {
-  background-color: #67c23a !important;
-  border-color: #67c23a !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: #10b981 !important;
   color: white !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
 }
 
 .status-tag.el-tag--info {
-  background-color: #909399 !important;
-  border-color: #909399 !important;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border-color: #6b7280 !important;
   color: white !important;
+  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3) !important;
 }
 
 /* 导入表单中的状态单选按钮样式 */
 .status-radio.published {
-  color: #67c23a;
+  color: #10b981;
   font-weight: 500;
 }
 
 .status-radio.unpublished {
-  color: #909399;
+  color: #6b7280;
   font-weight: 500;
 }
 
@@ -2014,7 +2229,8 @@ export default {
 }
 
 .avatar-uploader .el-upload:hover {
-  border-color: #409EFF;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 }
 
 .avatar-uploader-icon {
@@ -2155,24 +2371,27 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 10px;
+  padding: 0 12px;
   height: 24px;
   font-size: 12px;
-  border-radius: 4px;
+  border-radius: 12px;
   margin-right: 10px;
   flex-shrink: 0;
+  font-weight: 500;
 }
 
 .status-inline-tag.el-tag--success {
-  background-color: #67c23a !important;
-  border-color: #67c23a !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: #10b981 !important;
   color: white !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
 }
 
 .status-inline-tag.el-tag--info {
-  background-color: #909399 !important;
-  border-color: #909399 !important;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border-color: #6b7280 !important;
   color: white !important;
+  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3) !important;
 }
 
 .no-data {
@@ -2186,35 +2405,39 @@ export default {
   height: 36px;
   font-size: 24px;
   font-weight: 500;
-  color: #303133;
-  border: 1px dashed #dcdfe6;
+  color: #1e40af;
+  border: 1px dashed #3b82f6;
   padding-left: 0;
   background-color: transparent;
+  transition: all 0.3s ease;
 }
 
 .name-edit-input .el-input__inner:hover,
 .name-edit-input .el-input__inner:focus {
-  border-color: #409EFF;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .description-edit-input .el-textarea__inner {
-  border: 1px dashed #dcdfe6;
+  border: 1px dashed #3b82f6;
   background-color: transparent;
   font-size: 14px;
   line-height: 1.6;
   color: #606266;
+  transition: all 0.3s ease;
 }
 
 .description-edit-input .el-textarea__inner:hover,
 .description-edit-input .el-textarea__inner:focus {
-  border-color: #409EFF;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 /* 版本号编辑输入框样式 */
 .version-edit {
   display: flex;
   align-items: center;
-  color: #909399;
+  color: #6b7280;
   font-size: 14px;
   margin-left: 15px;
   white-space: nowrap;
@@ -2230,13 +2453,15 @@ export default {
   line-height: 24px;
   padding: 0 8px;
   font-size: 14px;
-  border: 1px dashed #dcdfe6;
+  border: 1px dashed #3b82f6;
   background-color: transparent;
+  transition: all 0.3s ease;
 }
 
 .version-input .el-input__inner:hover,
 .version-input .el-input__inner:focus {
-  border-color: #409EFF;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 /* 在小屏幕上显示为单列 */
@@ -2244,6 +2469,90 @@ export default {
   .instance-item {
     width: calc(100% - 20px);
   }
+}
+
+/* 弹框按钮统一样式 */
+.device-skills-container >>> .el-dialog .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.device-skills-container >>> .el-dialog .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.device-skills-container >>> .el-dialog .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.device-skills-container >>> .el-dialog .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* 弹框标题样式 */
+.device-skills-container >>> .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+}
+
+.device-skills-container >>> .el-dialog__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+}
+
+.device-skills-container >>> .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.device-skills-container >>> .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+/* 弹框内容样式 */
+.device-skills-container >>> .el-dialog__body {
+  padding: 20px !important;
+  background: #ffffff !important;
+}
+
+/* 上传组件样式优化 */
+.device-skills-container >>> .el-upload-dragger {
+  border: 2px dashed #d1d5db !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+}
+
+.device-skills-container >>> .el-upload-dragger:hover {
+  border-color: #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.device-skills-container >>> .el-upload-dragger .el-icon-upload {
+  color: #3b82f6 !important;
+}
+
+.device-skills-container >>> .el-upload__text {
+  color: #6b7280 !important;
+}
+
+.device-skills-container >>> .el-upload__text em {
+  color: #3b82f6 !important;
+  font-weight: 500 !important;
 }
 
 /* 关联设备列表样式 */

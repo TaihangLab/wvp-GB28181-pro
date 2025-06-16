@@ -168,24 +168,24 @@
       <span slot="footer" class="dialog-footer">
         <!-- 实时监控页面显示所有按钮 -->
         <template v-if="source === 'realTimeMonitoring'">
-          <el-button @click="handleReport" class="action-btn report-btn">
+          <el-button plain @click="handleReport" class="action-btn report-btn">
             <i class="el-icon-upload"></i>
             上报
           </el-button>
-          <el-button @click="handleArchive" class="action-btn archive-btn">
+          <el-button plain @click="handleArchive" class="action-btn archive-btn">
             <i class="el-icon-folder"></i>
             归档
           </el-button>
-          <el-button @click="handleFalseAlarm" class="action-btn false-alarm-btn">
+          <el-button plain @click="handleFalseAlarm" class="action-btn false-alarm-btn">
             <i class="el-icon-close"></i>
             误报
           </el-button>
           <!-- 处理按钮根据状态禁用 -->
           <el-button 
-            type="success" 
+            plain
             :disabled="isProcessingDisabled()"
             @click="handleWarning" 
-            class="action-btn">
+            class="action-btn process-btn">
             <i class="el-icon-check"></i>
             {{ isProcessingDisabled() ? '已完成' : '处理' }}
           </el-button>
@@ -203,10 +203,10 @@
         <template v-else>
           <!-- 处理按钮根据状态禁用 -->
           <el-button 
-            type="success" 
+            plain
             :disabled="isProcessingDisabled()"
             @click="handleWarning" 
-            class="action-btn">
+            class="action-btn process-btn">
             <i class="el-icon-check"></i>
             {{ isProcessingDisabled() ? '已完成' : '处理' }}
           </el-button>
@@ -2104,42 +2104,60 @@ export default {
 }
 
 .report-btn {
-  background-color: #e6a23c;
-  border-color: #e6a23c;
-  color: white;
+  background-color: transparent;
+  border-color: #d1d5db;
+  color: #4b5563;
 }
 
 .report-btn:hover {
-  background-color: #eeb462;
-  border-color: #eeb462;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border-color: #3b82f6;
+  color: white;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 .archive-btn {
-  background-color: #f56c6c;
-  border-color: #f56c6c;
-  color: white;
+  background-color: transparent;
+  border-color: #d1d5db;
+  color: #4b5563;
 }
 
 .archive-btn:hover {
-  background-color: #f78989;
-  border-color: #f78989;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border-color: #3b82f6;
+  color: white;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 .false-alarm-btn {
-  background-color: #909399;
-  border-color: #909399;
-  color: white;
+  background-color: transparent;
+  border-color: #d1d5db;
+  color: #4b5563;
 }
 
 .false-alarm-btn:hover {
-  background-color: #a6a9ad;
-  border-color: #a6a9ad;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border-color: #3b82f6;
+  color: white;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(144, 147, 153, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* 处理按钮 - 科技感蓝色交互效果 */
+.process-btn {
+  background-color: transparent;
+  border-color: #d1d5db;
+  color: #4b5563;
+}
+
+.process-btn:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border-color: #3b82f6;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 /* 动画效果 */

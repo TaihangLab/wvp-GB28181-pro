@@ -1993,19 +1993,46 @@ export default {
   color: #c0c4cc !important;
 }
 
-/* 卡片内标签样式 */
+/* 卡片内标签基础样式 */
 .skill-card >>> .el-tag {
   font-size: 11px !important;
-  padding: 0 7px !important;
+  padding: 0 8px !important;
   height: 20px !important;
   line-height: 18px !important;
 }
 
 .skill-card >>> .el-tag--mini {
   font-size: 11px !important;
-  padding: 0 7px !important;
+  padding: 0 8px !important;
   height: 20px !important;
   line-height: 18px !important;
+}
+
+/* 模型类型和技能标签的灰色底框样式 */
+.skill-card .model-row .el-tag,
+.skill-card .tag-row .el-tag {
+  background-color: #f3f4f6 !important;
+  border: 1px solid #e5e7eb !important;
+  color: #6b7280 !important;
+  border-radius: 10px !important;
+  font-weight: 500 !important;
+}
+
+
+
+/* 保持状态标签的原有颜色 */
+.status-row .el-tag--success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: #10b981 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+}
+
+.status-row .el-tag--info {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border-color: #6b7280 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3) !important;
 }
 
 /* 分页样式 */
@@ -2144,66 +2171,93 @@ export default {
 }
 
 /* 弹框按钮统一样式 */
-.el-dialog >>> .el-button--primary {
+.multimodal-llm-skills-wrapper >>> .el-dialog .el-button--primary {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
   border: none !important;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
   color: white !important;
   font-weight: 500 !important;
   transition: all 0.3s ease !important;
+  border-radius: 6px !important;
 }
 
-.el-dialog >>> .el-button--primary:hover {
+.multimodal-llm-skills-wrapper >>> .el-dialog .el-button--primary:hover {
   background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
   box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
   transform: translateY(-1px) !important;
 }
 
-.el-dialog >>> .el-button--default {
+.multimodal-llm-skills-wrapper >>> .el-dialog .el-button--default {
   background: white !important;
   border: 1px solid #d1d5db !important;
   color: #4b5563 !important;
   transition: all 0.3s ease !important;
+  border-radius: 6px !important;
 }
 
-.el-dialog >>> .el-button--default:hover {
+.multimodal-llm-skills-wrapper >>> .el-dialog .el-button--default:hover {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
   border-color: #3b82f6 !important;
   color: #1e40af !important;
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
 }
 
-.el-dialog >>> .dialog-footer .el-button {
+.multimodal-llm-skills-wrapper >>> .el-dialog .dialog-footer .el-button {
   border-radius: 6px !important;
   font-weight: 500 !important;
   padding: 8px 20px !important;
 }
 
 /* 弹框标题样式 */
-.el-dialog >>> .el-dialog__header {
+.multimodal-llm-skills-wrapper >>> .el-dialog__header {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
   border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
   padding: 16px 20px !important;
 }
 
-.el-dialog >>> .el-dialog__title {
+.multimodal-llm-skills-wrapper >>> .el-dialog__title {
   color: #1f2937 !important;
   font-weight: 600 !important;
 }
 
-.el-dialog >>> .el-dialog__close {
+.multimodal-llm-skills-wrapper >>> .el-dialog__close {
   color: #6b7280 !important;
   transition: color 0.3s ease !important;
 }
 
-.el-dialog >>> .el-dialog__close:hover {
+.multimodal-llm-skills-wrapper >>> .el-dialog__close:hover {
   color: #3b82f6 !important;
 }
 
 /* 弹框内容样式 */
-.el-dialog >>> .el-dialog__body {
+.multimodal-llm-skills-wrapper >>> .el-dialog__body {
   padding: 20px !important;
   background: #ffffff !important;
+}
+
+/* 上传组件样式优化 */
+.multimodal-llm-skills-wrapper >>> .el-upload-dragger {
+  border: 2px dashed #d1d5db !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+}
+
+.multimodal-llm-skills-wrapper >>> .el-upload-dragger:hover {
+  border-color: #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.multimodal-llm-skills-wrapper >>> .el-upload-dragger .el-icon-upload {
+  color: #3b82f6 !important;
+}
+
+.multimodal-llm-skills-wrapper >>> .el-upload__text {
+  color: #6b7280 !important;
+}
+
+.multimodal-llm-skills-wrapper >>> .el-upload__text em {
+  color: #3b82f6 !important;
+  font-weight: 500 !important;
 }
 
 /* 响应式设计 */

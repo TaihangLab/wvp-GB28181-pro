@@ -845,24 +845,27 @@ export default {
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="150" align="center">
+          <el-table-column label="操作" width="120" align="center">
             <template slot-scope="scope">
-              <el-button type="text" size="small" @click="showDetail(scope.row)" class="detail-btn">详情</el-button>
-              <el-button type="text" size="small" @click="handleDelete(scope.row.id)" class="delete-btn">删除</el-button>
+              <div class="operation-buttons">
+                <el-button type="text" size="mini" @click="showDetail(scope.row)" class="operation-btn detail-btn">详情</el-button>
+                <el-button type="text" size="mini" @click="handleDelete(scope.row.id)" class="operation-btn delete-btn">删除</el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
         
-        <!-- 分页区域 -->
-        <div class="pagination-container">
-          <div class="page-info">共 {{ pagination.total }} 条</div>
-          <el-select v-model="pagination.pageSize" size="small" @change="handleSizeChange" class="page-size-select">
-            <el-option v-for="item in [10, 20, 50, 100]" :key="item" :label="`${item}条/页`" :value="item"></el-option>
-          </el-select>
-          <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
-            :current-page="pagination.currentPage" :page-sizes="[10, 20, 50, 100]" :page-size="pagination.pageSize"
-            layout="prev, pager, next, jumper" :total="pagination.total" background small>
-          </el-pagination>
+        <!-- 分页区域 - 改为与 deviceSkills.vue 一致的样式 -->
+        <div class="pagination">
+          <el-pagination
+            :current-page.sync="pagination.currentPage"
+            :page-size.sync="pagination.pageSize"
+            :total="pagination.total"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
         </div>
       </div>
 
@@ -1114,7 +1117,7 @@ export default {
 <style scoped>
 .page-container {
   padding: 0;
-  background: #f0f2f5;
+  background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
   min-height: calc(100vh - 60px);
   position: relative;
 }
@@ -1129,12 +1132,18 @@ export default {
 /* 表格区域样式 */
 .table-section {
   flex: 1;
-  background: white;
-  border-radius: 4px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
   padding-bottom: 10px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  position: relative;
+  overflow: hidden;
 }
+
+
 
 /* 表格头部 */
 .table-header {
@@ -1142,13 +1151,15 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  position: relative;
+  z-index: 2;
 }
 
 .table-title {
   font-size: 16px;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: #1e40af;
 }
 
 .table-actions {
@@ -1169,11 +1180,12 @@ export default {
 
 /* 调整el-table样式 */
 ::v-deep .table-section .el-table th {
-  background-color: #f5f7fa;
-  color: #606266;
-  font-weight: 500;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  color: #1e40af !important;
+  font-weight: 600 !important;
   padding: 8px 0;
   text-align: center;
+  border-bottom: 2px solid rgba(59, 130, 246, 0.2) !important;
 }
 
 ::v-deep .table-section .el-table--border {
@@ -1185,10 +1197,15 @@ export default {
 ::v-deep .table-section .el-table td {
   padding: 8px 0;
   text-align: center;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+}
+
+::v-deep .table-section .el-table__row:hover > td {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 197, 253, 0.03) 100%) !important;
 }
 
 ::v-deep .table-section .el-table__row {
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 /* 预览图片单元格 */
@@ -1293,84 +1310,55 @@ export default {
 
 /* 操作按钮 */
 .detail-btn {
-  color: #409eff;
+  color: #3b82f6;
   margin-right: 10px;
+  transition: color 0.3s ease;
+}
+
+.detail-btn:hover {
+  color: #1e40af;
 }
 
 .delete-btn {
   color: #f56c6c;
+  transition: color 0.3s ease;
 }
 
-/* 分页样式 */
-.pagination-container {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 16px 20px;
-  margin-top: auto;
+.delete-btn:hover {
+  color: #dc2626;
 }
 
-.page-info {
-  color: #606266;
-  font-size: 13px;
-  margin-right: 16px;
-}
 
-.page-size-select {
-  margin-right: 16px;
-  width: 90px;
-}
-
-::v-deep .pagination-container .el-pagination {
-  padding: 0;
-  font-weight: 400;
-}
-
-::v-deep .pagination-container .el-pagination .el-pagination__jump {
-  margin-left: 10px;
-}
-
-::v-deep .pagination-container .el-pagination .el-input__inner {
-  height: 24px;
-  line-height: 24px;
-}
-
-::v-deep .pagination-container .el-pagination .btn-prev,
-::v-deep .pagination-container .el-pagination .btn-next {
-  padding: 0 6px;
-  background-color: #f4f4f5;
-  color: #606266;
-  min-width: 24px;
-}
-
-::v-deep .pagination-container .el-pagination .el-pager li {
-  min-width: 24px;
-  height: 24px;
-  line-height: 24px;
-  font-size: 12px;
-}
 
 /* 左侧详情部分 */
 .detail-section {
   width: 330px;
-  background: white;
-  border-radius: 4px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  position: relative;
+  overflow: hidden;
 }
+
+
 
 .detail-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  position: relative;
+  z-index: 2;
 }
 
 .detail-title {
   font-size: 16px;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: #1e40af;
 }
 
 .header-actions {
@@ -1386,39 +1374,35 @@ export default {
 .archives-list {
   max-height: 300px;
   overflow-y: auto;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
   padding: 0 10px;
 }
 
 .archive-item {
   padding: 12px;
-  border-radius: 4px;
+  border-radius: 8px;
   margin: 8px 0;
   cursor: pointer;
   transition: all 0.3s;
-  border: 1px solid #ebeef5;
+  border: 1px solid rgba(59, 130, 246, 0.2);
   position: relative;
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .archive-item:hover {
-  background-color: #f5f7fa;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 197, 253, 0.03) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
 }
 
 .archive-item.active {
-  background-color: #ecf5ff;
-  border-color: #d9ecff;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
-.archive-item.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background-color: #409eff;
-  border-radius: 4px 0 0 4px;
-}
+
 
 .archive-content {
   display: flex;
@@ -1428,13 +1412,13 @@ export default {
 
 .archive-name {
   font-size: 14px;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: #1e40af;
 }
 
 .archive-location, .archive-time {
   font-size: 12px;
-  color: #909399;
+  color: #6b7280;
 }
 
 .detail-content {
@@ -1463,16 +1447,7 @@ export default {
   overflow: hidden;
 }
 
-.preview-blue-box::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
-  animation: shimmer 3s ease-in-out infinite;
-}
+
 
 .preview-blue-box i {
   font-size: 80px;
@@ -1546,33 +1521,203 @@ export default {
   border-radius: 4px;
 }
 
-/* 弹窗通用样式 */
-::v-deep .el-dialog__header {
-  padding: 15px 20px;
-  border-bottom: 1px solid #ebeef5;
+/* 弹框样式 - 与 deviceSkills.vue 一致 */
+.page-container >>> .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
 }
 
-::v-deep .el-dialog__title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
+.page-container >>> .el-dialog__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
 }
 
-::v-deep .el-dialog__body {
-  padding: 20px;
+.page-container >>> .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
 }
 
-::v-deep .el-dialog__footer {
+.page-container >>> .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+.page-container >>> .el-dialog__body {
+  padding: 20px !important;
+  background: #ffffff !important;
+}
+
+.page-container >>> .el-dialog__footer {
   padding: 10px 20px 20px;
   text-align: right;
+  border-top: 1px solid rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-::v-deep .cancel-btn {
-  margin-right: 10px;
+/* 上传组件样式优化 */
+.page-container >>> .el-upload-dragger {
+  border: 2px dashed #d1d5db !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
 }
 
-::v-deep .confirm-btn {
-  min-width: 80px;
+.page-container >>> .el-upload-dragger:hover {
+  border-color: #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.page-container >>> .el-upload-dragger .el-icon-upload {
+  color: #3b82f6 !important;
+}
+
+.page-container >>> .el-upload__text {
+  color: #6b7280 !important;
+}
+
+.page-container >>> .el-upload__text em {
+  color: #3b82f6 !important;
+  font-weight: 500 !important;
+}
+
+/* 表格样式优化 - 保持黑色字体 */
+.page-container >>> .el-table th {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  color: #303133 !important;
+  font-weight: 600 !important;
+  padding: 8px 0;
+  text-align: center;
+  border-bottom: 2px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+.page-container >>> .el-table td {
+  padding: 8px 0;
+  text-align: center;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+}
+
+.page-container >>> .el-table__row:hover > td {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 197, 253, 0.03) 100%) !important;
+}
+
+/* 科技感 Radio 样式 */
+.page-container >>> .el-radio__input.is-checked .el-radio__inner {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+.page-container >>> .el-radio__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+/* 科技感 Checkbox 样式 */
+.page-container >>> .el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+.page-container >>> .el-checkbox__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+/* 科技感 Tag 样式 */
+.page-container >>> .el-tag {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+}
+
+/* 操作按钮样式 */
+.operation-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.operation-btn {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  border-radius: 4px !important;
+  min-width: 40px !important;
+  height: 24px !important;
+  transition: all 0.3s ease !important;
+}
+
+.operation-btn.detail-btn {
+  color: #3b82f6 !important;
+  border: 1px solid #3b82f6 !important;
+  background: transparent !important;
+}
+
+.operation-btn.detail-btn:hover {
+  background: #3b82f6 !important;
+  color: white !important;
+}
+
+.operation-btn.delete-btn {
+  color: #dc2626 !important;
+  border: 1px solid #dc2626 !important;
+  background: transparent !important;
+}
+
+.operation-btn.delete-btn:hover {
+  background: #dc2626 !important;
+  color: white !important;
+}
+
+/* 分页样式 - 与 deviceSkills.vue 完全一致 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: -20px;
+  padding: 20px 0;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.pagination >>> .el-pagination {
+  justify-content: center;
+}
+
+.pagination >>> .el-pagination .el-pager li {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.pagination >>> .el-pagination .el-pager li:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.pagination >>> .el-pagination .el-pager li.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.pagination >>> .el-pagination button {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.pagination >>> .el-pagination button:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
 /* 详情弹窗 */
@@ -1919,25 +2064,42 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: relative;
+  z-index: 2;
 }
 
 .archive-detail-card {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.1);
   overflow: hidden;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  position: relative;
 }
+
+
 
 .archive-detail-header {
   padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
-  background-color: #f9fbfe;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  position: relative;
+}
+
+.archive-detail-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.3) 50%, transparent 100%);
 }
 
 .archive-title {
   font-size: 16px;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: #1e40af;
 }
 
 .archive-detail-body {
@@ -1957,12 +2119,13 @@ export default {
 
 .info-item .label {
   min-width: 90px;
-  color: #909399;
+  color: #6b7280;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .info-item .value {
-  color: #303133;
+  color: #1f2937;
   font-size: 14px;
   flex: 1;
   word-break: break-all;
@@ -1971,9 +2134,12 @@ export default {
 .archive-detail-footer {
   padding: 16px;
   text-align: center;
-  border-top: 1px solid #f0f0f0;
-  background-color: #f9fbfe;
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  position: relative;
 }
+
+
 
 .edit-archive-btn {
   width: 100%;
@@ -1984,29 +2150,29 @@ export default {
 .form-tip {
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f4ff 100%);
-  border: 1px solid #bae7ff;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
   padding: 8px 12px;
   margin-top: 6px;
   font-size: 12px;
-  color: #1890ff;
+  color: #1e40af;
   line-height: 1.4;
-  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.1);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
   transition: all 0.3s ease;
 }
 
 .form-tip:hover {
-  background: linear-gradient(135deg, #e6f7ff 0%, #d1edff 100%);
-  border-color: #91d5ff;
-  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.15);
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.15);
   transform: translateY(-1px);
 }
 
 .form-tip i {
   font-size: 14px;
   margin-right: 6px;
-  color: #52c41a;
+  color: #10b981;
   flex-shrink: 0;
 }
 
@@ -2047,4 +2213,215 @@ export default {
   margin-left: 7px;
   text-align: center;
 }
+
+/* 科技感蓝色按钮样式 - 与 deviceSkills.vue 完全一致 */
+.page-container >>> .el-button {
+  height: 32px;
+  padding: 6px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin-right: 0;
+}
+
+.page-container >>> .el-button--primary,
+.page-container >>> .add-btn,
+.page-container >>> .edit-archive-btn {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  border-radius: 6px !important;
+}
+
+
+
+.page-container >>> .el-button--primary:hover,
+.page-container >>> .add-btn:hover,
+.page-container >>> .edit-archive-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+
+
+/* 批量删除按钮改为刷新按钮样式 */
+.page-container >>> .batch-delete-btn {
+  padding: 7px 10px !important;
+  margin-left: 0 !important;
+  color: #606266 !important;
+  background-color: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+  box-shadow: none !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+  text-shadow: none !important;
+  height: 32px !important;
+  position: static !important;
+  overflow: visible !important;
+}
+
+.page-container >>> .batch-delete-btn:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+  transform: none !important;
+}
+
+.page-container >>> .batch-delete-btn::before {
+  display: none !important;
+}
+
+.page-container >>> .batch-delete-btn:hover::before {
+  display: none !important;
+}
+
+/* 保持其他危险按钮的红色样式 */
+.page-container >>> .el-button--danger:not(.batch-delete-btn) {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4), 0 2px 4px rgba(185, 28, 28, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  border-radius: 6px !important;
+}
+
+
+
+.page-container >>> .el-button--danger:not(.batch-delete-btn):hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%) !important;
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5), 0 4px 8px rgba(185, 28, 28, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+
+
+.page-container >>> .el-button:not(.el-button--primary):not(.el-button--danger):not(.add-btn):not(.edit-archive-btn):not(.batch-delete-btn) {
+  background: #f5f7fa !important;
+  border-color: #e4e7ed !important;
+  color: #606266 !important;
+  border-radius: 6px !important;
+}
+
+.page-container >>> .el-button:not(.el-button--primary):not(.el-button--danger):not(.add-btn):not(.edit-archive-btn):not(.batch-delete-btn):hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e3a8a !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 弹框按钮统一样式 */
+.page-container >>> .el-dialog .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.page-container >>> .el-dialog .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.page-container >>> .el-dialog .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.page-container >>> .el-dialog .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+
+
+/* 输入框和选择器样式 - 与 deviceSkills.vue 一致 */
+.page-container >>> .el-input__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.page-container >>> .el-input__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.page-container >>> .el-input__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+.page-container >>> .el-select .el-input__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.page-container >>> .el-select .el-input__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.page-container >>> .el-select .el-input__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+.page-container >>> .el-date-editor.el-input {
+  border-radius: 6px !important;
+}
+
+.page-container >>> .el-date-editor .el-input__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+}
+
+.page-container >>> .el-date-editor .el-input__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.page-container >>> .el-date-editor .el-input__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+.page-container >>> .el-textarea__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.page-container >>> .el-textarea__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.page-container >>> .el-textarea__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+
 </style>

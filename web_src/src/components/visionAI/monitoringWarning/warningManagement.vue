@@ -235,6 +235,9 @@ export default {
       deleteDialogVisible: false,
       deleteLoading: false,
       
+      // 卡片悬停状态管理
+      cardHoverStates: {},
+      
       // 预警技能选项
       warningSkillOptions: [
         { label: '安全帽检测', value: 'safety_helmet_detection' },
@@ -406,8 +409,9 @@ export default {
         // 当前是模拟数据，先显示loading效果
         await new Promise(resolve => setTimeout(resolve, 500))
         
-        // 刷新后清空选择
+        // 刷新后清空选择和悬停状态
         this.selectedWarnings = []
+        this.cardHoverStates = {}
       } finally {
         this.loading = false
       }
@@ -1404,6 +1408,16 @@ export default {
         console.error('路由跳转失败:', error)
         this.$message.error('页面跳转失败，请稍后重试')
       }
+    },
+    
+    // 显示卡片选择框
+    showCardCheckbox(warningId) {
+      this.$set(this.cardHoverStates, warningId, true)
+    },
+    
+    // 隐藏卡片选择框
+    hideCardCheckbox(warningId) {
+      this.$set(this.cardHoverStates, warningId, false)
     }
   }
 }
@@ -1547,13 +1561,11 @@ export default {
             >选择本页</el-button>
             <el-button 
               size="small" 
-              type="warning"
               :disabled="selectedWarnings.length === 0"
               @click="handleBatchProcess"
             >批量处理</el-button>
             <el-button 
               size="small" 
-              type="danger"
               icon="el-icon-delete"
               :disabled="selectedWarnings.length === 0"
               @click="showDeleteDialog"
@@ -1562,13 +1574,13 @@ export default {
           
           <div class="action-buttons">
             <el-button 
-              type="primary" 
+              class="export-data-btn"
               size="small" 
               icon="el-icon-download"
               @click="exportData"
             >导出数据</el-button>
             <el-button 
-              class="tech-review-btn"
+              type="primary"
               size="small" 
               icon="el-icon-cpu"
               @click="goToReviewRecords"
@@ -1594,6 +1606,8 @@ export default {
               class="warning-card" 
               :class="{ 'selected': selectedWarnings.includes(item.id) }"
               @click="showWarningDetail(item)"
+              @mouseenter="showCardCheckbox(item.id)"
+              @mouseleave="hideCardCheckbox(item.id)"
             >
               <!-- 等级和状态标签容器 -->
               <div class="warning-badges-container">
@@ -1608,7 +1622,11 @@ export default {
               </div>
             
               <!-- 右上角选择框 -->
-              <div class="select-checkbox" @click.stop="toggleSelect(item.id)">
+              <div 
+                v-show="cardHoverStates[item.id] || selectedWarnings.includes(item.id)" 
+                class="select-checkbox" 
+                @click.stop="toggleSelect(item.id)"
+              >
                 <el-checkbox 
                   :value="selectedWarnings.includes(item.id)"
                   @change="toggleSelect(item.id)"
@@ -1677,9 +1695,7 @@ export default {
                     
                     <el-button 
                       size="mini" 
-                      type="success" 
-                      plain
-                      class="action-btn"
+                      class="action-btn process-btn"
                       @click.stop="handleWarning(item.id, 'markProcessed')"
                       :disabled="isProcessingDisabled(item)"
                     >
@@ -1923,11 +1939,11 @@ export default {
 <style scoped>
 .warning-management-container {
   height: calc(100vh - 60px);
-  background: #f5f7fa;
+  background: #f5f5f5;
   padding: 0;
 }
 
-/* 内容区样式 */
+/* 内容区样式 - 科技感蓝色背景 */
 .content-area {
   flex: 1;
   display: flex;
@@ -1937,19 +1953,26 @@ export default {
   overflow-y: auto;
 }
 
-/* 搜索和筛选区域 */
+/* 搜索和筛选区域 - 科技感样式 */
 .search-filter-area {
-  background: #fff;
-  border-radius: 4px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
   padding: 16px;
   margin-bottom: 16px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  position: relative;
+  overflow: hidden;
 }
+
+
 
 .search-row {
   display: flex;
   margin-bottom: 16px;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 2;
 }
 
 .date-picker-wrapper,
@@ -1976,7 +1999,9 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding-top: 12px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid rgba(59, 130, 246, 0.1);
+  position: relative;
+  z-index: 2;
 }
 
 .filter-buttons {
@@ -1987,13 +2012,27 @@ export default {
 .filter-buttons .el-button {
   margin-right: 8px;
   margin-bottom: 8px;
-  border-color: #dcdfe6;
+  border-color: #e4e7ed;
+  background: #f5f7fa;
+  color: #606266;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.filter-buttons .el-button:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
 }
 
 .filter-buttons .el-button.active {
-  background-color: #409eff;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
   color: #fff;
-  border-color: #409eff;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 .action-buttons {
@@ -2004,14 +2043,53 @@ export default {
 .action-buttons .el-button {
   margin-left: 8px;
   margin-bottom: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
 }
 
-/* 预警卡片样式 */
+.action-buttons .el-button--primary {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3);
+  position: relative;
+  overflow: hidden;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.action-buttons .el-button--primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.action-buttons .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4);
+  transform: translateY(-2px);
+}
+
+.action-buttons .el-button--primary:hover::before {
+  left: 100%;
+}
+
+/* 预警卡片样式 - 科技感设计 */
 .warning-cards-container {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1px 1px 0 1px;
+  padding: 20px;
+  background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+  border-radius: 16px;
+  margin: 1px;
 }
 
 .warning-cards-grid {
@@ -2029,41 +2107,67 @@ export default {
 
 .warning-card {
   height: 370px;
-  background: #fff;
-  border-radius: 6px;
+  background: white;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 0;
   position: relative;
-  transition: all 0.25s;
+  transition: all 0.3s ease;
   width: 100%;
+  border: 1px solid #f3f4f6;
 }
 
-.warning-card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
 
-/* 等级和状态标签容器 */
-.warning-badges-container {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  display: flex;
-  gap: 6px;
+
+.warning-card > * {
+  position: relative;
   z-index: 2;
 }
 
+.warning-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.warning-card.selected {
+  border: 1px solid #3b82f6;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+}
+
+.warning-card.selected .selection-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(59, 130, 246, 0.05);
+  z-index: 1;
+}
+
+/* 等级和状态标签容器 - 科技感样式 */
+.warning-badges-container {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+
 .warning-level-badge {
-  padding: 3px 8px;
+  padding: 4px 10px;
   font-size: 12px;
   color: white;
   font-weight: bold;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  /* 移除之前的复杂样式，使用简洁的设计 */
+  border-radius: 6px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
-/* 等级标签背景颜色 - 与实时监控页面保持一致 */
+/* 等级标签背景颜色 - 保持原有颜色 */
 .warning-level-badge.level-1-bg {
   background-color: #f56c6c;
 }
@@ -2127,17 +2231,13 @@ export default {
   font-size: 36px;
   margin-bottom: 12px;
   opacity: 0.8;
+  color: #409EFF;
 }
 
 .warning-video-preview span {
   font-size: 13px;
   opacity: 0.9;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-/* 根据预警等级设置不同的图标颜色和动画效果 */
-.warning-video-preview i {
-  color: #409EFF;
 }
 
 .warning-content {
@@ -2175,8 +2275,6 @@ export default {
   color: #606266;
 }
 
-
-
 .warning-level {
   font-weight: 500;
 }
@@ -2208,42 +2306,74 @@ export default {
   min-width: auto;
 }
 
+/* 底部按钮样式 - 科技感蓝色设计 */
+.action-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  margin: 0 2px;
+  font-weight: 500;
+  border: 1px solid;
+}
+
 .report-btn {
-  color: #e6a23c;
+  background: linear-gradient(135deg, #e6a23c 0%, #f59e0b 100%);
   border-color: #e6a23c;
+  color: white;
+  box-shadow: 0 2px 4px rgba(230, 162, 60, 0.3);
 }
 
-.complete-btn {
-  color: #67c23a;
-  border-color: #67c23a;
-}
-
-.remark-btn {
-  color: #409eff;
-  border-color: #409eff;
-}
-
-.false-alarm-btn {
-  color: #e6a23c;
-  border-color: #e6a23c;
+.report-btn:hover {
+  background: linear-gradient(135deg, #d97706 0%, #dc2626 100%);
+  border-color: #d97706;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.4);
 }
 
 .archive-btn {
-  color: #f56c6c;
+  background: linear-gradient(135deg, #f56c6c 0%, #dc2626 100%);
   border-color: #f56c6c;
+  color: white;
+  box-shadow: 0 2px 4px rgba(245, 108, 108, 0.3);
 }
 
-.status-text {
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
+.archive-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.4);
 }
 
-.status-text.processed {
-  color: #67c23a;
-  background-color: #f0f9ff;
-  border: 1px solid #67c23a;
+.false-alarm-btn {
+  background: linear-gradient(135deg, #909399 0%, #6b7280 100%);
+  border-color: #909399;
+  color: white;
+  box-shadow: 0 2px 4px rgba(144, 147, 153, 0.3);
 }
+
+.false-alarm-btn:hover {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  border-color: #6b7280;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(144, 147, 153, 0.4);
+}
+
+.process-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #10b981;
+  color: white;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.process-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+
 
 /* 等级样式 - 移除边框相关样式 */
 .level-1-bg {
@@ -2361,52 +2491,43 @@ export default {
   margin-left: 8px;
 }
 
-/* 添加卡片选中样式 */
-.warning-card.selected {
-  box-shadow: 0 0 0 2px #409eff, 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
 .select-checkbox {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
   z-index: 10;
-  width: 24px;
-  height: 24px;
-  background-color: rgba(255, 255, 255, 0.4);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.6;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
-.select-checkbox:hover {
-  background-color: rgba(255, 255, 255, 0.9);
-  opacity: 1;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transform: scale(1.05);
+.select-checkbox >>> .el-checkbox {
+  margin: 0;
 }
 
-.warning-card:hover .select-checkbox {
-  opacity: 0.9;
-  background-color: rgba(255, 255, 255, 0.7);
+.select-checkbox >>> .el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
 }
 
-.warning-card.selected .select-checkbox {
-  opacity: 1;
-  background-color: rgba(64, 158, 255, 0.1);
-  border: 1px solid rgba(64, 158, 255, 0.3);
+.select-checkbox >>> .el-checkbox__inner:hover {
+  border-color: #3b82f6 !important;
 }
 
-.select-checkbox .el-checkbox {
-  transform: scale(0.9);
+.select-checkbox >>> .el-checkbox__inner {
+  width: 18px !important;
+  height: 18px !important;
+  border: 2px solid #dcdfe6 !important;
+  border-radius: 3px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
 }
 
-.select-checkbox .el-checkbox__input.is-checked .el-checkbox__inner {
-  background-color: #409eff;
-  border-color: #409eff;
+.select-checkbox >>> .el-checkbox__inner::after {
+  height: 8px !important;
+  left: 5px !important;
+  top: 1px !important;
+  width: 3px !important;
+  border: 2px solid #fff !important;
+  border-left: 0 !important;
+  border-top: 0 !important;
 }
 
 /* 没有数据时的提示样式 */
@@ -2575,14 +2696,17 @@ export default {
   box-shadow: 0 4px 12px rgba(144, 147, 153, 0.3);
 }
 
-/* 预警状态标签样式 - 与实时监控页面保持完全一致 */
+/* 预警状态标签样式 - 科技感设计 */
 .warning-status-badge {
-  padding: 3px 8px;
+  padding: 4px 10px;
   font-size: 12px;
   color: white;
   font-weight: bold;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 /* 旧的状态样式已移除，使用带warning-status-badge前缀的新样式 */
@@ -2642,8 +2766,8 @@ export default {
   align-items: center;
 }
 
-/* 科技感复判记录按钮样式 */
-.tech-review-btn {
+/* 科技感导出数据按钮样式 */
+.export-data-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   color: white;
@@ -2654,25 +2778,25 @@ export default {
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-.tech-review-btn:hover {
+.export-data-btn:hover {
   background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
   transform: translateY(-2px);
   color: white;
 }
 
-.tech-review-btn:focus {
+.export-data-btn:focus {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
   color: white;
 }
 
-.tech-review-btn:active {
+.export-data-btn:active {
   transform: translateY(0);
   box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
 }
 
-.tech-review-btn::before {
+.export-data-btn::before {
   content: '';
   position: absolute;
   top: 0;
@@ -2683,7 +2807,154 @@ export default {
   transition: left 0.5s;
 }
 
-.tech-review-btn:hover::before {
+.export-data-btn:hover::before {
   left: 100%;
+}
+
+/* 对话框样式优化 - 科技感设计 */
+.warning-management-container >>> .el-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.warning-management-container >>> .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  padding: 16px 20px;
+}
+
+.warning-management-container >>> .el-dialog__title {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.warning-management-container >>> .el-dialog__close {
+  color: #6b7280;
+  transition: color 0.3s ease;
+}
+
+.warning-management-container >>> .el-dialog__close:hover {
+  color: #3b82f6;
+}
+
+.warning-management-container >>> .el-dialog__body {
+  padding: 20px;
+  background: #ffffff;
+}
+
+.warning-management-container >>> .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.warning-management-container >>> .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.warning-management-container >>> .el-button--success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.warning-management-container >>> .el-button--success:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
+}
+
+.warning-management-container >>> .el-button--default {
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.warning-management-container >>> .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e40af;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.warning-management-container >>> .el-button--danger {
+  background: linear-gradient(135deg, #f56c6c 0%, #dc2626 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(245, 108, 108, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.warning-management-container >>> .el-button--danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 10px rgba(245, 108, 108, 0.4);
+  transform: translateY(-1px);
+}
+
+.warning-management-container >>> .el-button--warning {
+  background: linear-gradient(135deg, #e6a23c 0%, #f59e0b 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(230, 162, 60, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.warning-management-container >>> .el-button--warning:hover {
+  background: linear-gradient(135deg, #d97706 0%, #dc2626 100%);
+  box-shadow: 0 4px 10px rgba(230, 162, 60, 0.4);
+  transform: translateY(-1px);
+}
+
+/* 输入框和选择框样式优化 */
+.warning-management-container >>> .el-input__inner {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.warning-management-container >>> .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.warning-management-container >>> .el-select .el-input__inner {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+}
+
+.warning-management-container >>> .el-select .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.warning-management-container >>> .el-date-editor.el-input {
+  border-radius: 6px;
+}
+
+.warning-management-container >>> .el-date-editor .el-input__inner {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+}
+
+.warning-management-container >>> .el-date-editor .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 </style>
