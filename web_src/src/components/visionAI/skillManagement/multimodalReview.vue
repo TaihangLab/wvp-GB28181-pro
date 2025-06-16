@@ -776,10 +776,11 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   padding: 12px 24px;
   flex-shrink: 0;
   min-height: 30px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 .header-left {
@@ -797,21 +798,57 @@ export default {
 }
 
 .header-left .el-button--primary {
-  background: #7c3aed;
-  border-color: #7c3aed;
-  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.header-left .el-button--primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.header-left .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4);
+  transform: translateY(-2px);
+}
+
+.header-left .el-button--primary:hover::before {
+  left: 100%;
+}
+
+.header-left .el-button--primary:active {
+  transform: translateY(0px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
 .header-left .el-button:not(.el-button--primary) {
   background: #f5f7fa;
   border-color: #e4e7ed;
   color: #606266;
+  transition: all 0.3s ease;
 }
 
 .header-left .el-button:not(.el-button--primary):hover {
-  background: #f5f3ff;
-  border-color: #c4b5fd;
-  color: #7c3aed;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
 }
 
 .header-right {
@@ -869,19 +906,19 @@ export default {
 }
 
 .view-btn.active {
-  background: #7c3aed;
+  background: #3b82f6;
   color: white;
-  border-color: #7c3aed;
+  border-color: #3b82f6;
 }
 
 .view-btn:hover {
-  border-color: #7c3aed;
-  color: #7c3aed;
+  border-color: #3b82f6;
+  color: #3b82f6;
 }
 
 .view-btn.active:hover {
-  background: #6d28d9;
-  border-color: #6d28d9;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
 .action-btn {
@@ -922,9 +959,10 @@ export default {
 }
 
 .filter-tabs .el-button--primary {
-  background: #7c3aed;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
   color: white;
   font-weight: 500;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
 .filter-tabs .el-button.is-plain {
@@ -934,12 +972,14 @@ export default {
 }
 
 .filter-tabs .el-button.is-plain:hover {
-  background: #f5f3ff;
-  color: #7c3aed;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
 .filter-tabs .el-button--primary:hover {
-  background: #6d28d9;
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
 }
 
 .sort-section {
@@ -951,11 +991,11 @@ export default {
 }
 
 .sort-section .el-button {
-  color: #7c3aed;
+  color: #3b82f6;
 }
 
 .sort-section .el-button:hover {
-  color: #6d28d9;
+  color: #1d4ed8;
 }
 
 /* 技能卡片网格 */
@@ -995,10 +1035,10 @@ export default {
   right: 0;
   bottom: 0;
   background: linear-gradient(180deg,
-      rgba(139, 69, 237, 0.08) 0%,
-      rgba(99, 102, 241, 0.06) 15%,
-      rgba(59, 130, 246, 0.07) 33%,
-      rgba(139, 69, 237, 0.03) 50%,
+      rgba(30, 64, 175, 0.08) 0%,
+      rgba(59, 130, 246, 0.06) 15%,
+      rgba(6, 182, 212, 0.07) 33%,
+      rgba(30, 64, 175, 0.03) 50%,
       rgba(255, 255, 255, 0.01) 70%,
       rgba(255, 255, 255, 0) 100%);
   border-radius: 12px;
@@ -1034,12 +1074,12 @@ export default {
 }
 
 .card-checkbox >>> .el-checkbox__input.is-checked .el-checkbox__inner {
-  background-color: #7c3aed !important;
-  border-color: #7c3aed !important;
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
 }
 
 .card-checkbox >>> .el-checkbox__inner:hover {
-  border-color: #7c3aed !important;
+  border-color: #3b82f6 !important;
 }
 
 .card-checkbox >>> .el-checkbox__inner {
@@ -1088,10 +1128,10 @@ export default {
 }
 
 .id-label {
-  color: #7c3aed;
+  color: #3b82f6;
   font-weight: 500;
   margin-right: 4px;
-  background-color: rgba(124, 58, 237, 0.1);
+  background-color: rgba(59, 130, 246, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 11px;
@@ -1110,9 +1150,9 @@ export default {
   height: 20px !important;
   width: 20px !important;
   min-width: 20px !important;
-  border: 1px solid rgba(124, 58, 237, 0.1) !important;
-  background: rgba(124, 58, 237, 0.05) !important;
-  color: rgba(124, 58, 237, 0.4) !important;
+  border: 1px solid rgba(59, 130, 246, 0.1) !important;
+  background: rgba(59, 130, 246, 0.05) !important;
+  color: rgba(59, 130, 246, 0.4) !important;
   border-radius: 3px !important;
   transition: all 0.2s ease !important;
   display: flex !important;
@@ -1123,9 +1163,9 @@ export default {
 }
 
 .copy-btn:hover {
-  border-color: rgba(124, 58, 237, 0.2) !important;
-  color: rgba(124, 58, 237, 0.7) !important;
-  background: rgba(124, 58, 237, 0.1) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+  color: rgba(59, 130, 246, 0.7) !important;
+  background: rgba(59, 130, 246, 0.1) !important;
   transform: scale(1.05) !important;
 }
 
@@ -1165,11 +1205,11 @@ export default {
   width: 300px !important;
   max-width: 300px !important;
   padding: 12px 16px !important;
-  background: #ffffff !important;
-  border: 2px solid #7c3aed !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 2px solid #3b82f6 !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-  color: #333333 !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3), 0 2px 8px rgba(30, 64, 175, 0.2) !important;
+  color: #1e40af !important;
   font-size: 14px !important;
   font-weight: 400 !important;
   line-height: 1.5 !important;
@@ -1262,9 +1302,10 @@ export default {
 }
 
 .card-actions .el-button:hover {
-  border-color: #7c3aed !important;
-  color: #7c3aed !important;
-  background: white !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }
 
 .card-actions .el-button.is-disabled {
@@ -1300,8 +1341,10 @@ export default {
 }
 
 .go-button:hover {
-  border-color: #7c3aed;
-  color: #7c3aed;
+  border-color: #3b82f6;
+  color: #1e40af;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }
 
 /* 覆盖Element UI分页组件样式 */
@@ -1312,16 +1355,18 @@ export default {
 }
 
 .pagination-section >>> .el-pagination .el-pager li:hover {
-  background: white !important;
-  border-color: #7c3aed !important;
-  color: #7c3aed !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
 .pagination-section >>> .el-pagination .el-pager li.active {
-  background: white !important;
-  border-color: #7c3aed !important;
-  color: #7c3aed !important;
-  font-weight: 500 !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
 .pagination-section >>> .el-pagination button {
@@ -1331,9 +1376,10 @@ export default {
 }
 
 .pagination-section >>> .el-pagination button:hover {
-  background: white !important;
-  border-color: #7c3aed !important;
-  color: #7c3aed !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
 /* 更强的Element UI样式覆盖 */
@@ -1344,15 +1390,17 @@ export default {
 }
 
 .pagination-section >>> .el-pagination .el-pager li.number:hover {
-  background-color: white !important;
-  border-color: #7c3aed !important;
-  color: #7c3aed !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
 .pagination-section >>> .el-pagination .el-pager li.number.active {
-  background-color: white !important;
-  border-color: #7c3aed !important;
-  color: #7c3aed !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
 .pagination-section >>> .el-pagination .btn-prev,
@@ -1364,9 +1412,10 @@ export default {
 
 .pagination-section >>> .el-pagination .btn-prev:hover,
 .pagination-section >>> .el-pagination .btn-next:hover {
-  background-color: white !important;
-  border-color: #7c3aed !important;
-  color: #7c3aed !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
 .pagination-section >>> .el-pagination .el-select .el-input .el-input__inner {
@@ -1375,7 +1424,7 @@ export default {
 }
 
 .pagination-section >>> .el-pagination .el-select .el-input .el-input__inner:hover {
-  border-color: #7c3aed !important;
+  border-color: #3b82f6 !important;
 }
 
 /* 自定义复制技能确认对话框样式 */
@@ -1452,8 +1501,8 @@ export default {
 }
 
 .copy-skill-dialog .el-message-box__btns .el-button--default:hover {
-  color: #7c3aed !important;
-  border-color: #7c3aed !important;
+  color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
   background-color: #ffffff !important;
 }
 

@@ -9,7 +9,6 @@
               创建技能
             </el-button>
             <el-button 
-              type="danger" 
               icon="el-icon-delete" 
               :disabled="selectedSkills.length === 0"
               @click="batchDelete">
@@ -165,16 +164,15 @@
                 </div>
               </div>
 
-              <div class="card-actions">
-                <el-button size="small" @click.stop="editSkill(skill)">编辑</el-button>
+              <div class="card-actions" @click.stop>
+                <el-button size="small" @click="editSkill(skill)">编辑</el-button>
                 <el-button 
                   size="small" 
-                  :type="skill.status === 'enabled' ? 'warning' : 'success'"
-                  @click.stop="toggleSkillStatus(skill)">
+                  @click="toggleSkillStatus(skill)">
                   {{ skill.status === 'enabled' ? '下架' : '发布' }}
                 </el-button>
-                <el-button size="small" @click.stop="testSkill(skill)">测试</el-button>
-                <el-button size="small" type="danger" @click.stop="deleteSkill(skill)">删除</el-button>
+                <el-button size="small" @click="testSkill(skill)">测试</el-button>
+                <el-button size="small" @click="deleteSkill(skill)">删除</el-button>
               </div>
             </div>
           </div>
@@ -191,7 +189,12 @@
             :total="totalCount"
             layout="total, sizes, prev, pager, next, jumper" 
             background>
+            <template slot="total">
+              <span>共 {{ totalCount }} 条数据</span>
+            </template>
           </el-pagination>
+
+          <el-button type="primary" class="go-button" @click="goToPage">GO</el-button>
         </div>
       </div>
     </div>
@@ -445,39 +448,39 @@
               <i class="el-icon-info"></i>
               基本信息
             </h4>
-                         <div class="info-grid">
-               <div class="info-item">
-                 <i class="el-icon-star-on item-icon"></i>
-                 <span class="item-label">技能类型</span>
-                 <span class="item-value skill-type-highlight">多模态大模型</span>
-               </div>
-               <div class="info-item">
-                 <i class="el-icon-cpu item-icon"></i>
-                 <span class="item-label">模型类型</span>
-                 <span class="item-value">{{ getModelDisplayName(detailSkill.model) }}</span>
-               </div>
-               <div class="info-item" v-if="detailSkill.tags">
-                 <i class="el-icon-price-tag item-icon"></i>
-                 <span class="item-label">技能标签</span>
-                 <span class="item-value">{{ detailSkill.tags }}</span>
-               </div>
-               <div class="info-item clickable-item" @click="showDeviceList(detailSkill)">
-                 <i class="el-icon-link item-icon"></i>
-                 <span class="item-label">关联设备</span>
-                 <span class="item-value">{{ detailSkill.deviceCount || 0 }} 台</span>
-                 <i class="el-icon-arrow-right item-arrow"></i>
-               </div>
-               <div class="info-item">
-                 <i class="el-icon-date item-icon"></i>
-                 <span class="item-label">创建时间</span>
-                 <span class="item-value">{{ detailSkill.createdAt }}</span>
-               </div>
-               <div class="info-item">
-                 <i class="el-icon-refresh item-icon"></i>
-                 <span class="item-label">最后更新</span>
-                 <span class="item-value">{{ detailSkill.updatedAt }}</span>
-               </div>
-             </div>
+            <div class="info-grid">
+              <div class="info-item">
+                <i class="el-icon-star-on item-icon"></i>
+                <span class="item-label">技能类型</span>
+                <span class="item-value skill-type-highlight">多模态大模型</span>
+              </div>
+              <div class="info-item">
+                <i class="el-icon-cpu item-icon"></i>
+                <span class="item-label">模型类型</span>
+                <span class="item-value">{{ getModelDisplayName(detailSkill.model) }}</span>
+              </div>
+              <div class="info-item" v-if="detailSkill.tags">
+                <i class="el-icon-price-tag item-icon"></i>
+                <span class="item-label">技能标签</span>
+                <span class="item-value">{{ detailSkill.tags }}</span>
+              </div>
+              <div class="info-item clickable-item" @click="showDeviceList(detailSkill)">
+                <i class="el-icon-link item-icon"></i>
+                <span class="item-label">关联设备</span>
+                <span class="item-value">{{ detailSkill.deviceCount || 0 }} 台</span>
+                <i class="el-icon-arrow-right item-arrow"></i>
+              </div>
+              <div class="info-item">
+                <i class="el-icon-date item-icon"></i>
+                <span class="item-label">创建时间</span>
+                <span class="item-value">{{ detailSkill.createdAt }}</span>
+              </div>
+              <div class="info-item">
+                <i class="el-icon-refresh item-icon"></i>
+                <span class="item-label">最后更新</span>
+                <span class="item-value">{{ detailSkill.updatedAt }}</span>
+              </div>
+            </div>
           </div>
 
           <div class="info-group">
@@ -1446,6 +1449,11 @@ export default {
     viewDevice(device) {
       this.$message.info(`查看设备：${device.name}`)
       // 这里可以跳转到设备详情页面或打开设备详情弹窗
+    },
+
+    // 跳转到指定页面
+    goToPage() {
+      // 跳转到指定页面逻辑（可以根据需要实现）
     }
   },
 
@@ -1458,267 +1466,387 @@ export default {
 
 <style scoped>
 .multimodal-llm-skills-wrapper {
-  min-height: 100vh;
-  background: #f5f7fa;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .multimodal-llm-skills {
   padding: 20px;
+  background-color: #f5f5f5;
+  min-height: 90vh-10px;
 }
 
 .page-container {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 0 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
-/* 头部操作区域 */
+.page-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.05) 50%, transparent 100%);
+  z-index: 1;
+}
+
+.header-section {
+  position: relative;
+  z-index: 2;
+}
+
+.filter-tabs {
+  position: relative;
+  z-index: 2;
+}
+
+.pagination-section {
+  position: relative;
+  z-index: 2;
+}
+
+/* 头部样式 */
 .header-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 15px 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  padding: 12px 24px;
+  flex-shrink: 0;
+  min-height: 30px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.header-left {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .header-left .el-button {
-  margin-right: 10px;
+  height: 32px;
+  padding: 6px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.header-left .el-button--primary {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.header-left .el-button--primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.header-left .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4);
+  transform: translateY(-2px);
+}
+
+.header-left .el-button--primary:hover::before {
+  left: 100%;
+}
+
+.header-left .el-button--primary:active {
+  transform: translateY(0px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+.header-left .el-button:not(.el-button--primary) {
+  background: #f5f7fa;
+  border-color: #e4e7ed;
+  color: #606266;
+  transition: all 0.3s ease;
+}
+
+.header-left .el-button:not(.el-button--primary):hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+}
+
+.header-right .el-select,
+.header-right .el-input {
+  font-size: 14px;
+}
+
+.header-right .el-button {
+  height: 30px;
+  min-width: 30px;
+  padding: 0;
+  border-radius: 4px;
 }
 
 .select-status,
 .select-model,
 .select-tag {
-  width: 120px;
+  width: 180px;
+}
+
+.select-status .el-input__inner,
+.select-model .el-input__inner,
+.select-tag .el-input__inner {
+  height: 25px;
+  line-height: 25px;
+  border-radius: 4px;
+  border: 1px solid #dcdfe6;
+  font-size: 8px;
 }
 
 .search-input {
-  width: 280px;
+  width: 220px;
+}
+
+.search-input .el-input__inner {
+  height: 25px;
+  line-height: 25px;
+  border-radius: 4px;
+  border: 1px solid #dcdfe6;
+  font-size: 13px;
 }
 
 .action-btn {
-  padding: 7px 15px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #dcdfe6;
+  background: white;
+  color: #606266;
+  border-radius: 4px;
 }
 
-/* 过滤标签 */
+/* 过滤标签样式 */
 .filter-tabs {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 10px 20px;
+  justify-content: space-between;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 8px 24px;
+  flex-shrink: 0;
+  min-height: 15px;
 }
 
-.filter-buttons .el-button {
-  margin-right: 10px;
+.filter-tabs .filter-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filter-tabs .el-button {
+  height: 28px;
+  padding: 4px 12px;
+  font-size: 13px;
+  border-radius: 14px;
+  font-weight: 400;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.filter-tabs .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  color: white;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.filter-tabs .el-button.is-plain {
+  color: #666;
+  background: #f5f5f5;
+  border: none;
+}
+
+.filter-tabs .el-button.is-plain:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.filter-tabs .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
 }
 
 .sort-section {
   display: flex;
   align-items: center;
-  color: #606266;
-  font-size: 14px;
+  gap: 5px;
+  color: #666;
+  font-size: 13px;
 }
 
-/* 技能卡片 */
+.sort-section .el-button {
+  color: #3b82f6;
+}
+
+.sort-section .el-button:hover {
+  color: #1d4ed8;
+}
+
+/* 技能卡片网格 */
 .skills-container {
-  margin-bottom: 20px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 24px 24px;
+  background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
 }
 
 .skills-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
 }
 
 .skill-card {
-  position: relative;
   background: white;
-  border-radius: 14px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  transition: all 0.25s cubic-bezier(.4,2,.6,1);
-  cursor: pointer;
-  overflow: hidden;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  aspect-ratio: 16/19;
   display: flex;
   flex-direction: column;
-  min-height: 320px;
-  border: none;
+  min-height: 0;
+  border: 1px solid #f3f4f6;
+  position: relative;
+  overflow: hidden;
+}
+
+.skill-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg,
+      rgba(30, 64, 175, 0.08) 0%,
+      rgba(59, 130, 246, 0.06) 15%,
+      rgba(6, 182, 212, 0.07) 33%,
+      rgba(30, 64, 175, 0.03) 50%,
+      rgba(255, 255, 255, 0.01) 70%,
+      rgba(255, 255, 255, 0) 100%);
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.skill-card>* {
+  position: relative;
+  z-index: 2;
 }
 
 .skill-card:hover {
-  transform: translateY(-6px) scale(1.03);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  cursor: pointer;
+}
+
+.skill-card:active {
+  transform: translateY(-1px);
 }
 
 .card-checkbox {
   position: absolute;
   top: 10px;
-  left: 10px;
+  right: 10px;
   z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.card-checkbox >>> .el-checkbox {
+  margin: 0;
+}
+
+.card-checkbox >>> .el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+.card-checkbox >>> .el-checkbox__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.card-checkbox >>> .el-checkbox__inner {
+  width: 18px !important;
+  height: 18px !important;
+  border: 2px solid #dcdfe6 !important;
+  border-radius: 3px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+.card-checkbox >>> .el-checkbox__inner::after {
+  height: 8px !important;
+  left: 5px !important;
+  top: 1px !important;
+  width: 3px !important;
+  border: 2px solid #fff !important;
+  border-left: 0 !important;
+  border-top: 0 !important;
 }
 
 .skill-type-badge {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 10px;
+  left: 10px;
   z-index: 9;
 }
 
 .skill-type-text {
-  position: relative;
-  background: linear-gradient(135deg, 
-    rgba(59, 130, 246, 0.85) 0%, 
-    rgba(37, 99, 235, 0.8) 20%,
-    rgba(29, 78, 216, 0.75) 40%,
-    rgba(30, 144, 255, 0.8) 60%,
-    rgba(0, 191, 255, 0.85) 80%,
-    rgba(59, 130, 246, 0.85) 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
   color: white;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 12px;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-  letter-spacing: 0.8px;
-  z-index: 2;
-  animation: skillTypePulse 6s ease-in-out infinite;
-  box-shadow: 
-    0 4px 15px rgba(59, 130, 246, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
-}
-
-.skill-type-text::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  border-radius: 14px;
-  background: linear-gradient(90deg, 
-    transparent 0%,
-    rgba(59, 130, 246, 0.6) 20%,
-    rgba(0, 191, 255, 0.8) 50%,
-    rgba(59, 130, 246, 0.6) 80%,
-    transparent 100%);
-  background-size: 300% 100%;
-  opacity: 0;
-  z-index: -1;
-  animation: skillTypeBorderFlow 6s ease-in-out infinite;
-}
-
-.skill-type-glow {
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  border-radius: 14px;
-  opacity: 0;
-  z-index: 1;
-  animation: skillTypeGlow 6s ease-in-out infinite;
-  background: linear-gradient(90deg, 
-    rgba(59, 130, 246, 0.8) 0%, 
-    rgba(30, 144, 255, 0.6) 25%,
-    rgba(0, 191, 255, 0.4) 50%,
-    rgba(30, 144, 255, 0.6) 75%,
-    rgba(59, 130, 246, 0.8) 100%);
-  background-size: 200% 100%;
-}
-
-@keyframes skillTypePulse {
-  0%, 80% {
-    transform: rotate(0deg);
-    box-shadow: 
-      0 4px 15px rgba(59, 130, 246, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.35);
-    filter: brightness(1);
-  }
-  90% {
-    transform: rotate(0deg);
-    box-shadow: 
-      0 6px 20px rgba(59, 130, 246, 0.5),
-      0 0 15px rgba(30, 144, 255, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.4);
-    filter: brightness(1.1);
-  }
-  100% {
-    transform: rotate(0deg);
-    box-shadow: 
-      0 4px 15px rgba(59, 130, 246, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.35);
-    filter: brightness(1);
-  }
-}
-
-@keyframes skillTypeBorderFlow {
-  0%, 70% {
-    opacity: 0;
-    background-position: -100% 50%;
-  }
-  75% {
-    opacity: 0.6;
-    background-position: 0% 50%;
-  }
-  85% {
-    opacity: 0.8;
-    background-position: 50% 50%;
-  }
-  95% {
-    opacity: 0.6;
-    background-position: 100% 50%;
-  }
-  100% {
-    opacity: 0;
-    background-position: 200% 50%;
-  }
-}
-
-@keyframes skillTypeGlow {
-  0%, 70% {
-    opacity: 0;
-    background-position: 0% 50%;
-  }
-  75% {
-    opacity: 0.3;
-    background-position: 25% 50%;
-  }
-  85% {
-    opacity: 0.5;
-    background-position: 100% 50%;
-  }
-  95% {
-    opacity: 0.3;
-    background-position: 200% 50%;
-  }
-  100% {
-    opacity: 0;
-    background-position: 300% 50%;
-  }
+  padding: 3px 6px;
+  border-radius: 6px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
 .skill-image {
   width: 100%;
-  height: 120px;
+  height: 100px;
   overflow: hidden;
   background: #f6f8fa;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 10px;
 }
 
 .skill-image img {
@@ -1728,43 +1856,47 @@ export default {
 }
 
 .card-header {
-  padding: 14px 16px 10px 16px;
-  border-bottom: 1px solid #f0f2f5;
-  background: transparent;
+  margin-bottom: 10px;
+  flex-shrink: 0;
 }
 
 .skill-title {
-  margin: 0 0 8px 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: #1f2937;
-  line-height: 1.3;
-  letter-spacing: 0.3px;
+  color: #111827;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  max-height: 21px;
 }
 
 
 
 .card-content {
-  padding: 12px 16px 10px 16px;
   flex: 1;
+  margin-bottom: 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  background: transparent;
+  overflow: hidden;
+  min-height: 0;
+  gap: 8px;
 }
 
 .status-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
 }
 
 .status-item,
 .device-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   flex: 1;
   min-width: 0;
 }
@@ -1773,7 +1905,7 @@ export default {
 .device-icon,
 .model-icon {
   color: #3b82f6;
-  font-size: 14px;
+  font-size: 13px;
   flex-shrink: 0;
 }
 
@@ -1781,15 +1913,15 @@ export default {
 .device-label,
 .model-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
   min-width: fit-content;
-  white-space: nowrap;
   flex-shrink: 0;
+  text-align: left;
 }
 
 .card-content .device-count {
-  font-size: 13px;
-  color: #1f2937;
+  font-size: 12px;
+  color: #374151;
   font-weight: 500;
   white-space: nowrap;
   flex-shrink: 0;
@@ -1798,71 +1930,346 @@ export default {
 .model-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #f0f2f5;
+  gap: 3px;
 }
 
 .tag-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-top: 6px;
+  gap: 3px;
 }
 
 .tag-icon {
-  color: #f39c12;
-  font-size: 14px;
+  color: #3b82f6;
+  font-size: 13px;
   flex-shrink: 0;
 }
 
 .tag-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
   min-width: fit-content;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .card-actions {
-  padding: 12px 16px 16px 16px;
-  border-top: 1px solid #f0f2f5;
   display: flex;
-  justify-content: center;
-  gap: 6px;
+  gap: 2px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
   margin-top: auto;
-  background: transparent;
 }
 
 .card-actions .el-button {
-  flex: none;
+  flex: 1;
+  min-width: 45px;
   font-size: 11px;
-  min-width: 50px;
-  padding: 4px 10px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  height: 28px;
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
 }
 
-/* 分页 */
+.card-actions .el-button:hover {
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.card-actions .el-button.is-disabled {
+  background: #f5f7fa !important;
+  border-color: #e4e7ed !important;
+  color: #c0c4cc !important;
+  cursor: not-allowed !important;
+}
+
+.card-actions .el-button.is-disabled:hover {
+  background: #f5f7fa !important;
+  border-color: #e4e7ed !important;
+  color: #c0c4cc !important;
+}
+
+/* 卡片内标签样式 */
+.skill-card >>> .el-tag {
+  font-size: 11px !important;
+  padding: 0 7px !important;
+  height: 20px !important;
+  line-height: 18px !important;
+}
+
+.skill-card >>> .el-tag--mini {
+  font-size: 11px !important;
+  padding: 0 7px !important;
+  height: 20px !important;
+  line-height: 18px !important;
+}
+
+/* 分页样式 */
 .pagination-section {
   display: flex;
   justify-content: center;
-  padding: 20px;
+  align-items: center;
+  gap: 16px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 8px 24px;
+  flex-shrink: 0;
+  min-height: 48px;
+}
+
+.go-button {
+  min-width: 60px;
+  background: white;
+  border: 1px solid #dcdfe6;
+  color: #606266;
+  transition: all 0.3s ease;
+}
+
+.go-button:hover {
+  border-color: #3b82f6;
+  color: #1e40af;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+/* 覆盖Element UI分页组件样式 */
+.pagination-section >>> .el-pagination .el-pager li {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.pagination-section >>> .el-pagination .el-pager li:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.pagination-section >>> .el-pagination .el-pager li.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.pagination-section >>> .el-pagination button {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.pagination-section >>> .el-pagination button:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+/* 更强的Element UI样式覆盖 */
+.pagination-section >>> .el-pagination .el-pager li.number {
+  background-color: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+}
+
+.pagination-section >>> .el-pagination .el-pager li.number:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.pagination-section >>> .el-pagination .el-pager li.number.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.pagination-section >>> .el-pagination .btn-prev,
+.pagination-section >>> .el-pagination .btn-next {
+  background-color: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+}
+
+.pagination-section >>> .el-pagination .btn-prev:hover,
+.pagination-section >>> .el-pagination .btn-next:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.pagination-section >>> .el-pagination .el-select .el-input .el-input__inner {
+  border-color: #dcdfe6 !important;
+  color: #606266 !important;
+}
+
+.pagination-section >>> .el-pagination .el-select .el-input .el-input__inner:hover {
+  border-color: #3b82f6 !important;
 }
 
 /* tooltip */
 .skill-tooltip {
-  position: fixed;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  max-width: 300px;
-  word-wrap: break-word;
-  z-index: 9999;
-  pointer-events: none;
+  position: fixed !important;
+  width: 300px !important;
+  max-width: 300px !important;
+  padding: 12px 16px !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 2px solid #3b82f6 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3), 0 2px 8px rgba(30, 64, 175, 0.2) !important;
+  color: #1e40af !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  z-index: 999999 !important;
+  pointer-events: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* 弹框按钮统一样式 */
+.el-dialog >>> .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+}
+
+.el-dialog >>> .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.el-dialog >>> .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+}
+
+.el-dialog >>> .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+.el-dialog >>> .dialog-footer .el-button {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  padding: 8px 20px !important;
+}
+
+/* 弹框标题样式 */
+.el-dialog >>> .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+}
+
+.el-dialog >>> .el-dialog__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+}
+
+.el-dialog >>> .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.el-dialog >>> .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+/* 弹框内容样式 */
+.el-dialog >>> .el-dialog__body {
+  padding: 20px !important;
+  background: #ffffff !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 1600px) {
+  .skills-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 1400px) {
+  .skills-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1200px) {
+  .skills-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .skills-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .multimodal-llm-skills {
+    padding: 10px;
+  }
+
+  .page-container {
+    height: calc(100vh - 20px);
+  }
+
+  .header-section {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 16px;
+    min-height: auto;
+  }
+
+  .header-right {
+    flex-wrap: wrap;
+  }
+
+  .skills-container {
+    padding: 16px;
+  }
+
+  .skills-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-tabs {
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 16px;
+    min-height: auto;
+  }
+
+  .pagination-section {
+    padding: 8px 16px;
+    min-height: auto;
+  }
 }
 
 /* 测试对话框 */
@@ -1875,20 +2282,24 @@ export default {
 .test-input,
 .test-result {
   padding: 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 }
 
 .test-result {
-  background-color: #f8f9fa;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .result-content {
-  padding: 10px;
+  padding: 12px;
   background: white;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 14px;
   line-height: 1.5;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
 }
 
 /* 详情弹窗优化 */
@@ -1905,9 +2316,10 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
 }
 
 .detail-image {
@@ -1945,7 +2357,7 @@ export default {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  color: #1e40af;
   line-height: 1.2;
 }
 
@@ -2027,7 +2439,7 @@ export default {
 }
 
 .detail-info-section {
-  space-y: 20px;
+  gap: 20px;
 }
 
 .info-group {
@@ -2045,7 +2457,7 @@ export default {
 
 .group-title i {
   margin-right: 8px;
-  color: #3b82f6;
+  color: #1e40af;
   font-size: 16px;
 }
 
@@ -2075,9 +2487,10 @@ export default {
 }
 
 .clickable-item:hover {
-  background: #f1f5f9;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border-left-color: #3b82f6;
   transform: translateX(2px);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
 .item-arrow {
@@ -2088,12 +2501,12 @@ export default {
 }
 
 .clickable-item:hover .item-arrow {
-  color: #3b82f6;
+  color: #1e40af;
   transform: translateX(2px);
 }
 
 .item-icon {
-  color: #6366f1;
+  color: #3b82f6;
   margin-right: 8px;
   font-size: 14px;
   flex-shrink: 0;
@@ -2157,7 +2570,7 @@ export default {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(90deg, #3b82f6, #1e40af);
   border-radius: 10px 10px 0 0;
 }
 
@@ -2166,21 +2579,34 @@ export default {
   padding: 0;
 }
 
+/* 表格内按钮样式 */
+.device-list-container >>> .el-button--text {
+  color: #3b82f6 !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+}
+
+.device-list-container >>> .el-button--text:hover {
+  color: #1e40af !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
 .device-list-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
 }
 
 .skill-name {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: #1e40af;
 }
 
 .device-list-header .device-count {
@@ -2199,7 +2625,7 @@ export default {
 }
 
 .device-name i {
-  color: #3b82f6;
+  color: #1e40af;
   font-size: 16px;
 }
 

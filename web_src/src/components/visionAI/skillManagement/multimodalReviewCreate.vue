@@ -714,7 +714,7 @@ export default {
 }
 
 .back-btn:hover {
-  color: #7c3aed;
+  color: #3b82f6;
 }
 
 .skill-info {
@@ -763,21 +763,57 @@ export default {
 }
 
 .header-right .el-button--primary {
-  background: #7c3aed;
-  border-color: #7c3aed;
-  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.header-right .el-button--primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.header-right .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4);
+  transform: translateY(-2px);
+}
+
+.header-right .el-button--primary:hover::before {
+  left: 100%;
+}
+
+.header-right .el-button--primary:active {
+  transform: translateY(0px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
 .header-right .el-button:not(.el-button--primary) {
   background: #f5f7fa;
   border-color: #e4e7ed;
   color: #606266;
+  transition: all 0.3s ease;
 }
 
 .header-right .el-button:not(.el-button--primary):hover {
-  background: #f5f3ff;
-  border-color: #c4b5fd;
-  color: #7c3aed;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
 }
 
 .content-container {
@@ -819,15 +855,15 @@ export default {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 20% 20%, rgba(139, 69, 237, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 90% 90%, rgba(99, 102, 241, 0.10) 0%, transparent 50%),
-    radial-gradient(circle at 40% 90%, rgba(59, 130, 246, 0.07) 0%, transparent 50%),
+    radial-gradient(circle at 20% 20%, rgba(30, 64, 175, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 90% 90%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 40% 90%, rgba(6, 182, 212, 0.07) 0%, transparent 50%),
     linear-gradient(135deg,
-      rgba(139, 69, 237, 0.06) 0%,
-      rgba(99, 102, 241, 0.08) 25%,
-      rgba(59, 130, 246, 0.06) 50%,
-      rgba(139, 69, 237, 0.07) 75%,
-      rgba(99, 102, 241, 0.08) 100%);
+      rgba(30, 64, 175, 0.06) 0%,
+      rgba(59, 130, 246, 0.08) 25%,
+      rgba(6, 182, 212, 0.06) 50%,
+      rgba(30, 64, 175, 0.07) 75%,
+      rgba(59, 130, 246, 0.08) 100%);
   border-radius: 12px;
   pointer-events: none;
   z-index: 1;
@@ -869,15 +905,15 @@ export default {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 15% 15%, rgba(139, 69, 237, 0.09) 0%, transparent 45%),
-    radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.11) 0%, transparent 45%),
-    radial-gradient(circle at 50% 10%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 15% 15%, rgba(30, 64, 175, 0.09) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.11) 0%, transparent 45%),
+    radial-gradient(circle at 50% 10%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
     linear-gradient(135deg,
-      rgba(139, 69, 237, 0.07) 0%,
-      rgba(99, 102, 241, 0.09) 25%,
-      rgba(59, 130, 246, 0.07) 50%,
-      rgba(139, 69, 237, 0.08) 75%,
-      rgba(99, 102, 241, 0.09) 100%);
+      rgba(30, 64, 175, 0.07) 0%,
+      rgba(59, 130, 246, 0.09) 25%,
+      rgba(6, 182, 212, 0.07) 50%,
+      rgba(30, 64, 175, 0.08) 75%,
+      rgba(59, 130, 246, 0.09) 100%);
   border-radius: 12px;
   pointer-events: none;
   z-index: 1;
@@ -907,15 +943,15 @@ export default {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 25% 25%, rgba(139, 69, 237, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, rgba(99, 102, 241, 0.10) 0%, transparent 50%),
-    radial-gradient(circle at 60% 20%, rgba(59, 130, 246, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 25% 25%, rgba(30, 64, 175, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 60% 20%, rgba(6, 182, 212, 0.07) 0%, transparent 45%),
     linear-gradient(135deg,
-      rgba(139, 69, 237, 0.06) 0%,
-      rgba(99, 102, 241, 0.08) 25%,
-      rgba(59, 130, 246, 0.06) 50%,
-      rgba(139, 69, 237, 0.07) 75%,
-      rgba(99, 102, 241, 0.08) 100%);
+      rgba(30, 64, 175, 0.06) 0%,
+      rgba(59, 130, 246, 0.08) 25%,
+      rgba(6, 182, 212, 0.06) 50%,
+      rgba(30, 64, 175, 0.07) 75%,
+      rgba(59, 130, 246, 0.08) 100%);
   border-radius: 12px;
   pointer-events: none;
   z-index: 1;
@@ -996,7 +1032,7 @@ export default {
 .form-link .el-button {
   padding: 0;
   font-size: 12px;
-  color: #7c3aed;
+  color: #3b82f6;
 }
 
 /* 技能状态显示样式 */
@@ -1051,18 +1087,18 @@ export default {
 }
 
 .copy-id-btn {
-  color: #7c3aed !important;
+  color: #3b82f6 !important;
   padding: 2px 8px !important;
   font-size: 12px !important;
-  border: 1px solid rgba(124, 58, 237, 0.2) !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
   border-radius: 4px !important;
-  background: rgba(124, 58, 237, 0.05) !important;
+  background: rgba(59, 130, 246, 0.05) !important;
   flex-shrink: 0;
 }
 
 .copy-id-btn:hover {
-  background: rgba(124, 58, 237, 0.1) !important;
-  border-color: rgba(124, 58, 237, 0.3) !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
 }
 
 .verification-section {
@@ -1115,11 +1151,11 @@ export default {
   font-family: 'Arial Black', 'Microsoft YaHei', sans-serif;
   font-size: 18px;
   font-weight: 900;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
   letter-spacing: 1px;
   position: relative;
 }
@@ -1131,7 +1167,7 @@ export default {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
   border-radius: 1px;
   opacity: 0.6;
 }
@@ -1258,13 +1294,13 @@ export default {
 }
 
 .verification-card .upload-dragger /deep/ .el-upload-dragger:hover {
-  border-color: #7c3aed;
-  background: #f5f3ff;
+  border-color: #3b82f6;
+  background: #eff6ff;
 }
 
 .verification-card .upload-dragger ::v-deep .el-upload-dragger:hover {
-  border-color: #7c3aed;
-  background: #f5f3ff;
+  border-color: #3b82f6;
+  background: #eff6ff;
 }
 
 .upload-content {
@@ -1351,13 +1387,14 @@ export default {
   font-weight: 600;
   border-radius: 20px;
   margin-bottom: 6px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
   border: none;
   color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .analysis-btn::before {
@@ -1377,7 +1414,8 @@ export default {
 
 .analysis-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%);
 }
 
 .analysis-btn:active {
@@ -1386,6 +1424,7 @@ export default {
 
 .analysis-btn.is-loading {
   background: linear-gradient(135deg, #a0a0a0 0%, #808080 100%);
+  box-shadow: 0 4px 15px rgba(160, 160, 160, 0.4);
 }
 
 .analysis-tips {
@@ -1396,7 +1435,7 @@ export default {
 .analysis-tips .el-button {
   padding: 0;
   font-size: 12px;
-  color: #7c3aed;
+  color: #3b82f6;
 }
 
 .result-content {
