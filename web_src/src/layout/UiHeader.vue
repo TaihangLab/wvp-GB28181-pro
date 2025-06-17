@@ -325,6 +325,30 @@ export default {
   display: flex;
   align-items: center;
   height: 60px;
+  /* 保持原来的深蓝色背景 */
+  background-color: #001F3F;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 添加科技感光效 */
+.modern-menu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(75, 216, 255, 0.1) 50%, 
+    transparent 100%);
+  animation: shimmer 8s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
 
 /* Logo样式 */
@@ -334,7 +358,9 @@ export default {
   padding: 0 20px;
   margin-right: 20px;
   height: 60px;
-  border-right: 1px solid rgba(204, 214, 246, 0.1);
+  border-right: 1px solid rgba(75, 216, 255, 0.2);
+  position: relative;
+  z-index: 2;
 }
 
 .logo-image {
@@ -342,6 +368,12 @@ export default {
   width: auto;
   margin-right: 10px;
   object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+.logo-container:hover .logo-image {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 10px rgba(75, 216, 255, 0.6));
 }
 
 .logo-text {
@@ -350,29 +382,50 @@ export default {
   font-weight: bold;
   white-space: nowrap;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 10px rgba(75, 216, 255, 0.4);
+  text-shadow: 0 0 15px rgba(75, 216, 255, 0.6);
+  position: relative;
+}
+
+.logo-text::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #4BD8FF, #06b6d4);
+  transition: width 0.3s ease;
+}
+
+.logo-container:hover .logo-text::after {
+  width: 100%;
 }
 
 /* 用户菜单 */
 .user-menu {
   margin-left: auto !important;
+  position: relative;
+  z-index: 2;
 }
 
 .user-menu .el-submenu__title {
   padding: 0 20px;
   position: relative;
+  transition: all 0.3s ease;
 }
 
 .user-avatar {
   margin-right: 8px;
-  background-color: #4BD8FF;
-  border: 2px solid rgba(75, 216, 255, 0.2);
+  background: linear-gradient(135deg, #4BD8FF 0%, #06b6d4 100%);
+  border: 2px solid rgba(75, 216, 255, 0.3);
   transition: all 0.3s ease;
+  box-shadow: 0 0 10px rgba(75, 216, 255, 0.3);
 }
 
 .user-menu:hover .user-avatar {
   transform: scale(1.05);
-  box-shadow: 0 0 10px rgba(75, 216, 255, 0.5);
+  box-shadow: 0 0 20px rgba(75, 216, 255, 0.8);
+  border-color: rgba(75, 216, 255, 0.8);
 }
 
 .switch-label {
@@ -389,12 +442,19 @@ export default {
   font-size: 14px;
   transition: all 0.3s ease;
   position: relative;
+  z-index: 2;
+  border-radius: 4px;
+  margin: 0 2px;
 }
 
 .modern-menu .el-menu-item:hover,
 .modern-menu .el-submenu__title:hover {
-  background-color: rgba(75, 216, 255, 0.05) !important;
+  background: linear-gradient(135deg, 
+    rgba(75, 216, 255, 0.1) 0%, 
+    rgba(75, 216, 255, 0.05) 100%) !important;
   color: #4BD8FF !important;
+  box-shadow: 0 4px 15px rgba(75, 216, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .modern-menu .el-menu-item i,
@@ -402,22 +462,37 @@ export default {
   margin-right: 5px;
   font-size: 18px;
   vertical-align: middle;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .modern-menu .el-menu-item:hover i,
 .modern-menu .el-submenu__title:hover i {
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.1);
+  text-shadow: 0 0 10px rgba(75, 216, 255, 0.8);
 }
 
 /* 子菜单样式 */
 .modern-submenu {
-  background-color: #002B56 !important;
-  border: none !important;
-  border-radius: 4px;
+  background: linear-gradient(135deg, #002B56 0%, #003B76 100%) !important;
+  border: 1px solid rgba(75, 216, 255, 0.2) !important;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: fadeIn 0.3s ease;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 
+              0 0 20px rgba(75, 216, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modern-submenu .el-menu-item {
@@ -425,16 +500,26 @@ export default {
   height: 40px;
   line-height: 40px;
   padding: 0 15px;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+  margin: 2px 4px;
 }
 
 .modern-submenu .el-menu-item:hover {
-  background-color: #003B76 !important;
+  background: linear-gradient(135deg, 
+    rgba(75, 216, 255, 0.15) 0%, 
+    rgba(75, 216, 255, 0.08) 100%) !important;
   color: #4BD8FF !important;
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(75, 216, 255, 0.2);
 }
 
 .modern-submenu .el-menu-item.is-active {
-  background-color: #004C97 !important;
+  background: linear-gradient(135deg, 
+    rgba(75, 216, 255, 0.2) 0%, 
+    rgba(75, 216, 255, 0.1) 100%) !important;
   color: #4BD8FF !important;
+  border-left: 3px solid #4BD8FF;
 }
 
 /* 嵌套子菜单 */
@@ -445,18 +530,45 @@ export default {
 /* 活动状态样式 */
 #UiHeader .el-menu-item.is-active {
   color: #4BD8FF !important;
-  background-color: rgba(75, 216, 255, 0.1) !important;
-  border-bottom: 2px solid #4BD8FF;
+  background: linear-gradient(135deg, 
+    rgba(75, 216, 255, 0.15) 0%, 
+    rgba(75, 216, 255, 0.08) 100%) !important;
+  border-bottom: 3px solid #4BD8FF;
+  box-shadow: 0 4px 15px rgba(75, 216, 255, 0.3);
+  position: relative;
+}
+
+#UiHeader .el-menu-item.is-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(75, 216, 255, 0.1) 50%, 
+    transparent 100%);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 #UiHeader .el-submenu.is-active .el-submenu__title {
   color: #4BD8FF !important;
-  background-color: rgba(75, 216, 255, 0.1) !important;
-  border-bottom: 2px solid #4BD8FF;
+  background: linear-gradient(135deg, 
+    rgba(75, 216, 255, 0.15) 0%, 
+    rgba(75, 216, 255, 0.08) 100%) !important;
+  border-bottom: 3px solid #4BD8FF;
+  box-shadow: 0 4px 15px rgba(75, 216, 255, 0.3);
 }
 
 #UiHeader .el-submenu.is-active .el-submenu__icon-arrow {
   color: #4BD8FF !important;
+  text-shadow: 0 0 10px rgba(75, 216, 255, 0.8);
 }
 
 /* 箭头图标位置调整 */
@@ -464,6 +576,11 @@ export default {
   margin-top: 0;
   font-size: 12px;
   margin-left: 5px;
+  transition: all 0.3s ease;
+}
+
+.el-submenu:hover .el-submenu__icon-arrow {
+  transform: rotate(180deg);
 }
 
 /* 调整菜单响应式行为 */

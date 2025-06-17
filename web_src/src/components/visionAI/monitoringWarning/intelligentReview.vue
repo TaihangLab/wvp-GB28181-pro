@@ -30,7 +30,7 @@
         :data="tableData" 
         v-loading="loading" 
         stripe 
-        height="616px"
+        height="620px"
         style="width: 100%"
         row-key="id">
         
@@ -44,8 +44,8 @@
           <template slot-scope="scope">
             <el-switch 
               v-model="scope.row.status" 
-              active-color="#13ce66" 
-              inactive-color="#ff4949"
+              active-color="#3b82f6" 
+              inactive-color="#9ca3af"
               @change="handleStatusChange(scope.row)">
             </el-switch>
           </template>
@@ -75,57 +75,17 @@
         </el-table-column>
       </el-table>
       
-      <!-- 分页器 -->
+      <!-- 分页器 - 简化版 -->
       <div class="pagination-container">
-        <div class="pagination-info">
-          <span class="data-summary">
-            共 <strong>{{ total }}</strong> 条数据，
-            当前显示第 <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong> - 
-            <strong>{{ Math.min(currentPage * pageSize, total) }}</strong> 条，
-            共 <strong>{{ Math.ceil(total / pageSize) }}</strong> 页
-          </span>
-        </div>
-        
-        <div class="pagination-controls">
-          <el-pagination
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-            :current-page="currentPage"
-            :page-sizes="[10, 20, 50, 100]"
-            :page-size="pageSize"
-            layout="total, sizes, prev, pager, next"
-            :total="total">
-          </el-pagination>
-          
-          <div class="jump-controls">
-            <span>跳至</span>
-            <el-input
-              v-model="jumpPage"
-              size="mini"
-              style="width: 60px; margin: 0 8px;"
-              @keyup.enter.native="handleJumpToPage"
-              :min="1"
-              :max="Math.ceil(total / pageSize)"
-              type="number"
-              placeholder="页码">
-            </el-input>
-            <span>页</span>
-            <el-button 
-              type="primary" 
-              size="mini" 
-              @click="handleJumpToPage"
-              :disabled="!jumpPage || jumpPage < 1 || jumpPage > Math.ceil(total / pageSize)">
-              GO
-            </el-button>
-            <el-button 
-              type="text" 
-              size="mini" 
-              @click="goToLastPage"
-              style="margin-left: 12px;">
-              末页
-            </el-button>
-          </div>
-        </div>
+        <el-pagination
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page="currentPage"
+          :page-sizes="[10, 20, 50, 100]"
+          :page-size="pageSize"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total">
+        </el-pagination>
       </div>
       </div>
     </div>
@@ -219,7 +179,7 @@ export default {
         frequency: 'realtime',
         autoReview: true
       },
-      jumpPage: '',
+
       allSkillOptions: []
     }
   },
@@ -410,18 +370,15 @@ export default {
     handleSearch() {
       console.log('搜索技能:', this.searchForm.skillName)
       this.currentPage = 1
-      this.jumpPage = ''
       this.applyFilters()
     },
     resetSearch() {
       this.searchForm.skillName = ''
       this.currentPage = 1
-      this.jumpPage = ''
       this.applyFilters()
     },
     refreshData() {
       this.currentPage = 1
-      this.jumpPage = ''
       this.loadData()
     },
     handleStatusChange(row) {
@@ -457,42 +414,11 @@ export default {
     handleSizeChange(size) {
       this.pageSize = size
       this.currentPage = 1
-      this.jumpPage = ''
     },
     handleCurrentChange(page) {
       this.currentPage = page
-      this.jumpPage = ''
     },
-    goToLastPage() {
-      const lastPage = Math.ceil(this.total / this.pageSize)
-      if (this.currentPage === lastPage) {
-        this.$message.info('已在最后一页')
-        return
-      }
-      this.currentPage = lastPage
-    },
-    handleJumpToPage() {
-      const page = parseInt(this.jumpPage)
-      const maxPage = Math.ceil(this.total / this.pageSize)
-      
-      if (!this.jumpPage) {
-        this.$message.warning('请输入页码')
-        return
-      }
-      
-      if (page < 1 || page > maxPage) {
-        this.$message.warning(`页码范围应在 1-${maxPage} 之间`)
-        return
-      }
-      
-      if (page === this.currentPage) {
-        this.$message.info('已在当前页面')
-        return
-      }
-      
-      this.currentPage = page
-      this.jumpPage = ''
-    },
+
     selectAllSkills() {
       this.configForm.selectedSkill = this.allSkillOptions.map(skill => skill.skillName)
     },
@@ -815,136 +741,187 @@ export default {
 
 .pagination-container {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #ebeef5;
-  background: #f5f7fa;
-  padding: 16px 20px;
+  justify-content: center;
+  margin-top:10px;
+  padding: 10px 0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 12px;
-  margin-left: -24px;
-  margin-right: -24px;
-  margin-bottom: -24px;
-  flex-wrap: wrap;
-  gap: 16px;
-  position: relative;
+  border: 1px solid rgba(59, 130, 246, 0.1);
 }
 
-
-
-.pagination-info {
-  flex: 1;
-  min-width: 300px;
-}
-
-.data-summary {
-  color: #606266;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.data-summary strong {
-  color: #1e40af;
-  font-weight: 600;
-}
-
-.pagination-controls {
+/* 分页器科技感蓝色样式 */
+.pagination-container >>> .el-pagination {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.pagination-controls >>> .el-pagination .el-pager li {
-  background: white !important;
-  border: 1px solid #dcdfe6 !important;
-  color: #606266 !important;
-  transition: all 0.3s ease !important;
-  border-radius: 6px !important;
-  margin: 0 2px !important;
-}
-
-.pagination-controls >>> .el-pagination .el-pager li:hover {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
-  border-color: #3b82f6 !important;
-  color: #1e40af !important;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
-}
-
-.pagination-controls >>> .el-pagination .el-pager li.active {
-  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
-  border-color: #3b82f6 !important;
-  color: white !important;
-  font-weight: 600 !important;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-}
-
-.pagination-controls >>> .el-pagination button {
-  background: white !important;
-  border: 1px solid #dcdfe6 !important;
-  color: #606266 !important;
-  transition: all 0.3s ease !important;
-  border-radius: 6px !important;
-  margin: 0 2px !important;
-}
-
-.pagination-controls >>> .el-pagination button:hover {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
-  border-color: #3b82f6 !important;
-  color: #1e40af !important;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
-}
-
-.jump-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 14px;
-  color: #606266;
-  border-left: 1px solid #ebeef5;
-  padding-left: 16px;
-}
-
-.jump-controls >>> .el-input__inner {
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
+.pagination-container >>> .el-pagination .el-pager li {
+  min-width: 32px;
+  height: 32px;
+  line-height: 30px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #4b5563;
+  margin: 0 3px;
   transition: all 0.3s ease;
+  font-size: 13px;
+  font-weight: 500;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
 }
 
-.jump-controls >>> .el-input__inner:hover {
+.pagination-container >>> .el-pagination .el-pager li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(30, 64, 175, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.pagination-container >>> .el-pagination .el-pager li:hover {
   border-color: #3b82f6;
+  color: #1e40af;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
-.jump-controls >>> .el-input__inner:focus {
+.pagination-container >>> .el-pagination .el-pager li:hover::before {
+  opacity: 1;
+}
+
+.pagination-container >>> .el-pagination .el-pager li.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
   border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.jump-controls >>> .el-button--primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
-  border: none !important;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
-  color: white !important;
-  font-weight: 500 !important;
-  transition: all 0.3s ease !important;
-  border-radius: 6px !important;
+.pagination-container >>> .el-pagination .el-pager li.active::before {
+  opacity: 0;
 }
 
-.jump-controls >>> .el-button--primary:hover {
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
-  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
-  transform: translateY(-1px) !important;
+.pagination-container >>> .el-pagination button {
+  min-width: 32px;
+  height: 32px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #4b5563;
+  margin: 0 3px;
+  transition: all 0.3s ease;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
 }
 
-.jump-controls >>> .el-button--text {
-  color: #3b82f6 !important;
-  transition: all 0.3s ease !important;
+.pagination-container >>> .el-pagination button:hover {
+  border-color: #3b82f6;
+  color: #1e40af;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
-.jump-controls >>> .el-button--text:hover {
-  color: #1e40af !important;
-  background: rgba(59, 130, 246, 0.1) !important;
+.pagination-container >>> .el-pagination button:disabled {
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  background: #f9fafb;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.pagination-container >>> .el-pagination button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.pagination-container >>> .el-pagination .el-pagination__total {
+  margin-right: 16px;
+  color: #1e40af;
+  font-size: 14px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(30, 64, 175, 0.1);
+}
+
+.pagination-container >>> .el-pagination .el-pagination__sizes {
+  margin-right: 16px;
+}
+
+.pagination-container >>> .el-pagination .el-pagination__sizes .el-select .el-input {
+  width: 110px;
+}
+
+.pagination-container >>> .el-pagination .el-pagination__sizes .el-select .el-input .el-input__inner {
+  height: 32px;
+  line-height: 32px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.pagination-container >>> .el-pagination .el-pagination__sizes .el-select .el-input .el-input__inner:hover {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
+}
+
+.pagination-container >>> .el-pagination .el-pagination__sizes .el-select .el-input .el-input__inner:focus {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.pagination-container >>> .el-pagination .el-pagination__jump {
+  margin-left: 16px;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.pagination-container >>> .el-pagination .el-pagination__jump .el-input {
+  width: 60px;
+  margin: 0 8px;
+}
+
+.pagination-container >>> .el-pagination .el-pagination__jump .el-input .el-input__inner {
+  height: 32px;
+  line-height: 32px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #4b5563;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.pagination-container >>> .el-pagination .el-pagination__jump .el-input .el-input__inner:hover {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
+}
+
+.pagination-container >>> .el-pagination .el-pagination__jump .el-input .el-input__inner:focus {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .config-form {
@@ -1384,27 +1361,66 @@ export default {
   }
   
   .pagination-container {
-    flex-direction: column;
-    gap: 15px;
-    align-items: stretch;
+    padding: 16px 12px;
+    margin-left: -12px;
+    margin-right: -12px;
+    border-radius: 8px;
   }
   
-  .pagination-info {
-    min-width: auto;
-    text-align: center;
-  }
-  
-  .pagination-controls {
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .jump-controls {
+  .pagination-container >>> .el-pagination {
+    flex-wrap: wrap;
     justify-content: center;
-    border-left: none;
-    border-top: 1px solid rgba(59, 130, 246, 0.2);
-    padding-left: 0;
-    padding-top: 12px;
+    gap: 8px;
+  }
+  
+  .pagination-container >>> .el-pagination .el-pager li {
+    min-width: 28px;
+    height: 28px;
+    line-height: 26px;
+    font-size: 12px;
+    margin: 0 1px;
+  }
+  
+  .pagination-container >>> .el-pagination button {
+    min-width: 28px;
+    height: 28px;
+    font-size: 12px;
+    margin: 0 1px;
+  }
+  
+  .pagination-container >>> .el-pagination .el-pagination__total {
+    margin: 4px 8px 4px 0;
+    font-size: 12px;
+  }
+  
+  .pagination-container >>> .el-pagination .el-pagination__sizes {
+    margin: 4px 8px;
+  }
+  
+  .pagination-container >>> .el-pagination .el-pagination__sizes .el-select .el-input {
+    width: 90px;
+  }
+  
+  .pagination-container >>> .el-pagination .el-pagination__sizes .el-select .el-input .el-input__inner {
+    height: 28px;
+    line-height: 28px;
+    font-size: 12px;
+  }
+  
+  .pagination-container >>> .el-pagination .el-pagination__jump {
+    margin: 4px 0 4px 8px;
+    font-size: 12px;
+  }
+  
+  .pagination-container >>> .el-pagination .el-pagination__jump .el-input {
+    width: 45px;
+    margin: 0 6px;
+  }
+  
+  .pagination-container >>> .el-pagination .el-pagination__jump .el-input .el-input__inner {
+    height: 28px;
+    line-height: 28px;
+    font-size: 12px;
   }
   
   /* 移动端技能展示区域适配 */

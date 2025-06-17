@@ -12,7 +12,6 @@
         <!-- 搜索区域移到右边 -->
         <div class="right-operations">
           <div class="filter-item">
-            <span class="filter-label">状态:</span>
             <el-select 
               v-model="searchForm.status" 
               placeholder="全部"
@@ -229,7 +228,7 @@
       title="模型详情"
       width="700px"
       :close-on-click-modal="false"
-      custom-class="model-detail-dialog tech-dialog"
+      custom-class="model-detail-dialog"
       :append-to-body="true"
     >
       <div class="model-detail-content">
@@ -929,22 +928,7 @@ export default {
   flex-shrink: 0;
 }
 
-.filter-section::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(59, 130, 246, 0.03), transparent);
-  transform: rotate(0deg);
-  animation: shimmer 10s infinite linear;
-}
 
-@keyframes shimmer {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
 
 .toolbar {
   display: flex;
@@ -1370,25 +1354,7 @@ export default {
   text-align: left;
 }
 
-/* 模型详情弹窗样式 */
-.model-detail-dialog {
-  display: flex;
-  flex-direction: column;
-  margin-top: 5vh !important;
-  margin-bottom: 0;
-  max-height: 90vh;
-}
-
-.model-detail-dialog >>> .el-dialog__header {
-  padding: 15px 20px;
-  border-bottom: none;
-}
-
-.model-detail-dialog >>> .el-dialog__body {
-  max-height: calc(85vh - 108px);
-  padding: 0 20px 20px;
-  overflow: hidden;
-}
+/* 模型详情弹窗样式 - 已迁移到底部统一样式中 */
 
 .model-detail-content {
   padding: 0;
@@ -1401,8 +1367,8 @@ export default {
 .detail-card {
   margin-top: -20px;
   border-radius: 12px;
-  border: 1px solid rgba(59, 130, 246, 0.1);
-  box-shadow: 0 2px 12px 0 rgba(59, 130, 246, 0.1);
+  border: 1px solid #e4e7ed;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   background-color: #fff;
   overflow: hidden;
 }
@@ -1414,13 +1380,13 @@ export default {
 .card-header {
   display: flex;
   align-items: center;
-  color: #1e40af;
+  color: #1f2937;
   font-weight: 600;
   font-size: 16px;
-  padding: 15px;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  padding: 12px 15px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 8px 8px 0 0;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 .card-header .el-tag {
@@ -1608,67 +1574,107 @@ export default {
   gap: 8px;
 }
 
-/* 文字按钮样式 */
+/* 操作按钮样式 - 与刷新按钮样式保持一致 */
 .operation-text-btn {
   padding: 4px 8px !important;
   margin: 0 !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  border-radius: 6px !important;
+  min-width: 40px !important;
+  height: 24px !important;
   transition: all 0.3s ease !important;
+  background-color: #fff !important;
+  color: #606266 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.operation-text-btn:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
 }
 
 .operation-text-btn.load-text-btn {
-  color: #409eff !important;
+  background-color: #fff !important;
+  color: #606266 !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 .operation-text-btn.load-text-btn:hover {
-  color: #66b1ff !important;
-  background-color: rgba(64, 158, 255, 0.1) !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
 }
 
 .operation-text-btn.unload-text-btn {
-  color: #f56c6c !important;
+  background-color: #fff !important;
+  color: #606266 !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 .operation-text-btn.unload-text-btn:hover {
-  color: #f78989 !important;
-  background-color: rgba(245, 108, 108, 0.1) !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
 }
 
 .operation-text-btn.detail-text-btn {
-  color: #67c23a !important;
+  background-color: #fff !important;
+  color: #606266 !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 .operation-text-btn.detail-text-btn:hover {
-  color: #85ce61 !important;
-  background-color: rgba(103, 194, 58, 0.1) !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
 }
 
 .operation-text-btn.edit-text-btn {
-  color: #e6a23c !important;
+  background-color: #fff !important;
+  color: #606266 !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 .operation-text-btn.edit-text-btn:hover {
-  color: #ebb563 !important;
-  background-color: rgba(230, 162, 60, 0.1) !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
 }
 
 .operation-text-btn.delete-text-btn {
-  color: #f56c6c !important;
+  background-color: #fff !important;
+  color: #606266 !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 .operation-text-btn.delete-text-btn:hover:not(.disabled-text-btn) {
-  color: #f78989 !important;
-  background-color: rgba(245, 108, 108, 0.1) !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
 }
 
 .operation-text-btn.disabled-text-btn {
+  background-color: #fff !important;
   color: #c0c4cc !important;
+  border: 1px solid #e4e7ed !important;
   cursor: not-allowed !important;
+  opacity: 0.6 !important;
 }
 
 .operation-text-btn.disabled-text-btn:hover {
+  background-color: #fff !important;
   color: #c0c4cc !important;
-  background-color: transparent !important;
+  border: 1px solid #e4e7ed !important;
+  opacity: 0.6 !important;
+  box-shadow: none !important;
 }
 
 .text-buttons {
@@ -1969,31 +1975,25 @@ export default {
   border-color: #1890ff;
 }
 
-/* 科技感对话框样式 */
-.tech-dialog {
-  border-radius: 16px !important;
-  overflow: hidden !important;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
-  border: 1px solid rgba(59, 130, 246, 0.1) !important;
-  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.15) !important;
-}
-
+/* 科技感对话框样式 - 与deviceSkills.vue保持一致 */
 .tech-dialog >>> .el-dialog {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
-  border-radius: 16px !important;
+  background: #ffffff !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
 }
 
 .tech-dialog >>> .el-dialog__header {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2) !important;
-  padding: 20px 24px !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
 }
 
 .tech-dialog >>> .el-dialog__title {
-  color: #1e40af !important;
+  color: #1f2937 !important;
   font-weight: 600 !important;
-  font-size: 18px !important;
+  font-size: 16px !important;
 }
 
 .tech-dialog >>> .el-dialog__close {
@@ -2007,12 +2007,12 @@ export default {
 
 .tech-dialog >>> .el-dialog__body {
   background: #ffffff !important;
-  padding: 24px !important;
+  padding: 20px !important;
 }
 
 /* 科技感表单样式 */
 .tech-form >>> .el-form-item__label {
-  color: #1e40af !important;
+  color: #1F2329 !important;
   font-weight: 600 !important;
 }
 
@@ -2046,11 +2046,11 @@ export default {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
 }
 
-/* 对话框按钮样式 */
+/* 对话框按钮样式 - 与deviceSkills.vue保持一致 */
 .tech-dialog >>> .el-button--primary {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
   border: none !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
   color: white !important;
   font-weight: 500 !important;
   transition: all 0.3s ease !important;
@@ -2059,8 +2059,8 @@ export default {
 
 .tech-dialog >>> .el-button--primary:hover {
   background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5) !important;
-  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
 }
 
 .tech-dialog >>> .el-button--default {
@@ -2075,7 +2075,7 @@ export default {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
   border-color: #3b82f6 !important;
   color: #1e40af !important;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
 }
 
 /* 上传组件样式 */
@@ -2106,5 +2106,310 @@ export default {
 
 .tech-dialog >>> .el-loading-spinner .circular {
   stroke: #3b82f6 !important;
+}
+
+/* 模型详情对话框特殊样式 - 与deviceSkills.vue保持一致 */
+.model-detail-dialog {
+  display: flex;
+  flex-direction: column;
+  margin-top: 5vh !important;
+  margin-bottom: 0;
+  max-height: 90vh;
+}
+
+/* 强制设置模型详情弹框的圆角样式，确保优先级最高 */
+.el-dialog__wrapper .model-detail-dialog .el-dialog {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 使用更高优先级的选择器 */
+body .el-dialog__wrapper .model-detail-dialog .el-dialog {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+/* 全局覆盖，确保模型详情弹框圆角 */
+.el-dialog[custom-class*="model-detail-dialog"] {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.model-detail-dialog >>> .el-dialog {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+.model-detail-dialog >>> .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+}
+
+.model-detail-dialog >>> .el-dialog__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+}
+
+.model-detail-dialog >>> .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.model-detail-dialog >>> .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+.model-detail-dialog >>> .el-dialog__body {
+  background: #ffffff !important;
+  max-height: calc(85vh - 108px);
+  padding: 0 20px 20px;
+  overflow: hidden;
+}
+
+.model-detail-dialog >>> .el-button--default,
+.model-detail-dialog >>> .dialog-footer .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.model-detail-dialog >>> .el-button--default:hover,
+.model-detail-dialog >>> .dialog-footer .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+.model-detail-dialog >>> .el-button--primary,
+.model-detail-dialog >>> .dialog-footer .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.model-detail-dialog >>> .el-button--primary:hover,
+.model-detail-dialog >>> .dialog-footer .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 统一对话框样式 - 完全匹配deviceSkills.vue */
+.model-list >>> .el-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.model-list >>> .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+}
+
+.model-list >>> .el-dialog__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+}
+
+.model-list >>> .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.model-list >>> .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+.model-list >>> .el-dialog__body {
+  padding: 20px !important;
+  background: #ffffff !important;
+}
+
+/* 弹框按钮统一样式 - 完全匹配deviceSkills.vue */
+.model-list >>> .el-dialog .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.model-list >>> .el-dialog .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.model-list >>> .el-dialog .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.model-list >>> .el-dialog .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* 上传组件样式 - 与deviceSkills.vue保持一致 */
+.model-list >>> .el-upload-dragger {
+  border: 2px dashed #d1d5db !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+}
+
+.model-list >>> .el-upload-dragger:hover {
+  border-color: #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.model-list >>> .el-upload-dragger .el-icon-upload {
+  color: #3b82f6 !important;
+}
+
+.model-list >>> .el-upload__text {
+  color: #6b7280 !important;
+}
+
+.model-list >>> .el-upload__text em {
+  color: #3b82f6 !important;
+  font-weight: 500 !important;
+}
+
+/* 加载状态优化 */
+.model-list >>> .el-loading-mask {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.model-list >>> .el-loading-spinner .circular {
+  stroke: #3b82f6 !important;
+}
+
+/* 模型详情弹框的详细卡片样式优化 */
+.model-detail-dialog >>> .detail-card {
+  margin-top: -20px !important;
+  border-radius: 12px !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
+  background-color: #fff !important;
+  overflow: hidden !important;
+}
+
+.model-detail-dialog >>> .detail-card .el-card__header {
+  border-bottom: none !important;
+}
+
+.model-detail-dialog >>> .card-header {
+  display: flex !important;
+  align-items: center !important;
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  padding: 12px 15px !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-radius: 8px 8px 0 0 !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+}
+
+.model-detail-dialog >>> .card-header .el-tag {
+  margin-left: 10px !important;
+}
+
+.model-detail-dialog >>> .info-content {
+  padding: 15px !important;
+  margin-top: -20px !important;
+}
+
+/* 确保技能状态标签样式正确 */
+.model-detail-dialog >>> .tech-status-tag.el-tag--success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: #10b981 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+}
+
+.model-detail-dialog >>> .tech-status-tag.el-tag--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3) !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+}
+
+.model-detail-dialog >>> .tech-status-tag.el-tag--info {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border-color: #6b7280 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3) !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+}
+
+.model-detail-dialog >>> .tech-status-tag.el-tag--warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border-color: #f59e0b !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3) !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* 模型详情弹框的版本徽章样式 */
+.model-detail-dialog >>> .version-badge {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px 12px !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #f0f5ff, #e6f7ff) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #d9e8ff !important;
+  width: fit-content !important;
+  transition: all 0.3s !important;
+}
+
+.model-detail-dialog >>> .version-badge:hover {
+  background: linear-gradient(135deg, #e6f7ff, #d6f0ff) !important;
+  box-shadow: 0 3px 6px rgba(24, 144, 255, 0.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+.model-detail-dialog >>> .version-icon {
+  margin-right: 5px !important;
+  color: #1890ff !important;
+  font-size: 15px !important;
+}
+
+.model-detail-dialog >>> .version-text {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #1890ff !important;
+  letter-spacing: 0.5px !important;
+  font-family: 'Arial', sans-serif !important;
 }
 </style>
