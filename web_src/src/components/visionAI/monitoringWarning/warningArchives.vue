@@ -791,7 +791,7 @@ export default {
       </div>
 
       <!-- 右侧表格区域 -->
-      <div class="table-section">
+      <div class="table-container-wrapper">
         <!-- 表格标题和操作按钮 -->
         <div class="table-header">
           <div class="table-title">预警列表 - {{ archiveInfo.name }}</div>
@@ -805,55 +805,57 @@ export default {
           </div>
         </div>
         
-        <!-- 表格内容 -->
-        <el-table :data="archiveList" @selection-change="handleSelectionChange" style="width: 100%">
-          <el-table-column type="selection" width="55" align="center"></el-table-column>
-          <el-table-column label="序号" prop="id" width="80" align="center"></el-table-column>
-          <el-table-column label="预警名称" prop="name" min-width="120" align="center"></el-table-column>
-          <el-table-column label="预警图片" width="100" align="center">
-            <template slot-scope="scope">
-              <div class="preview-image-cell">
-                <div class="mini-image-preview" @click="showImagePreview(scope.row)">
-                  <div class="mini-blue-box">
-                    <i class="el-icon-picture-outline"></i>
-                    <span>预警图片</span>
+        <!-- 表格卡片 -->
+        <div class="table-section">
+          <el-table :data="archiveList" @selection-change="handleSelectionChange" style="width: 100%">
+            <el-table-column type="selection" width="55" align="center"></el-table-column>
+            <el-table-column label="序号" prop="id" width="80" align="center"></el-table-column>
+            <el-table-column label="预警名称" prop="name" min-width="120" align="center"></el-table-column>
+            <el-table-column label="预警图片" width="100" align="center">
+              <template slot-scope="scope">
+                <div class="preview-image-cell">
+                  <div class="mini-image-preview" @click="showImagePreview(scope.row)">
+                    <div class="mini-blue-box">
+                      <i class="el-icon-picture-outline"></i>
+                      <span>预警图片</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="设备名称" prop="deviceName" min-width="150" align="center"></el-table-column>
-          <el-table-column label="预警时间" prop="warningTime" min-width="180" align="center">
-            <template slot-scope="scope">
-              {{ formatTime(scope.row.warningTime) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="预警等级" width="100" align="center">
-            <template slot-scope="scope">
-              <span class="level-tag" :class="{
-                'level1-tag': scope.row.warningLevel === 'level1',
-                'level2-tag': scope.row.warningLevel === 'level2',
-                'level3-tag': scope.row.warningLevel === 'level3',
-                'level4-tag': scope.row.warningLevel === 'level4'
-              }">
-                {{ 
-                  scope.row.warningLevel === 'level1' ? '一级预警' :
-                  scope.row.warningLevel === 'level2' ? '二级预警' :
-                  scope.row.warningLevel === 'level3' ? '三级预警' : 
-                  scope.row.warningLevel === 'level4' ? '四级预警' :
-                  '未知预警' }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="center">
-            <template slot-scope="scope">
-              <div class="operation-buttons">
-                <el-button type="text" size="mini" @click="showDetail(scope.row)" class="operation-btn detail-btn">详情</el-button>
-                <el-button type="text" size="mini" @click="handleDelete(scope.row.id)" class="operation-btn delete-btn">删除</el-button>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
+              </template>
+            </el-table-column>
+            <el-table-column label="设备名称" prop="deviceName" min-width="150" align="center"></el-table-column>
+            <el-table-column label="预警时间" prop="warningTime" min-width="180" align="center">
+              <template slot-scope="scope">
+                {{ formatTime(scope.row.warningTime) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="预警等级" width="100" align="center">
+              <template slot-scope="scope">
+                <span class="level-tag" :class="{
+                  'level1-tag': scope.row.warningLevel === 'level1',
+                  'level2-tag': scope.row.warningLevel === 'level2',
+                  'level3-tag': scope.row.warningLevel === 'level3',
+                  'level4-tag': scope.row.warningLevel === 'level4'
+                }">
+                  {{ 
+                    scope.row.warningLevel === 'level1' ? '一级预警' :
+                    scope.row.warningLevel === 'level2' ? '二级预警' :
+                    scope.row.warningLevel === 'level3' ? '三级预警' : 
+                    scope.row.warningLevel === 'level4' ? '四级预警' :
+                    '未知预警' }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" align="center">
+              <template slot-scope="scope">
+                <div class="operation-buttons">
+                  <el-button type="text" size="mini" @click="showDetail(scope.row)" class="operation-btn detail-btn">详情</el-button>
+                  <el-button type="text" size="mini" @click="handleDelete(scope.row.id)" class="operation-btn delete-btn">删除</el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
         
         <!-- 分页区域 - 改为与 deviceSkills.vue 一致的样式 -->
         <div class="pagination">
@@ -1127,20 +1129,16 @@ export default {
   display: flex;
   gap: 16px;
   padding: 16px;
+  align-items: flex-start;
+  height: calc(100vh - 92px);
 }
 
-/* 表格区域样式 */
-.table-section {
+/* 右侧容器包装器 */
+.table-container-wrapper {
   flex: 1;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-radius: 16px;
-  padding-bottom: 10px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.1);
-  position: relative;
-  overflow: hidden;
+  height: 100%;
 }
 
 
@@ -1151,7 +1149,11 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  margin-bottom: 16px;
   position: relative;
   z-index: 2;
 }
@@ -1167,6 +1169,17 @@ export default {
   gap: 10px;
 }
 
+/* 表格区域 */
+.table-section {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
 /* 移除表格竖线条 */
 ::v-deep .table-section .el-table--border td,
 ::v-deep .table-section .el-table--border th {
@@ -1180,12 +1193,12 @@ export default {
 
 /* 调整el-table样式 */
 ::v-deep .table-section .el-table th {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
-  color: #1e40af !important;
-  font-weight: 600 !important;
+  background: #f5f7fa !important;
+  color: #303133 !important;
+  font-weight: 500 !important;
   padding: 8px 0;
   text-align: center;
-  border-bottom: 2px solid rgba(59, 130, 246, 0.2) !important;
+  border-bottom: 1px solid #ebeef5 !important;
 }
 
 ::v-deep .table-section .el-table--border {
@@ -1197,7 +1210,7 @@ export default {
 ::v-deep .table-section .el-table td {
   padding: 8px 0;
   text-align: center;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  border-bottom: 1px solid #ebeef5 !important;
 }
 
 ::v-deep .table-section .el-table__row:hover > td {
@@ -1205,7 +1218,7 @@ export default {
 }
 
 ::v-deep .table-section .el-table__row {
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  border-bottom: 1px solid #ebeef5;
 }
 
 /* 预览图片单元格 */
@@ -1341,6 +1354,7 @@ export default {
   border: 1px solid rgba(59, 130, 246, 0.1);
   position: relative;
   overflow: hidden;
+  height: 100%;
 }
 
 
@@ -1372,10 +1386,11 @@ export default {
 
 /* 档案列表样式 */
 .archives-list {
-  max-height: 300px;
+  flex: 1;
   overflow-y: auto;
   border-bottom: 1px solid rgba(59, 130, 246, 0.2);
   padding: 0 10px;
+  min-height: 0;
 }
 
 .archive-item {
@@ -1521,7 +1536,13 @@ export default {
   border-radius: 4px;
 }
 
-/* 弹框样式 - 与 deviceSkills.vue 一致 */
+/* 弹框样式 - 与 warningManagement.vue 一致 */
+.page-container >>> .el-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
 .page-container >>> .el-dialog__header {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
   border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
@@ -1581,18 +1602,18 @@ export default {
 
 /* 表格样式优化 - 保持黑色字体 */
 .page-container >>> .el-table th {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  background: #f5f7fa !important;
   color: #303133 !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   padding: 8px 0;
   text-align: center;
-  border-bottom: 2px solid rgba(59, 130, 246, 0.2) !important;
+  border-bottom: 1px solid #ebeef5 !important;
 }
 
 .page-container >>> .el-table td {
   padding: 8px 0;
   text-align: center;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  border-bottom: 1px solid #ebeef5 !important;
 }
 
 .page-container >>> .el-table__row:hover > td {

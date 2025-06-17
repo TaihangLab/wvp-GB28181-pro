@@ -2158,6 +2158,70 @@ export default {
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
+/* 对话框样式优化 - 科技感设计 */
+.review-records-container >>> .el-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.review-records-container >>> .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  padding: 16px 20px;
+}
+
+.review-records-container >>> .el-dialog__title {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.review-records-container >>> .el-dialog__close {
+  color: #6b7280;
+  transition: color 0.3s ease;
+}
+
+.review-records-container >>> .el-dialog__close:hover {
+  color: #3b82f6;
+}
+
+.review-records-container >>> .el-dialog__body {
+  padding: 20px;
+  background: #ffffff;
+}
+
+.review-records-container >>> .el-button--success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.review-records-container >>> .el-button--success:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
+}
+
+.review-records-container >>> .el-button--warning {
+  background: linear-gradient(135deg, #e6a23c 0%, #f59e0b 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(230, 162, 60, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.review-records-container >>> .el-button--warning:hover {
+  background: linear-gradient(135deg, #d97706 0%, #dc2626 100%);
+  box-shadow: 0 4px 10px rgba(230, 162, 60, 0.4);
+  transform: translateY(-1px);
+}
+
 /* 科技感复选框样式 */
 .review-records-container >>> .el-checkbox__input.is-checked .el-checkbox__inner {
   background-color: #3b82f6 !important;
@@ -2166,5 +2230,97 @@ export default {
 
 .review-records-container >>> .el-checkbox__inner:hover {
   border-color: #3b82f6 !important;
+}
+
+/* MessageBox 确认弹框样式 - 使用更强的选择器 */
+</style>
+
+<style>
+/* 全局MessageBox确认弹框样式 - 简洁现代风格 */
+.el-message-box {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.el-message-box__header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  padding: 20px 24px 16px !important;
+}
+
+.el-message-box__title {
+  color: #111827 !important;
+  font-weight: 500 !important;
+  font-size: 16px !important;
+}
+
+.el-message-box__headerbtn {
+  color: #9ca3af !important;
+  transition: color 0.2s ease !important;
+  top: 16px !important;
+  right: 16px !important;
+}
+
+.el-message-box__headerbtn:hover {
+  color: #6b7280 !important;
+}
+
+.el-message-box__content {
+  padding: 16px 24px 24px !important;
+  background: #ffffff !important;
+}
+
+.el-message-box__message {
+  color: #374151 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.el-message-box__btns {
+  padding: 0 24px 24px !important;
+  background: #ffffff !important;
+  border-top: none !important;
+  text-align: right !important;
+}
+
+.el-message-box__btns .el-button {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  padding: 8px 16px !important;
+  margin-left: 12px !important;
+}
+
+.el-message-box__btns .el-button--primary {
+  background: linear-gradient(135deg, #f56c6c 0%, #dc2626 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(245, 108, 108, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+}
+
+.el-message-box__btns .el-button--primary:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+  box-shadow: 0 4px 10px rgba(245, 108, 108, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.el-message-box__btns .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+  box-shadow: none !important;
+}
+
+.el-message-box__btns .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+  transform: translateY(-1px) !important;
 }
 </style> 

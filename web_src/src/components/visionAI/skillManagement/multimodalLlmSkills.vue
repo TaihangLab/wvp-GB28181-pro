@@ -2170,6 +2170,13 @@ export default {
   visibility: visible !important;
 }
 
+/* 弹框样式 - 与 warningManagement.vue 一致 */
+.multimodal-llm-skills-wrapper >>> .el-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
 /* 弹框按钮统一样式 */
 .multimodal-llm-skills-wrapper >>> .el-dialog .el-button--primary {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
@@ -2737,5 +2744,81 @@ export default {
   .page-container {
     padding: 0 10px;
   }
+}
+</style>
+
+<style>
+/* 全局MessageBox确认弹框样式 - 与 warningManagement.vue 一致 */
+.el-message-box {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+.el-message-box__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+}
+
+.el-message-box__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+}
+
+.el-message-box__headerbtn {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.el-message-box__headerbtn:hover {
+  color: #3b82f6 !important;
+}
+
+.el-message-box__content {
+  padding: 20px !important;
+  background: #ffffff !important;
+}
+
+.el-message-box__btns {
+  padding: 10px 20px 20px !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-top: 1px solid rgba(59, 130, 246, 0.1) !important;
+}
+
+.el-message-box__btns .el-button {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  padding: 8px 20px !important;
+  margin-left: 12px !important;
+}
+
+.el-message-box__btns .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
+  color: white !important;
+}
+
+.el-message-box__btns .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.el-message-box__btns .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+}
+
+.el-message-box__btns .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+  transform: translateY(-1px) !important;
 }
 </style>
