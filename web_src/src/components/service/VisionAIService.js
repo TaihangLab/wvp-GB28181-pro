@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 创建专用于visionAI模块的axios实例
 const visionAIAxios = axios.create({
-  baseURL: 'http://192.168.1.106:8000',
+  baseURL: 'http://192.168.1.118:8000',
   timeout: 15000,
   withCredentials: false,  // 将withCredentials设置为false，避免CORS错误
 });
@@ -50,17 +50,17 @@ visionAIAxios.interceptors.response.use(
     const isSpecialApi =  /\/api\/v1\/cameras\/\d+$/.test(response.config.url) || // 匹配摄像头详情接口
                          /\/api\/v1\/ai-tasks\/camera\/id\/\d+$/.test(response.config.url) || // 匹配摄像头关联任务接口
                          /\/api\/v1\/ai-tasks\/\d+$/.test(response.config.url); // 匹配AI任务详情接口
-      
 
-      
+
+
     if (isSpecialApi) {
       console.log('特殊API接口返回原始数据:', response.config.method, response.config.url);
-      
-    
-      
+
+
+
       return response;
     }
-    
+
     // 转换响应数据为前端期望的格式
     // 前端期望格式: { code: 0, data: [...], total: ... }
     const originalData = response.data;
@@ -110,12 +110,12 @@ visionAIAxios.interceptors.response.use(
           };
         });
         transformedData.total = originalData.total || transformedData.data.length;
-        
+
         // 添加分页信息
         if (originalData.page) transformedData.page = originalData.page;
         if (originalData.limit) transformedData.limit = originalData.limit;
         if (originalData.pages) transformedData.pages = originalData.pages;
-      } 
+      }
       // 处理嵌套格式 {data: {cameras: [...], total: n}}
       else if (originalData && originalData.data && originalData.data.cameras) {
         transformedData.data = originalData.data.cameras.map(camera => {
@@ -131,7 +131,7 @@ visionAIAxios.interceptors.response.use(
           };
         });
         transformedData.total = originalData.data.total || transformedData.data.length;
-        
+
         // 添加分页信息
         if (originalData.data.page) transformedData.page = originalData.data.page;
         if (originalData.data.limit) transformedData.limit = originalData.data.limit;
@@ -361,7 +361,7 @@ export const skillAPI = {
   getAITaskSkillClasses(params = {}) {
     // 处理分页参数和查询参数
     const apiParams = { ...params };
-    
+
     // 处理分页参数
     if (params.page) {
       apiParams.page = params.page;
@@ -370,19 +370,19 @@ export const skillAPI = {
     if (params.limit) {
       apiParams.limit = Math.min(params.limit, 100); // 限制最大为100条
     }
-    
+
     // 处理查询参数
     if (params.query) {
       apiParams.query = params.query;
     }
-    
+
     // 处理状态筛选，默认获取启用状态的技能
     if (params.status !== undefined) {
       apiParams.status = params.status;
     } else {
       apiParams.status = true; // 默认获取启用的技能
     }
-    
+
     return visionAIAxios.get('/api/v1/ai-tasks/skill-classes', { params: apiParams });
   },
 
@@ -390,13 +390,13 @@ export const skillAPI = {
   createAITask(taskData) {
     // 验证必要参数
     if (!taskData.camera_id || !taskData.skill_class_id) {
-      console.error('创建AI任务失败: 缺少必要参数', { 
-        camera_id: taskData.camera_id, 
-        skill_class_id: taskData.skill_class_id 
+      console.error('创建AI任务失败: 缺少必要参数', {
+        camera_id: taskData.camera_id,
+        skill_class_id: taskData.skill_class_id
       });
       return Promise.reject(new Error('缺少必要参数: 摄像头ID和技能类ID必须提供'));
     }
-    
+
     // 创建任务数据对象
     const data = {
       ...taskData,
@@ -418,9 +418,9 @@ export const skillAPI = {
       // 默认状态为启用
       status: taskData.status !== undefined ? taskData.status : true
     };
-    
+
     console.log('创建AI任务请求数据:', data);
-    
+
     // 发送创建AI任务请求
     return visionAIAxios.post('/api/v1/ai-tasks', data);
   },
@@ -596,10 +596,10 @@ export const cameraAPI = {
     }
 
     console.log('更新摄像头数据:', cameraId, updateData);
-    
+
     return visionAIAxios.put(`/api/v1/cameras/${cameraId}`, updateData);
   },
-  
+
   /**
    * 获取摄像头关联的AI任务
    * @param {string|number} cameraId 摄像头ID
@@ -610,7 +610,7 @@ export const cameraAPI = {
       console.error('获取摄像头关联任务失败: 缺少摄像头ID');
       return Promise.reject(new Error('缺少摄像头ID'));
     }
-    
+
     return visionAIAxios.get(`/api/v1/ai-tasks/camera/id/${cameraId}`);
   }
 };
@@ -619,4 +619,4 @@ export default {
   modelAPI,
   skillAPI,
   cameraAPI
-}; 
+};
