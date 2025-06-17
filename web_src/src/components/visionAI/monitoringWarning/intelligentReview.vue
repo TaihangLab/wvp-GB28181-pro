@@ -26,11 +26,10 @@
 
       <!-- 数据表格区域 -->
       <div class="table-section">
-      <el-table 
+              <el-table 
         :data="tableData" 
         v-loading="loading" 
         stripe 
-        border 
         height="616px"
         style="width: 100%"
         row-key="id">
@@ -63,12 +62,15 @@
         
         <el-table-column label="操作" width="100" align="center" fixed="right">
           <template slot-scope="scope">
-            <el-button 
-              type="primary" 
-              size="mini" 
-              @click="handleConfig(scope.row)">
-              配置
-            </el-button>
+            <div class="operation-buttons">
+              <el-button 
+                type="text" 
+                size="mini" 
+                @click="handleConfig(scope.row)"
+                class="operation-btn config-btn">
+                配置
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -576,11 +578,11 @@ export default {
 }
 
 .main-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: #ffffff;
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.1);
+  border: 1px solid #ebeef5;
   position: relative;
   overflow: hidden;
 }
@@ -615,9 +617,9 @@ export default {
 .search-form {
   margin: 0;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: #f5f7fa;
   border-radius: 12px;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid #ebeef5;
   position: relative;
 }
 
@@ -628,8 +630,8 @@ export default {
 }
 
 .search-form .el-form-item__label {
-  color: #1e40af;
-  font-weight: 600;
+  color: #303133;
+  font-weight: 500;
 }
 
 .search-form >>> .el-input__inner {
@@ -699,7 +701,7 @@ export default {
 
 .section-divider {
   margin: 12px 0;
-  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  border-top: 1px solid #ebeef5;
 }
 
 .table-section {
@@ -711,8 +713,8 @@ export default {
 .el-table {
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.1);
+  border: 1px solid #ebeef5;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* 表格固定高度样式优化 */
@@ -739,6 +741,43 @@ export default {
   background-color: transparent !important;
 }
 
+/* 删除表格内部所有竖线 */
+.el-table .el-table__border-left-patch {
+  display: none !important;
+}
+
+.el-table .el-table__border-right-patch {
+  display: none !important;
+}
+
+.el-table .el-table__cell {
+  border-right: none !important;
+}
+
+/* 彻底删除所有竖线边框 */
+.intelligent-review-container >>> .el-table td,
+.intelligent-review-container >>> .el-table th {
+  border-right: none !important;
+}
+
+.intelligent-review-container >>> .el-table--border td:first-child,
+.intelligent-review-container >>> .el-table--border th:first-child {
+  border-left: none !important;
+}
+
+.intelligent-review-container >>> .el-table--border {
+  border-left: none !important;
+  border-right: none !important;
+}
+
+.intelligent-review-container >>> .el-table--border::after {
+  display: none !important;
+}
+
+.intelligent-review-container >>> .el-table--border::before {
+  display: none !important;
+}
+
 /* 保留表格的外边框 */
 .el-table::before {
   height: 0;
@@ -751,20 +790,27 @@ export default {
 
 /* 表格斑马纹样式优化 */
 .el-table--striped .el-table__body tr.el-table__row--striped td {
-  background-color: rgba(59, 130, 246, 0.02);
+  background-color: #fafafa;
 }
 
 /* 表格悬停效果 */
 .el-table .el-table__body tr:hover > td {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 197, 253, 0.03) 100%) !important;
+  background: #f5f7fa !important;
 }
 
-/* 表格样式优化 */
-.el-table .el-table__header-wrapper th {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
-  color: #1e40af !important;
-  font-weight: 600 !important;
-  border-bottom: 2px solid rgba(59, 130, 246, 0.2) !important;
+/* 表格样式优化 - 确保灰底黑字 */
+.intelligent-review-container >>> .el-table th {
+  background: #f5f7fa !important;
+  color: #303133 !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid #ebeef5 !important;
+}
+
+.intelligent-review-container >>> .el-table .el-table__header-wrapper th {
+  background: #f5f7fa !important;
+  color: #303133 !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid #ebeef5 !important;
 }
 
 .pagination-container {
@@ -773,8 +819,8 @@ export default {
   align-items: center;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid rgba(59, 130, 246, 0.2);
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-top: 1px solid #ebeef5;
+  background: #f5f7fa;
   padding: 16px 20px;
   border-radius: 12px;
   margin-left: -24px;
@@ -856,7 +902,7 @@ export default {
   gap: 4px;
   font-size: 14px;
   color: #606266;
-  border-left: 1px solid rgba(59, 130, 246, 0.2);
+  border-left: 1px solid #ebeef5;
   padding-left: 16px;
 }
 
@@ -1010,8 +1056,8 @@ export default {
 
 /* 已选技能展示区域样式 */
 .config-form .selected-skills-container {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: #f5f7fa;
+  border: 1px solid #ebeef5;
   border-radius: 12px;
   padding: 16px;
   margin-top: 8px;
@@ -1042,7 +1088,7 @@ export default {
   flex-wrap: wrap;
   gap: 6px;
   padding: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid #ebeef5;
   border-radius: 8px;
   background: white;
 }
@@ -1179,6 +1225,36 @@ export default {
   color: #374151;
 }
 
+/* 操作按钮样式 */
+.operation-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.operation-btn {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  border-radius: 4px !important;
+  min-width: 40px !important;
+  height: 24px !important;
+  transition: all 0.3s ease !important;
+}
+
+.operation-btn.config-btn {
+  color: #606266 !important;
+  border: 1px solid #dcdfe6 !important;
+  background: transparent !important;
+}
+
+.operation-btn.config-btn:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+}
+
 /* 按钮样式 */
 .el-button--mini {
   border-radius: 6px;
@@ -1235,7 +1311,13 @@ export default {
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
-/* 弹框标题样式 */
+/* 弹框样式 - 与 warningManagement.vue 一致 */
+.intelligent-review-container >>> .el-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
 .intelligent-review-container >>> .el-dialog__header {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
   border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;

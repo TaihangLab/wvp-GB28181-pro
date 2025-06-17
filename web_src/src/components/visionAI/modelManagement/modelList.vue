@@ -1,42 +1,53 @@
 <template>
   <div class="model-list">
     <!-- 操作区域 -->
-    <div class="operation-area">
-      <div class="left-operations">
-        <el-button type="primary" @click="handleImport">
-          <i class="el-icon-plus"></i>导入模型
-        </el-button>
-        <el-button type="danger" @click="handleBatchDelete">
-          <i class="el-icon-delete"></i>批量删除
-        </el-button>
-        <el-button type="success" class="refresh-button" @click="handleRefresh" :loading="refreshLoading">
-          <i class="el-icon-refresh"></i>刷新列表
-        </el-button>
-      </div>
-      
-      <!-- 搜索区域移到右边 -->
-      <div class="right-operations">
-        <el-input
-          v-model="searchForm.keyword"
-          placeholder="请输入模型名称"
-          class="search-input"
-          @input="handleSearch"
-          clearable
-          @clear="handleSearch"
-        >
-          <i slot="prefix" style="align-items: center; display: flex; height: 40px;" class="el-icon-search"></i>
-        </el-input>
+    <div class="filter-section">
+      <div class="toolbar">
+        <div class="left-operations">
+          <el-button type="primary" icon="el-icon-plus" size="small" @click="handleImport">导入模型</el-button>
+          <el-button type="danger" icon="el-icon-delete" size="small" :disabled="!multipleSelection.length" @click="handleBatchDelete">批量删除</el-button>
+          <el-button type="success" icon="el-icon-refresh-right" size="small" @click="handleRefresh" :loading="refreshLoading">刷新列表</el-button>
+        </div>
         
-        <el-select 
-          v-model="searchForm.status" 
-          placeholder="全部"
-          class="status-select"
-          @change="handleSearch"
-        >
-          <el-option label="全部" value="all" />
-          <el-option label="使用中" value="using" />
-          <el-option label="未使用" value="unused" />
-        </el-select>
+        <!-- 搜索区域移到右边 -->
+        <div class="right-operations">
+          <div class="filter-item">
+            <span class="filter-label">状态:</span>
+            <el-select 
+              v-model="searchForm.status" 
+              placeholder="全部"
+              class="status-select"
+              @change="handleSearch"
+              size="small"
+              clearable
+            >
+              <el-option label="全部" value="all" />
+              <el-option label="使用中" value="using" />
+              <el-option label="未使用" value="unused" />
+            </el-select>
+          </div>
+          
+          <el-input
+            v-model="searchForm.keyword"
+            placeholder="请输入模型名称"
+            class="search-input"
+            @input="handleSearch"
+            clearable
+            @clear="handleSearch"
+            size="small"
+          >
+            <i slot="prefix" style="align-items: center; display: flex; height: 32px;" class="el-icon-search"></i>
+          </el-input>
+          
+          <el-button 
+            class="refresh-btn" 
+            size="small" 
+            icon="el-icon-refresh-left" 
+            @click="handleRefresh"
+            :loading="refreshLoading"
+            title="刷新数据"
+          ></el-button>
+        </div>
       </div>
     </div>
 
@@ -46,8 +57,9 @@
       title="导入模型"
       width="650px"
       :close-on-click-modal="false"
+      custom-class="tech-dialog"
     >
-      <el-form :model="importForm" label-width="85px" class="skill-form">
+      <el-form :model="importForm" label-width="85px" class="tech-form">
         <el-form-item label="模型名称" required>
           <el-input v-model="importForm.name" placeholder="请输入模型名称" style="width: 100%;" />
         </el-form-item>
@@ -94,8 +106,9 @@
       width="650px"
       :close-on-click-modal="false"
       :before-close="cancelEdit"
+      custom-class="tech-dialog"
     >
-      <el-form :model="editForm" label-width="85px" class="skill-form" :rules="editFormRules" ref="editForm">
+      <el-form :model="editForm" label-width="85px" class="tech-form" :rules="editFormRules" ref="editForm">
         <el-form-item label="模型名称" prop="name" required>
           <el-input v-model="editForm.name" placeholder="请输入模型名称" style="width: 100%;" disabled />
         </el-form-item>
@@ -129,88 +142,86 @@
     </el-dialog>
 
     <!-- 模型列表 -->
-    <el-table
-      v-loading="loading"
-      :data="currentPageData"
-      @selection-change="handleSelectionChange"
-    >
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column prop="name" label="模型名称" min-width="180" align="center" header-align="center" />
-      <el-table-column prop="id" label="模型ID" width="180" align="center" header-align="center" />
-      <el-table-column label="使用状态" width="100" align="center" header-align="center">
-        <template slot-scope="{ row }">
-          <el-tag :type="row.usage_status === 'using' ? 'success' : 'info'">
-            {{ row.usage_status === 'using' ? '使用中' : '未使用' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="加载状态" width="100" align="center" header-align="center">
-        <template slot-scope="{ row }">
-          <el-tag :type="row.model_status === 'loaded' ? 'primary' : 'warning'">
-            {{ row.model_status === 'loaded' ? '已加载' : '未加载' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="版本" width="100" align="center" header-align="center">
-        <template slot-scope="{ row }">
-          <div class="version-badge">
-            <i class="el-icon-odometer version-icon"></i>
-            <span class="version-text">V{{ formatVersion(row.version) }}</span>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column prop="description" label="描述" min-width="200" align="center" header-align="center" />
-      <el-table-column label="操作" width="200" fixed="right" align="center" header-align="center">
-        <template slot-scope="{ row }">
-          <div class="operation-buttons">
-            <!-- 加载/卸载按钮 -->
-            <template v-if="row.model_status === 'loaded'">
-              <el-tooltip content="卸载模型" placement="top">
-                <div class="custom-icon-button unload-button" @click="handleUnload(row)" :class="{ 'is-loading': row.isLoading }">
-                  <div v-if="!row.isLoading" class="icon-container">
-                    <div class="icon-square"></div>
-                  </div>
-                  <i v-else class="el-icon-loading"></i>
-                </div>
-              </el-tooltip>
-            </template>
-            <template v-else>
-              <el-tooltip content="加载模型" placement="top">
-                <div class="custom-icon-button load-button" @click="handleLoad(row)" :class="{ 'is-loading': row.isLoading }">
-                  <div v-if="!row.isLoading" class="icon-container">
-                    <div class="icon-triangle"></div>
-                  </div>
-                  <i v-else class="el-icon-loading"></i>
-                </div>
-              </el-tooltip>
-            </template>
-            
-            <!-- 其他操作按钮 -->
-            <div class="text-buttons">
-              <el-tooltip content="查看详情" placement="top">
-                <div class="operation-btn details-btn" @click="handleDetail(row)">
-                  <i class="el-icon-view"></i>
-                </div>
-              </el-tooltip>
-              <el-tooltip content="编辑模型" placement="top">
-                <div class="operation-btn edit-btn" @click="handleEdit(row)">
-                  <i class="el-icon-edit"></i>
-                </div>
-              </el-tooltip>
-              <el-tooltip content="删除模型" placement="top">
-                <div 
-                  class="operation-btn delete-btn" 
-                  :class="{ 'disabled-btn': row.usage_status === 'using' }"
-                  @click="row.usage_status !== 'using' && handleDelete(row)"
-                >
-                  <i class="el-icon-delete"></i>
-                </div>
-              </el-tooltip>
+    <div class="table-container">
+      <el-table
+        v-loading="loading"
+        :data="currentPageData"
+        @selection-change="handleSelectionChange"
+        class="tech-table"
+        :header-cell-style="{background:'#f5f7fa',color:'#303133', fontWeight: '500', textAlign: 'center'}"
+        :cell-style="{textAlign: 'center', backgroundColor: '#ffffff'}"
+        :row-style="{backgroundColor: '#ffffff'}"
+      >
+        <el-table-column type="selection" width="55" align="center" />
+        <el-table-column prop="name" label="模型名称" min-width="180" align="center" header-align="center" />
+        <el-table-column prop="id" label="模型ID" width="180" align="center" header-align="center" />
+        <el-table-column label="使用状态" width="100" align="center" header-align="center">
+          <template slot-scope="{ row }">
+            <el-tag :type="row.usage_status === 'using' ? 'success' : 'info'" class="tech-status-tag">
+              {{ row.usage_status === 'using' ? '使用中' : '未使用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="加载状态" width="100" align="center" header-align="center">
+          <template slot-scope="{ row }">
+            <el-tag :type="row.model_status === 'loaded' ? 'primary' : 'warning'" class="tech-status-tag">
+              {{ row.model_status === 'loaded' ? '已加载' : '未加载' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="版本" width="100" align="center" header-align="center">
+          <template slot-scope="{ row }">
+            <div class="version-badge">
+              <i class="el-icon-odometer version-icon"></i>
+              <span class="version-text">V{{ formatVersion(row.version) }}</span>
             </div>
-          </div>
-        </template>
-      </el-table-column>
-    </el-table>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" min-width="200" align="center" header-align="center" />
+        <el-table-column label="操作" width="200" fixed="right" align="center" header-align="center">
+          <template slot-scope="{ row }">
+            <div class="operation-buttons">
+              <!-- 卸载/加载按钮 -->
+              <template v-if="row.model_status === 'loaded'">
+                <el-button 
+                  type="text" 
+                  size="small" 
+                  @click="handleUnload(row)" 
+                  :loading="row.isLoading"
+                  class="operation-text-btn unload-text-btn"
+                >
+                  卸载
+                </el-button>
+              </template>
+              <template v-else>
+                <el-button 
+                  type="text" 
+                  size="small" 
+                  @click="handleLoad(row)" 
+                  :loading="row.isLoading"
+                  class="operation-text-btn load-text-btn"
+                >
+                  加载
+                </el-button>
+              </template>
+              
+              <el-button type="text" size="small" @click="handleDetail(row)" class="operation-text-btn detail-text-btn">详情</el-button>
+              <el-button type="text" size="small" @click="handleEdit(row)" class="operation-text-btn edit-text-btn">编辑</el-button>
+              <el-button 
+                type="text" 
+                size="small" 
+                @click="handleDelete(row)" 
+                :disabled="row.usage_status === 'using'"
+                class="operation-text-btn delete-text-btn"
+                :class="{ 'disabled-text-btn': row.usage_status === 'using' }"
+              >
+                删除
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <!-- 模型详情对话框 -->
     <el-dialog
@@ -218,7 +229,7 @@
       title="模型详情"
       width="700px"
       :close-on-click-modal="false"
-      custom-class="model-detail-dialog"
+      custom-class="model-detail-dialog tech-dialog"
       :append-to-body="true"
     >
       <div class="model-detail-content">
@@ -248,13 +259,13 @@
             <div class="info-row">
               <div class="info-item half-width">
                 <span class="info-label">使用状态：</span>
-                <el-tag :type="detailForm.usage_status === 'using' ? 'success' : 'info'" size="small">
+                <el-tag :type="detailForm.usage_status === 'using' ? 'success' : 'info'" size="small" class="tech-status-tag">
                   {{ detailForm.usage_status === 'using' ? '使用中' : '未使用' }}
                 </el-tag>
               </div>
               <div class="info-item half-width">
                 <span class="info-label">加载状态：</span>
-                <el-tag :type="detailForm.model_status === 'loaded' ? 'primary' : 'warning'" size="small">
+                <el-tag :type="detailForm.model_status === 'loaded' ? 'primary' : 'warning'" size="small" class="tech-status-tag">
                   {{ detailForm.model_status === 'loaded' ? '已加载' : '未加载' }}
                 </el-tag>
               </div>
@@ -281,7 +292,7 @@
           <el-card class="detail-card skills-card" shadow="never" :body-style="{padding: '0'}">
             <div slot="header" class="card-header">
               <span>技能实例</span>
-              <el-tag type="success" size="small">{{ relatedSkills.length }}</el-tag>
+              <el-tag type="success" size="small" class="tech-status-tag">{{ relatedSkills.length }}</el-tag>
             </div>
             <div v-if="relatedSkills.length === 0" class="no-skills">
               <i class="el-icon-warning-outline"></i> 暂无技能实例
@@ -305,7 +316,7 @@
                   <el-tag 
                     size="mini" 
                     :type="skill.enabled ? 'success' : 'info'"
-                    class="status-tag"
+                    class="status-tag tech-status-tag"
                   >
                     {{ skill.enabled ? '已启用' : '未启用' }}
                   </el-tag>
@@ -321,7 +332,7 @@
     </el-dialog>
 
     <!-- 分页控件 -->
-    <div class="pagination-area">
+    <div class="pagination">
       <el-pagination
         :current-page.sync="pagination.currentPage"
         :page-size.sync="pagination.pageSize"
@@ -889,7 +900,9 @@ export default {
       } 
       // 如果是整数版本，添加.0
       return versionStr + '.0';
-    }
+    },
+
+
   }
 }
 </script>
@@ -897,41 +910,374 @@ export default {
 <style scoped>
 .model-list {
   padding: 20px;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
 }
 
-  .operation-area {
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* 科技感蓝色主题的过滤区域 */
+.filter-section {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  padding: 12px 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-    .left-operations {
-      display: flex;
+.filter-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(59, 130, 246, 0.03), transparent);
+  transform: rotate(0deg);
+  animation: shimmer 10s infinite linear;
+}
+
+@keyframes shimmer {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 2;
+}
+
+.left-operations {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .left-operations .el-button {
-  margin-right: 10px;
-    }
-
-    .right-operations {
-      display: flex;
-  align-items: center;
+  height: 32px;
+  padding: 6px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin-right: 0;
 }
-      
-.right-operations .search-input {
-        width: 200px;
-  margin-right: 10px;
-      }
 
-.right-operations .status-select {
-        width: 120px;
-  }
+.left-operations .el-button--primary {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3);
+  position: relative;
+  overflow: hidden;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
 
-  .pagination-area {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
+.left-operations .el-button--primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.left-operations .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4);
+  transform: translateY(-2px);
+}
+
+.left-operations .el-button--primary:hover::before {
+  left: 100%;
+}
+
+.left-operations .el-button--danger {
+  background: #f5f7fa;
+  border-color: #e4e7ed;
+  color: #606266;
+}
+
+.left-operations .el-button--danger:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
+}
+
+.left-operations .el-button--danger:disabled {
+  background: #f5f7fa !important;
+  border-color: #e4e7ed !important;
+  color: #c0c4cc !important;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+.left-operations .el-button--danger:disabled:hover {
+  background: #f5f7fa !important;
+  border-color: #e4e7ed !important;
+  color: #c0c4cc !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+
+
+.left-operations .el-button--success {
+  background: #f5f7fa;
+  border-color: #e4e7ed;
+  color: #606266;
+}
+
+.left-operations .el-button--success:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
+}
+
+.left-operations .el-button--success:disabled {
+  background: #f5f7fa !important;
+  border-color: #e4e7ed !important;
+  color: #c0c4cc !important;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+.left-operations .el-button--success:disabled:hover {
+  background: #f5f7fa !important;
+  border-color: #e4e7ed !important;
+  color: #c0c4cc !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.right-operations {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  margin-right: 0;
+  gap: 5px;
+}
+
+.filter-label {
+  font-size: 14px;
+  color: #1e40af;
+  white-space: nowrap;
+  font-weight: 500;
+  margin-right: 0;
+}
+
+.filter-item .el-select {
+  width: 130px;
+}
+
+.filter-item .el-select .el-input__inner {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.filter-item .el-select .el-input__inner:hover {
+  border-color: #3b82f6;
+}
+
+.filter-item .el-select .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.search-input {
+  width: 220px;
+  margin-right: 0;
+}
+
+.search-input .el-input__inner {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.search-input .el-input__inner:hover {
+  border-color: #3b82f6;
+}
+
+.search-input .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.refresh-btn {
+  padding: 7px 10px;
+  margin-left: 0;
+  color: #606266;
+  background-color: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e40af;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+/* 表格容器样式 */
+.table-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  overflow: hidden;
+  flex: 1;
+}
+
+/* 科技感表格样式 */
+.tech-table {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.tech-table >>> .el-table__header-wrapper {
+  background: #f5f7fa;
+}
+
+.tech-table >>> .el-table th {
+  background: #f5f7fa !important;
+  color: #303133 !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid #ebeef5 !important;
+}
+
+.tech-table >>> .el-table--enable-row-hover .el-table__body tr:hover > td {
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.tech-table >>> .el-table__body tr {
+  transition: all 0.3s ease;
+}
+
+.tech-table >>> .el-table td {
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+}
+
+/* 科技感状态标签 */
+.tech-status-tag.el-tag--success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: #10b981 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+}
+
+.tech-status-tag.el-tag--info {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border-color: #6b7280 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3) !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+}
+
+.tech-status-tag.el-tag--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3) !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+}
+
+.tech-status-tag.el-tag--warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border-color: #f59e0b !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3) !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* 分页样式 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  padding: 20px 0;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.pagination >>> .el-pagination {
+  justify-content: center;
+}
+
+.pagination >>> .el-pagination .el-pager li {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.pagination >>> .el-pagination .el-pager li:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.pagination >>> .el-pagination .el-pager li.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.pagination >>> .el-pagination button {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.pagination >>> .el-pagination button:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
 /* 表单布局相关样式 */
@@ -977,11 +1323,11 @@ export default {
   border-radius: 4px;
 }
 
-.skill-form {
+.tech-form {
   padding: 0 20px;
 }
 
-.skill-form >>> .el-form-item__label {
+.tech-form >>> .el-form-item__label {
   font-size: 14px;
   color: #1F2329;
   font-weight: 600;
@@ -989,18 +1335,18 @@ export default {
   text-align: right;
 }
 
-.skill-form >>> .el-form-item__content {
+.tech-form >>> .el-form-item__content {
   margin-left: 85px !important;
   text-align: left;
 }
 
-.skill-form >>> .el-form-item__label::before {
+.tech-form >>> .el-form-item__label::before {
   margin-right: 4px;
   color: #F53F3F;
   font-weight: 600;
 }
 
-.skill-form >>> .el-form-item {
+.tech-form >>> .el-form-item {
   margin-bottom: 24px;
 }
 
@@ -1054,8 +1400,11 @@ export default {
 
 .detail-card {
   margin-top: -20px;
-  border-radius: 8px;
-  border: none;
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  box-shadow: 0 2px 12px 0 rgba(59, 130, 246, 0.1);
+  background-color: #fff;
+  overflow: hidden;
 }
 
 .detail-card >>> .el-card__header {
@@ -1065,12 +1414,13 @@ export default {
 .card-header {
   display: flex;
   align-items: center;
-  color: #303133;
+  color: #1e40af;
   font-weight: 600;
   font-size: 16px;
   padding: 15px;
-  background-color: #f5f7fa;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .card-header .el-tag {
@@ -1255,7 +1605,70 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
+}
+
+/* 文字按钮样式 */
+.operation-text-btn {
+  padding: 4px 8px !important;
+  margin: 0 !important;
+  font-size: 13px !important;
+  transition: all 0.3s ease !important;
+}
+
+.operation-text-btn.load-text-btn {
+  color: #409eff !important;
+}
+
+.operation-text-btn.load-text-btn:hover {
+  color: #66b1ff !important;
+  background-color: rgba(64, 158, 255, 0.1) !important;
+}
+
+.operation-text-btn.unload-text-btn {
+  color: #f56c6c !important;
+}
+
+.operation-text-btn.unload-text-btn:hover {
+  color: #f78989 !important;
+  background-color: rgba(245, 108, 108, 0.1) !important;
+}
+
+.operation-text-btn.detail-text-btn {
+  color: #67c23a !important;
+}
+
+.operation-text-btn.detail-text-btn:hover {
+  color: #85ce61 !important;
+  background-color: rgba(103, 194, 58, 0.1) !important;
+}
+
+.operation-text-btn.edit-text-btn {
+  color: #e6a23c !important;
+}
+
+.operation-text-btn.edit-text-btn:hover {
+  color: #ebb563 !important;
+  background-color: rgba(230, 162, 60, 0.1) !important;
+}
+
+.operation-text-btn.delete-text-btn {
+  color: #f56c6c !important;
+}
+
+.operation-text-btn.delete-text-btn:hover:not(.disabled-text-btn) {
+  color: #f78989 !important;
+  background-color: rgba(245, 108, 108, 0.1) !important;
+}
+
+.operation-text-btn.disabled-text-btn {
+  color: #c0c4cc !important;
+  cursor: not-allowed !important;
+}
+
+.operation-text-btn.disabled-text-btn:hover {
+  color: #c0c4cc !important;
+  background-color: transparent !important;
 }
 
 .text-buttons {
@@ -1396,7 +1809,7 @@ export default {
   margin-left: 10px;
 }
 
-.skill-form >>> .el-form-item__error {
+.tech-form >>> .el-form-item__error {
   padding-top: 2px;
 }
 
@@ -1412,14 +1825,14 @@ export default {
   border-color: #409EFF;
 }
 
-.skill-form >>> .el-input:hover .el-input__inner {
+.tech-form >>> .el-input:hover .el-input__inner {
   border-color: #409EFF;
 }
 
-.skill-form >>> .el-form-item.is-error .el-input__inner,
-.skill-form >>> .el-form-item.is-error .el-input__inner:focus,
-.skill-form >>> .el-form-item.is-error .el-textarea__inner,
-.skill-form >>> .el-form-item.is-error .el-textarea__inner:focus {
+.tech-form >>> .el-form-item.is-error .el-input__inner,
+.tech-form >>> .el-form-item.is-error .el-input__inner:focus,
+.tech-form >>> .el-form-item.is-error .el-textarea__inner,
+.tech-form >>> .el-form-item.is-error .el-textarea__inner:focus {
   border-color: #F56C6C;
 }
 
@@ -1554,5 +1967,144 @@ export default {
 
 .version-input >>> .el-input__inner:hover {
   border-color: #1890ff;
+}
+
+/* 科技感对话框样式 */
+.tech-dialog {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.1) !important;
+  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.15) !important;
+}
+
+.tech-dialog >>> .el-dialog {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+.tech-dialog >>> .el-dialog__header {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2) !important;
+  padding: 20px 24px !important;
+}
+
+.tech-dialog >>> .el-dialog__title {
+  color: #1e40af !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+}
+
+.tech-dialog >>> .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.tech-dialog >>> .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+.tech-dialog >>> .el-dialog__body {
+  background: #ffffff !important;
+  padding: 24px !important;
+}
+
+/* 科技感表单样式 */
+.tech-form >>> .el-form-item__label {
+  color: #1e40af !important;
+  font-weight: 600 !important;
+}
+
+.tech-form >>> .el-input__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.tech-form >>> .el-input__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.tech-form >>> .el-input__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+.tech-form >>> .el-textarea__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.tech-form >>> .el-textarea__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.tech-form >>> .el-textarea__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* 对话框按钮样式 */
+.tech-dialog >>> .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.tech-dialog >>> .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5) !important;
+  transform: translateY(-2px) !important;
+}
+
+.tech-dialog >>> .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.tech-dialog >>> .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* 上传组件样式 */
+.tech-dialog >>> .el-upload-dragger {
+  border: 2px dashed #d1d5db !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+}
+
+.tech-dialog >>> .el-upload-dragger:hover {
+  border-color: #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.tech-dialog >>> .el-upload__text {
+  color: #6b7280 !important;
+}
+
+.tech-dialog >>> .el-upload__text em {
+  color: #3b82f6 !important;
+  font-weight: 500 !important;
+}
+
+/* 加载状态优化 */
+.tech-dialog >>> .el-loading-mask {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.tech-dialog >>> .el-loading-spinner .circular {
+  stroke: #3b82f6 !important;
 }
 </style>

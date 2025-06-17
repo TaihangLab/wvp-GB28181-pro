@@ -2542,7 +2542,13 @@ export default {
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
 }
 
-/* 弹框标题样式 */
+/* 弹框样式 - 与 warningManagement.vue 一致 */
+.device-skills-container >>> .el-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
 .device-skills-container >>> .el-dialog__header {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
   border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
@@ -2634,15 +2640,15 @@ export default {
 
 /* 关联设备列表弹框样式 */
 .devices-dialog {
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
 }
 
 .devices-dialog >>> .el-dialog {
   background-color: #ffffff !important;
   border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
 .devices-dialog >>> .el-dialog__header {
@@ -2766,7 +2772,7 @@ export default {
 
 /* 关联设备列表弹框样式 */
 .devices-dialog {
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
 }
 
@@ -2774,8 +2780,8 @@ export default {
 .devices-dialog >>> .el-dialog {
   background-color: #ffffff !important;
   border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
 /* 弹框标题区域 */
