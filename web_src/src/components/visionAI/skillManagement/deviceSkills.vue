@@ -1428,7 +1428,10 @@ export default {
 .device-skills-container {
   padding: 20px;
   background-color: #f5f5f5;
-  min-height: calc(100vh - 100px);
+  height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .filter-section {
@@ -1440,6 +1443,7 @@ export default {
   border: 1px solid rgba(59, 130, 246, 0.1);
   position: relative;
   overflow: hidden;
+  flex-shrink: 0; /* 防止收缩 */
 }
 
 
@@ -1598,6 +1602,10 @@ export default {
   padding: 20px;
   background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
   border-radius: 16px;
+  flex: 1; /* 占据剩余空间 */
+  overflow-y: auto; /* 添加垂直滚动条 */
+  overflow-x: hidden; /* 隐藏水平滚动条 */
+  min-height: 0; /* 确保flex子元素可以收缩 */
 }
 
 .skills-grid .el-row {
@@ -1605,8 +1613,34 @@ export default {
   flex-wrap: wrap;
 }
 
+/* 自定义滚动条样式 */
+.skills-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.skills-grid::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.skills-grid::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.skills-grid::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Firefox 滚动条样式 */
+.skills-grid {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 rgba(0, 0, 0, 0.05);
+}
+
 .skill-col {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .skill-card-wrapper {
@@ -1695,7 +1729,7 @@ export default {
 .skills-grid .skill-card .skill-thumbnail {
   position: relative;
   width: 100%;
-  padding-top: 56.25%; /* 16:9比例 */
+  padding-top: 63%; 
   background-color: #f5f7fa;
 }
 
@@ -1729,25 +1763,28 @@ export default {
 }
 
 .skills-grid .skill-card .skill-info {
-  padding: 12px;
+  padding: 14px;
   text-align: left;
+  min-height: 100px; /* 为63%图片高度设置合适的内容最小高度 */
 }
 
 .skills-grid .skill-card .skill-info h3.skill-title {
-  margin: 0 0 10px;
+  margin: 0 0 11px;
   font-size: 16px;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
   color: #333;
+  line-height: 1.3;
 }
 
 .version-line {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin: 8px 0 12px;
+  margin: 9px 0 13px;
 }
 
 .status-mini-tag {
@@ -1821,6 +1858,7 @@ export default {
   background: white;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0; /* 防止收缩 */
 }
 
 /* 深度选择器 */
@@ -2009,12 +2047,12 @@ export default {
 }
 
 .model-info {
-  margin: 3px 0;
+  margin: 6px 0;
   color: #666;
   font-size: 12px;
   display: flex;
   align-items: flex-start;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .model-name {
@@ -2063,9 +2101,10 @@ export default {
 .info-line {
   display: flex;
   justify-content: space-between;
-  margin: 8px 0;
+  margin: 9px 0;
   font-size: 12px;
   color: #666;
+  line-height: 1.3;
 }
 
 .info-line .info-item {

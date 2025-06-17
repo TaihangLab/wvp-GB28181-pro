@@ -2306,7 +2306,7 @@ export default {
   min-width: auto;
 }
 
-/* 底部按钮样式 - 科技感蓝色设计 */
+/* 底部按钮样式 - 统一样式 */
 .action-btn {
   padding: 6px 16px;
   font-size: 12px;
@@ -2314,63 +2314,17 @@ export default {
   transition: all 0.3s ease;
   margin: 0 2px;
   font-weight: 500;
-  border: 1px solid;
+  border: 1px solid #dcdfe6;
+  background: #ffffff;
+  color: #606266;
 }
 
-.report-btn {
-  background: linear-gradient(135deg, #e6a23c 0%, #f59e0b 100%);
-  border-color: #e6a23c;
-  color: white;
-  box-shadow: 0 2px 4px rgba(230, 162, 60, 0.3);
-}
-
-.report-btn:hover {
-  background: linear-gradient(135deg, #d97706 0%, #dc2626 100%);
-  border-color: #d97706;
+.action-btn:hover {
+  background: #ecf5ff;
+  border-color: #409eff;
+  color: #409eff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.4);
-}
-
-.archive-btn {
-  background: linear-gradient(135deg, #f56c6c 0%, #dc2626 100%);
-  border-color: #f56c6c;
-  color: white;
-  box-shadow: 0 2px 4px rgba(245, 108, 108, 0.3);
-}
-
-.archive-btn:hover {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  border-color: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.4);
-}
-
-.false-alarm-btn {
-  background: linear-gradient(135deg, #909399 0%, #6b7280 100%);
-  border-color: #909399;
-  color: white;
-  box-shadow: 0 2px 4px rgba(144, 147, 153, 0.3);
-}
-
-.false-alarm-btn:hover {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-  border-color: #6b7280;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(144, 147, 153, 0.4);
-}
-
-.process-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-color: #10b981;
-  color: white;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-}
-
-.process-btn:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  border-color: #059669;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
 }
 
 
@@ -2646,55 +2600,7 @@ export default {
   }
 }
 
-/* 底部按钮样式 - 与预警详情对话框保持一致 */
-.action-btn {
-  padding: 6px 16px;
-  font-size: 12px;
-  border-radius: 16px;
-  transition: all 0.3s ease;
-  margin: 0 2px;
-}
 
-
-
-.report-btn {
-  background-color: #e6a23c;
-  border-color: #e6a23c;
-  color: white;
-}
-
-.report-btn:hover {
-  background-color: #eeb462;
-  border-color: #eeb462;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.3);
-}
-
-.archive-btn {
-  background-color: #f56c6c;
-  border-color: #f56c6c;
-  color: white;
-}
-
-.archive-btn:hover {
-  background-color: #f78989;
-  border-color: #f78989;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
-}
-
-.false-alarm-btn {
-  background-color: #909399;
-  border-color: #909399;
-  color: white;
-}
-
-.false-alarm-btn:hover {
-  background-color: #a6a9ad;
-  border-color: #a6a9ad;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(144, 147, 153, 0.3);
-}
 
 /* 预警状态标签样式 - 科技感设计 */
 .warning-status-badge {

@@ -2690,10 +2690,8 @@ body.camera-fullscreen-mode .video-cell .video-content .video-placeholder i.el-i
 }
 
 .realtime-monitoring-container >>> .el-button--primary:hover {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border: 1px solid #3b82f6;
-  color: #1e40af;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
   transform: translateY(-1px);
 }
 

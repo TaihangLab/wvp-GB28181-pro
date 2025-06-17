@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="warning-detail-component">
     <el-dialog
       title="预警详情"
       :visible.sync="dialogVisible"
@@ -2082,14 +2082,16 @@ export default {
   color: #c0c4cc;
 }
 
-/* 底部按钮样式 */
+/* 底部按钮样式 - 移除背景色和边框 */
 .dialog-footer {
   display: flex;
   justify-content: center;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #ebeef5;
-  background: #fafbfc;
+  background: transparent !important;
+  border-top: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .action-btn {
@@ -2188,7 +2190,151 @@ export default {
   }
 }
 
-/* 对话框样式 */
+/* 对话框样式优化 - 科技感设计 */
+.warning-detail-component >>> .el-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.warning-detail-component >>> .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  padding: 16px 20px;
+}
+
+.warning-detail-component >>> .el-dialog__title {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.warning-detail-component >>> .el-dialog__close {
+  color: #6b7280;
+  transition: color 0.3s ease;
+}
+
+.warning-detail-component >>> .el-dialog__close:hover {
+  color: #3b82f6;
+}
+
+.warning-detail-component >>> .el-dialog__body {
+  padding: 20px;
+  background: #ffffff;
+}
+
+.warning-detail-component >>> .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.warning-detail-component >>> .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.warning-detail-component >>> .el-button--success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.warning-detail-component >>> .el-button--success:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
+}
+
+.warning-detail-component >>> .el-button--default {
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.warning-detail-component >>> .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e40af;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.warning-detail-component >>> .el-button--danger {
+  background: linear-gradient(135deg, #f56c6c 0%, #dc2626 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(245, 108, 108, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.warning-detail-component >>> .el-button--danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 10px rgba(245, 108, 108, 0.4);
+  transform: translateY(-1px);
+}
+
+.warning-detail-component >>> .el-button--warning {
+  background: linear-gradient(135deg, #e6a23c 0%, #f59e0b 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(230, 162, 60, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.warning-detail-component >>> .el-button--warning:hover {
+  background: linear-gradient(135deg, #d97706 0%, #dc2626 100%);
+  box-shadow: 0 4px 10px rgba(230, 162, 60, 0.4);
+  transform: translateY(-1px);
+}
+
+/* 输入框和选择框样式优化 */
+.warning-detail-component >>> .el-input__inner {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.warning-detail-component >>> .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.warning-detail-component >>> .el-select .el-input__inner {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+}
+
+.warning-detail-component >>> .el-select .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.warning-detail-component >>> .el-textarea__inner {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.warning-detail-component >>> .el-textarea__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* 对话框内容样式 */
 .confirm-content {
   text-align: center;
   padding: 20px 0;
