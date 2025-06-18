@@ -5,71 +5,44 @@
       <div class="toolbar">
         <div class="left-operations">
           <el-button type="primary" icon="el-icon-plus" size="small" @click="handleImport">导入模型</el-button>
-          <el-button type="danger" icon="el-icon-delete" size="small" :disabled="!multipleSelection.length" @click="handleBatchDelete">批量删除</el-button>
-          <el-button type="success" icon="el-icon-refresh-right" size="small" @click="handleRefresh" :loading="refreshLoading">刷新列表</el-button>
+          <el-button type="danger" icon="el-icon-delete" size="small" :disabled="!multipleSelection.length"
+            @click="handleBatchDelete">批量删除</el-button>
+          <el-button type="success" icon="el-icon-refresh-right" size="small" @click="handleRefresh"
+            :loading="refreshLoading">刷新列表</el-button>
         </div>
-        
+
         <!-- 搜索区域移到右边 -->
         <div class="right-operations">
           <div class="filter-item">
-            <el-select 
-              v-model="searchForm.status" 
-              placeholder="全部"
-              class="status-select"
-              @change="handleSearch"
-              size="small"
-              clearable
-            >
+            <el-select v-model="searchForm.status" placeholder="全部" class="status-select" @change="handleSearch"
+              size="small" clearable>
               <el-option label="全部" value="all" />
               <el-option label="使用中" value="using" />
               <el-option label="未使用" value="unused" />
             </el-select>
           </div>
-          
-          <el-input
-            v-model="searchForm.keyword"
-            placeholder="请输入模型名称"
-            class="search-input"
-            @input="handleSearch"
-            clearable
-            @clear="handleSearch"
-            size="small"
-          >
+
+          <el-input v-model="searchForm.keyword" placeholder="请输入模型名称" class="search-input" @input="handleSearch"
+            clearable @clear="handleSearch" size="small">
             <i slot="prefix" style="align-items: center; display: flex; height: 32px;" class="el-icon-search"></i>
           </el-input>
-          
-          <el-button 
-            class="refresh-btn" 
-            size="small" 
-            icon="el-icon-refresh-left" 
-            @click="handleRefresh"
-            :loading="refreshLoading"
-            title="刷新数据"
-          ></el-button>
+
+          <el-button class="refresh-btn" size="small" icon="el-icon-refresh-left" @click="handleRefresh"
+            :loading="refreshLoading" title="刷新数据"></el-button>
         </div>
       </div>
     </div>
 
     <!-- 导入模型对话框 -->
-    <el-dialog
-      :visible.sync="importDialogVisible"
-      title="导入模型"
-      width="650px"
-      :close-on-click-modal="false"
-      custom-class="tech-dialog"
-    >
+    <el-dialog :visible.sync="importDialogVisible" title="导入模型" width="650px" :close-on-click-modal="false"
+      custom-class="tech-dialog">
       <el-form :model="importForm" label-width="85px" class="tech-form">
         <el-form-item label="模型名称" required>
           <el-input v-model="importForm.name" placeholder="请输入模型名称" style="width: 100%;" />
         </el-form-item>
         <el-form-item label="模型文件" required>
-          <el-upload
-            class="upload-demo"
-            action="#"
-            :auto-upload="false"
-            :on-change="file => handleFileChange(file.raw)"
-            :limit="1"
-          >
+          <el-upload class="upload-demo" action="#" :auto-upload="false" :on-change="file => handleFileChange(file.raw)"
+            :limit="1">
             <el-button type="primary" style="margin-left: 0;">选择文件</el-button>
             <div class="el-upload__tip" style="margin-top: 10px; color: #86909C; font-size: 12px;">
               请选择模型文件进行上传
@@ -77,12 +50,7 @@
           </el-upload>
         </el-form-item>
         <el-form-item label="版本">
-          <el-input 
-            v-model="importForm.version" 
-            placeholder="请输入版本号" 
-            style="width: 40%;"
-            class="version-input"
-          >
+          <el-input v-model="importForm.version" placeholder="请输入版本号" style="width: 40%;" class="version-input">
             <template slot="prepend">
               <span class="version-prefix">V</span>
             </template>
@@ -99,26 +67,15 @@
     </el-dialog>
 
     <!-- 编辑模型对话框 -->
-    <el-dialog
-      :visible.sync="editDialogVisible"
-      title="编辑模型"
-      width="650px"
-      :close-on-click-modal="false"
-      :before-close="cancelEdit"
-      custom-class="tech-dialog"
-    >
+    <el-dialog :visible.sync="editDialogVisible" title="编辑模型" width="650px" :close-on-click-modal="false"
+      :before-close="cancelEdit" custom-class="tech-dialog">
       <el-form :model="editForm" label-width="85px" class="tech-form" :rules="editFormRules" ref="editForm">
         <el-form-item label="模型名称" prop="name" required>
           <el-input v-model="editForm.name" placeholder="请输入模型名称" style="width: 100%;" disabled />
         </el-form-item>
         <div class="form-row">
           <el-form-item label="版本" prop="version" class="half-width-item">
-            <el-input 
-              v-model="editForm.version" 
-              placeholder="请输入版本号" 
-              style="width: 100%;" 
-              class="version-input"
-            >
+            <el-input v-model="editForm.version" placeholder="请输入版本号" style="width: 100%;" class="version-input">
               <template slot="prepend">
                 <span class="version-prefix">V</span>
               </template>
@@ -142,15 +99,9 @@
 
     <!-- 模型列表 -->
     <div class="table-container">
-      <el-table
-        v-loading="loading"
-        :data="currentPageData"
-        @selection-change="handleSelectionChange"
-        class="tech-table"
-        :header-cell-style="{background:'#f5f7fa',color:'#303133', fontWeight: '500', textAlign: 'center'}"
-        :cell-style="{textAlign: 'center', backgroundColor: '#ffffff'}"
-        :row-style="{backgroundColor: '#ffffff'}"
-      >
+      <el-table v-loading="loading" :data="currentPageData" @selection-change="handleSelectionChange" class="tech-table"
+        :header-cell-style="{ background: '#f5f7fa', color: '#303133', fontWeight: '500', textAlign: 'center' }"
+        :cell-style="{ textAlign: 'center', backgroundColor: '#ffffff' }" :row-style="{ backgroundColor: '#ffffff' }">
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column prop="name" label="模型名称" min-width="180" align="center" header-align="center" />
         <el-table-column prop="id" label="模型ID" width="180" align="center" header-align="center" />
@@ -182,38 +133,25 @@
             <div class="operation-buttons">
               <!-- 卸载/加载按钮 -->
               <template v-if="row.model_status === 'loaded'">
-                <el-button 
-                  type="text" 
-                  size="small" 
-                  @click="handleUnload(row)" 
-                  :loading="row.isLoading"
-                  class="operation-text-btn unload-text-btn"
-                >
+                <el-button type="text" size="small" @click="handleUnload(row)" :loading="row.isLoading"
+                  class="operation-text-btn unload-text-btn">
                   卸载
                 </el-button>
               </template>
               <template v-else>
-                <el-button 
-                  type="text" 
-                  size="small" 
-                  @click="handleLoad(row)" 
-                  :loading="row.isLoading"
-                  class="operation-text-btn load-text-btn"
-                >
+                <el-button type="text" size="small" @click="handleLoad(row)" :loading="row.isLoading"
+                  class="operation-text-btn load-text-btn">
                   加载
                 </el-button>
               </template>
-              
-              <el-button type="text" size="small" @click="handleDetail(row)" class="operation-text-btn detail-text-btn">详情</el-button>
-              <el-button type="text" size="small" @click="handleEdit(row)" class="operation-text-btn edit-text-btn">编辑</el-button>
-              <el-button 
-                type="text" 
-                size="small" 
-                @click="handleDelete(row)" 
-                :disabled="row.usage_status === 'using'"
+
+              <el-button type="text" size="small" @click="handleDetail(row)"
+                class="operation-text-btn detail-text-btn">详情</el-button>
+              <el-button type="text" size="small" @click="handleEdit(row)"
+                class="operation-text-btn edit-text-btn">编辑</el-button>
+              <el-button type="text" size="small" @click="handleDelete(row)" :disabled="row.usage_status === 'using'"
                 class="operation-text-btn delete-text-btn"
-                :class="{ 'disabled-text-btn': row.usage_status === 'using' }"
-              >
+                :class="{ 'disabled-text-btn': row.usage_status === 'using' }">
                 删除
               </el-button>
             </div>
@@ -223,17 +161,11 @@
     </div>
 
     <!-- 模型详情对话框 -->
-    <el-dialog
-      :visible.sync="detailDialogVisible"
-      title="模型详情"
-      width="700px"
-      :close-on-click-modal="false"
-      custom-class="model-detail-dialog"
-      :append-to-body="true"
-    >
+    <el-dialog :visible.sync="detailDialogVisible" title="模型详情" width="700px" :close-on-click-modal="false"
+      custom-class="model-detail-dialog" :append-to-body="true">
       <div class="model-detail-content">
         <!-- 基本信息卡片 -->
-        <el-card class="detail-card info-card" shadow="never" :body-style="{padding: '0'}">
+        <el-card class="detail-card info-card" shadow="never" :body-style="{ padding: '0' }">
           <div slot="header" class="card-header">
             <span>基本信息</span>
           </div>
@@ -258,13 +190,15 @@
             <div class="info-row">
               <div class="info-item half-width">
                 <span class="info-label">使用状态：</span>
-                <el-tag :type="detailForm.usage_status === 'using' ? 'success' : 'info'" size="small" class="tech-status-tag">
+                <el-tag :type="detailForm.usage_status === 'using' ? 'success' : 'info'" size="small"
+                  class="tech-status-tag">
                   {{ detailForm.usage_status === 'using' ? '使用中' : '未使用' }}
                 </el-tag>
               </div>
               <div class="info-item half-width">
                 <span class="info-label">加载状态：</span>
-                <el-tag :type="detailForm.model_status === 'loaded' ? 'primary' : 'warning'" size="small" class="tech-status-tag">
+                <el-tag :type="detailForm.model_status === 'loaded' ? 'primary' : 'warning'" size="small"
+                  class="tech-status-tag">
                   {{ detailForm.model_status === 'loaded' ? '已加载' : '未加载' }}
                 </el-tag>
               </div>
@@ -281,14 +215,15 @@
             </div>
             <div class="info-item">
               <span class="info-label">相关描述：</span>
-              <span class="info-value desc-value">{{ detailForm.description || '该模型基于深度学习技术，针对特定场景优化，支持多尺度特征融合和高精度目标检测。' }}</span>
+              <span class="info-value desc-value">{{ detailForm.description || '该模型基于深度学习技术，针对特定场景优化，支持多尺度特征融合和高精度目标检测。'
+                }}</span>
             </div>
           </div>
         </el-card>
 
         <!-- 技能实例信息 -->
         <div class="related-skills-section">
-          <el-card class="detail-card skills-card" shadow="never" :body-style="{padding: '0'}">
+          <el-card class="detail-card skills-card" shadow="never" :body-style="{ padding: '0' }">
             <div slot="header" class="card-header">
               <span>技能实例</span>
               <el-tag type="success" size="small" class="tech-status-tag">{{ relatedSkills.length }}</el-tag>
@@ -312,11 +247,7 @@
                   </div>
                 </div>
                 <div class="skill-status">
-                  <el-tag 
-                    size="mini" 
-                    :type="skill.enabled ? 'success' : 'info'"
-                    class="status-tag tech-status-tag"
-                  >
+                  <el-tag size="mini" :type="skill.enabled ? 'success' : 'info'" class="status-tag tech-status-tag">
                     {{ skill.enabled ? '已启用' : '未启用' }}
                   </el-tag>
                 </div>
@@ -325,22 +256,13 @@
           </el-card>
         </div>
       </div>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="detailDialogVisible = false">关闭</el-button>
-      </div>
     </el-dialog>
 
     <!-- 分页控件 -->
     <div class="pagination">
-      <el-pagination
-        :current-page.sync="pagination.currentPage"
-        :page-size.sync="pagination.pageSize"
-        :page-sizes="[10, 20, 50]"
-        :total="pagination.total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handlePageChange"
-      />
+      <el-pagination :current-page.sync="pagination.currentPage" :page-size.sync="pagination.pageSize"
+        :page-sizes="[10, 20, 50]" :total="pagination.total" layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange" @current-change="handlePageChange" />
     </div>
   </div>
 </template>
@@ -354,32 +276,32 @@ export default {
     return {
       // 开发环境标志
       isDev: process.env.NODE_ENV === 'development',
-      
+
       // 分页参数
       pagination: {
         currentPage: 1,
         pageSize: 10,
         total: 0  // 设置为接口返回的总数
       },
-      
+
       // 搜索和筛选条件
       searchForm: {
         keyword: '',
         status: 'all'
       },
-      
+
       // 表格数据
       tableData: [],
-      
+
       // 选中的行
       multipleSelection: [],
-      
+
       // 表格加载状态
       loading: false,
-      
+
       // 刷新按钮加载状态
       refreshLoading: false,
-      
+
       // 导入模型对话框
       importDialogVisible: false,
       importForm: {
@@ -388,7 +310,7 @@ export default {
         version: '1.0',
         description: ''
       },
-      
+
       // 编辑模型对话框
       editDialogVisible: false,
       editForm: {
@@ -399,7 +321,7 @@ export default {
         usage_status: '',
         model_status: ''
       },
-      
+
       // 详情模型对话框
       detailDialogVisible: false,
       detailForm: {
@@ -422,7 +344,7 @@ export default {
         ],
         version: [
           { required: false, message: '请输入版本号', trigger: 'blur' },
-          { 
+          {
             validator: (rule, value, callback) => {
               if (value === '' || value === undefined || value === null) {
                 callback();
@@ -431,8 +353,8 @@ export default {
               } else {
                 callback();
               }
-            }, 
-            trigger: 'blur' 
+            },
+            trigger: 'blur'
           }
         ],
         description: [
@@ -442,46 +364,46 @@ export default {
       }
     }
   },
-  
+
   computed: {
     // 计算当前页的数据
     currentPageData() {
       return this.tableData
     }
   },
-  
+
   created() {
     // 获取模型列表数据
     this.fetchModelList()
   },
-  
+
   methods: {
     // 从后端获取模型列表数据
     fetchModelList() {
       this.loading = true
-      
+
       // 构建请求参数
       const params = {
         page: this.pagination.currentPage,
         limit: this.pagination.pageSize
       }
-      
+
       // 添加关键词搜索参数
       if (this.searchForm.keyword) {
         params.name = this.searchForm.keyword
       }
-      
+
       // 添加状态筛选参数
       if (this.searchForm.status !== 'all') {
         params.usage_status = this.searchForm.status
       }
-      
+
       // 使用modelAPI服务发送请求
       modelAPI.getModelList(params).then((res) => {
         if (res.data && res.data.code === 0) {
           // 更新数据
           this.tableData = res.data.data || []
-          
+
           // 更新分页信息
           if (res.data.total !== undefined) {
             this.pagination.total = res.data.total
@@ -498,12 +420,12 @@ export default {
         this.loading = false
       })
     },
-    
+
     // 处理表格选择
     handleSelectionChange(val) {
       this.multipleSelection = val
     },
-    
+
     // 处理删除操作
     handleDelete(row) {
       if (row.usage_status === 'using') {
@@ -512,12 +434,12 @@ export default {
       }
 
       this.$confirm('确认删除该模型吗？此操作不可恢复', '警告', {
-        type: 'warning',
         confirmButtonText: '确认',
-        cancelButtonText: '取消'
+        cancelButtonText: '取消',
+        customClass: 'tech-confirm-dialog'
       }).then(() => {
         this.loading = true
-        
+
         // 发送删除请求
         modelAPI.deleteModel(row.id).then((res) => {
           if (res.data && res.data.code === 0) {
@@ -537,7 +459,7 @@ export default {
         // 用户取消删除，不执行任何操作
       })
     },
-    
+
     // 处理批量删除
     handleBatchDelete() {
       const selectedItems = this.multipleSelection
@@ -557,31 +479,31 @@ export default {
         `确认删除选中的 ${selectedItems.length} 个模型吗？此操作不可恢复`,
         '警告',
         {
-          type: 'warning',
           confirmButtonText: '确认',
-          cancelButtonText: '取消'
+          cancelButtonText: '取消',
+          customClass: 'tech-confirm-dialog'
         }
       ).then(() => {
         this.loading = true
-        
+
         // 获取所有选中项的ID
         const selectedIds = selectedItems.map(item => item.id)
-        
+
         // 发送批量删除请求
         modelAPI.batchDeleteModels(selectedIds).then((res) => {
           if (res.data && res.data.success) {
             // 删除成功后重新获取列表
             this.fetchModelList()
-            
+
             // 显示成功消息和详细信息
             this.$message.success(res.data.message || '批量删除成功')
-            
+
             // 如果有失败的模型，显示详细信息
             if (res.data.detail && res.data.detail.failed && res.data.detail.failed.length > 0) {
               const failedInfo = res.data.detail.failed.map(item => {
                 return `模型ID ${item.id}: ${item.reason}`
               }).join('\n')
-              
+
               this.$notify({
                 title: '部分模型删除失败',
                 message: failedInfo,
@@ -602,12 +524,12 @@ export default {
         // 用户取消删除，不执行任何操作
       })
     },
-    
+
     // 处理文件上传
     handleFileChange(file) {
       this.importForm.file = file
     },
-    
+
     // 处理导入模型
     handleImport() {
       // 重置导入表单
@@ -619,7 +541,7 @@ export default {
       }
       this.importDialogVisible = true
     },
-    
+
     // 确认导入模型
     confirmImport() {
       if (!this.importForm.name || !this.importForm.file) {
@@ -628,14 +550,14 @@ export default {
       }
 
       this.loading = true
-      
+
       // 创建FormData对象
       const formData = new FormData()
       formData.append('name', this.importForm.name)
       formData.append('version', this.importForm.version.toString())
       formData.append('description', this.importForm.description || '')
       formData.append('file', this.importForm.file)
-      
+
       // 发送导入请求
       modelAPI.importModel(formData).then((res) => {
         if (res.data && res.data.code === 0) {
@@ -653,7 +575,7 @@ export default {
         this.loading = false
       })
     },
-    
+
     // 处理编辑操作
     handleEdit(row) {
       // 深拷贝当前行数据，避免直接修改表格数据
@@ -666,7 +588,7 @@ export default {
         model_status: row.model_status
       }
       this.editDialogVisible = true
-      
+
       // 使用nextTick等待DOM更新后再获取表单引用
       this.$nextTick(() => {
         if (this.$refs.editForm) {
@@ -674,7 +596,7 @@ export default {
         }
       })
     },
-    
+
     // 取消编辑
     cancelEdit() {
       this.editDialogVisible = false
@@ -684,36 +606,36 @@ export default {
         }
       })
     },
-    
+
     // 确认编辑
     confirmEdit() {
       if (!this.$refs.editForm) return
-      
+
       this.$refs.editForm.validate(valid => {
         if (!valid) return
-        
+
         this.loading = true
-        
+
         // 准备更新数据
         const updateData = {
           description: this.editForm.description
         }
-        
+
         // 只有当版本存在时才更新版本
         if (this.editForm.version) {
           // 确保版本号可以是小数形式
           updateData.version = this.editForm.version.toString()
         }
-        
+
         // 发送更新请求
         modelAPI.updateModel(this.editForm.id, updateData).then((res) => {
           if (res.data && res.data.code === 0) {
             // 更新成功后重新获取列表
             this.fetchModelList()
-            
+
             // 关闭对话框
             this.editDialogVisible = false
-            
+
             // 显示成功消息
             this.$message({
               message: '模型编辑成功',
@@ -730,19 +652,19 @@ export default {
         })
       })
     },
-    
+
     // 处理搜索
     handleSearch() {
       this.pagination.currentPage = 1 // 重置到第一页
       this.fetchModelList() // 重新获取数据
     },
-    
+
     // 处理分页变化
     handlePageChange(newPage) {
       this.pagination.currentPage = newPage
       this.fetchModelList() // 获取新页的数据
     },
-    
+
     // 处理每页数量变化
     handleSizeChange(newSize) {
       this.pagination.pageSize = newSize
@@ -753,7 +675,7 @@ export default {
     // 处理详情操作
     handleDetail(row) {
       this.loading = true
-      
+
       // 获取模型详情
       modelAPI.getModelDetail(row.id).then((res) => {
         if (res.data && res.data.code === 0) {
@@ -768,7 +690,7 @@ export default {
             created_at: res.data.data.created_at,
             updated_at: res.data.data.updated_at
           }
-          
+
           // 更新相关技能列表
           if (res.data.data.skill_classes && res.data.data.skill_classes.skill_classes) {
             this.relatedSkills = res.data.data.skill_classes.skill_classes.map(skill => {
@@ -784,7 +706,7 @@ export default {
           } else {
             this.relatedSkills = [];
           }
-          
+
           this.detailDialogVisible = true
         } else {
           this.$message.error(res.data.msg || '获取模型详情失败')
@@ -796,7 +718,7 @@ export default {
         this.loading = false
       })
     },
-    
+
     // 处理加载模型
     handleLoad(row) {
       // 设置加载中状态
@@ -804,7 +726,7 @@ export default {
       if (index !== -1) {
         this.$set(this.tableData[index], 'isLoading', true)
       }
-      
+
       // 发送加载请求
       modelAPI.loadModel(row.id).then((res) => {
         if (res.data && res.data.code === 0) {
@@ -827,7 +749,7 @@ export default {
         }
       })
     },
-    
+
     // 处理卸载模型
     handleUnload(row) {
       // 设置加载中状态
@@ -835,7 +757,7 @@ export default {
       if (index !== -1) {
         this.$set(this.tableData[index], 'isLoading', true)
       }
-      
+
       // 发送卸载请求
       modelAPI.unloadModel(row.id).then((res) => {
         if (res.data && res.data.code === 0) {
@@ -862,17 +784,17 @@ export default {
     // 处理刷新列表
     handleRefresh() {
       this.refreshLoading = true
-      
+
       // 显示提示信息
       const loadingMessage = this.$message({
         message: '正在刷新模型列表...',
         type: 'info',
         duration: 0
       })
-      
+
       // 重新获取数据
       this.fetchModelList()
-      
+
       // 定时关闭提示，避免API调用失败时提示不消失
       setTimeout(() => {
         loadingMessage.close()
@@ -890,13 +812,13 @@ export default {
     formatVersion(version) {
       // 确保版本号是字符串
       const versionStr = String(version);
-      
+
       // 如果包含小数点
       if (versionStr.includes('.')) {
         const parts = versionStr.split('.');
         // 返回主版本号和一位小数
         return parts[0] + '.' + (parts[1] || '0');
-      } 
+      }
       // 如果是整数版本，添加.0
       return versionStr + '.0';
     },
@@ -906,7 +828,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style>
 .model-list {
   padding: 20px;
   background-color: #f5f5f5;
@@ -1148,26 +1070,26 @@ export default {
   overflow: hidden;
 }
 
-.tech-table >>> .el-table__header-wrapper {
+.tech-table>>>.el-table__header-wrapper {
   background: #f5f7fa;
 }
 
-.tech-table >>> .el-table th {
+.tech-table>>>.el-table th {
   background: #f5f7fa !important;
   color: #303133 !important;
   font-weight: 500 !important;
   border-bottom: 1px solid #ebeef5 !important;
 }
 
-.tech-table >>> .el-table--enable-row-hover .el-table__body tr:hover > td {
+.tech-table>>>.el-table--enable-row-hover .el-table__body tr:hover>td {
   background-color: rgba(59, 130, 246, 0.05) !important;
 }
 
-.tech-table >>> .el-table__body tr {
+.tech-table>>>.el-table__body tr {
   transition: all 0.3s ease;
 }
 
-.tech-table >>> .el-table td {
+.tech-table>>>.el-table td {
   border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
 }
 
@@ -1220,11 +1142,11 @@ export default {
   flex-shrink: 0;
 }
 
-.pagination >>> .el-pagination {
+.pagination>>>.el-pagination {
   justify-content: center;
 }
 
-.pagination >>> .el-pagination .el-pager li {
+.pagination>>>.el-pagination .el-pager li {
   background: white !important;
   border: 1px solid #dcdfe6 !important;
   color: #606266 !important;
@@ -1233,14 +1155,14 @@ export default {
   margin: 0 2px !important;
 }
 
-.pagination >>> .el-pagination .el-pager li:hover {
+.pagination>>>.el-pagination .el-pager li:hover {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
   border-color: #3b82f6 !important;
   color: #1e40af !important;
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
 }
 
-.pagination >>> .el-pagination .el-pager li.active {
+.pagination>>>.el-pagination .el-pager li.active {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
   border-color: #3b82f6 !important;
   color: white !important;
@@ -1248,7 +1170,7 @@ export default {
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
-.pagination >>> .el-pagination button {
+.pagination>>>.el-pagination button {
   background: white !important;
   border: 1px solid #dcdfe6 !important;
   color: #606266 !important;
@@ -1257,7 +1179,7 @@ export default {
   margin: 0 2px !important;
 }
 
-.pagination >>> .el-pagination button:hover {
+.pagination>>>.el-pagination button:hover {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
   border-color: #3b82f6 !important;
   color: #1e40af !important;
@@ -1283,11 +1205,11 @@ export default {
   padding-left: 10px;
 }
 
-.half-width-item >>> .el-form-item__label {
+.half-width-item>>>.el-form-item__label {
   width: 85px !important;
 }
 
-.half-width-item >>> .el-form-item__content {
+.half-width-item>>>.el-form-item__content {
   margin-left: 85px !important;
 }
 
@@ -1311,7 +1233,7 @@ export default {
   padding: 0 20px;
 }
 
-.tech-form >>> .el-form-item__label {
+.tech-form>>>.el-form-item__label {
   font-size: 14px;
   color: #1F2329;
   font-weight: 600;
@@ -1319,18 +1241,18 @@ export default {
   text-align: right;
 }
 
-.tech-form >>> .el-form-item__content {
+.tech-form>>>.el-form-item__content {
   margin-left: 85px !important;
   text-align: left;
 }
 
-.tech-form >>> .el-form-item__label::before {
+.tech-form>>>.el-form-item__label::before {
   margin-right: 4px;
   color: #F53F3F;
   font-weight: 600;
 }
 
-.tech-form >>> .el-form-item {
+.tech-form>>>.el-form-item {
   margin-bottom: 24px;
 }
 
@@ -1338,7 +1260,7 @@ export default {
   width: 160px !important;
 }
 
-.number-input >>> .el-input__inner {
+.number-input>>>.el-input__inner {
   line-height: 32px;
   border-radius: 4px;
   padding: 0 8px;
@@ -1346,11 +1268,11 @@ export default {
 }
 
 /* 深度选择器，确保上传组件样式正确 */
-.upload-demo >>> .el-upload-list {
+.upload-demo>>>.el-upload-list {
   margin-top: 10px;
 }
 
-.upload-demo >>> .el-upload {
+.upload-demo>>>.el-upload {
   text-align: left;
 }
 
@@ -1358,14 +1280,14 @@ export default {
 
 .model-detail-content {
   padding: 0;
-  margin-top: -20px;
+  margin-top: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
 .detail-card {
-  margin-top: -20px;
+  margin-top: 0;
   border-radius: 12px;
   border: 1px solid #e4e7ed;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
@@ -1373,7 +1295,7 @@ export default {
   overflow: hidden;
 }
 
-.detail-card >>> .el-card__header {
+.detail-card>>>.el-card__header {
   border-bottom: none;
 }
 
@@ -1395,7 +1317,7 @@ export default {
 
 .info-content {
   padding: 15px;
-  margin-top: -20px;
+  margin-top: 0;
 }
 
 .info-item {
@@ -1457,7 +1379,7 @@ export default {
   max-height: 120px;
   overflow-y: auto;
   padding: 15px;
-  margin-top: -20px;
+  margin-top: 0;
 }
 
 .no-skills {
@@ -1815,30 +1737,30 @@ export default {
   margin-left: 10px;
 }
 
-.tech-form >>> .el-form-item__error {
+.tech-form>>>.el-form-item__error {
   padding-top: 2px;
 }
 
-.number-input >>> .el-input-number__decrease,
-.number-input >>> .el-input-number__increase {
+.number-input>>>.el-input-number__decrease,
+.number-input>>>.el-input-number__increase {
   background-color: #f5f7fa;
   border-color: #dcdfe6;
   color: #606266;
 }
 
-.number-input >>> .el-input-number__decrease:hover:not(.is-disabled) ~ .el-input .el-input__inner:not(.is-disabled),
-.number-input >>> .el-input-number__increase:hover:not(.is-disabled) ~ .el-input .el-input__inner:not(.is-disabled) {
+.number-input>>>.el-input-number__decrease:hover:not(.is-disabled)~.el-input .el-input__inner:not(.is-disabled),
+.number-input>>>.el-input-number__increase:hover:not(.is-disabled)~.el-input .el-input__inner:not(.is-disabled) {
   border-color: #409EFF;
 }
 
-.tech-form >>> .el-input:hover .el-input__inner {
+.tech-form>>>.el-input:hover .el-input__inner {
   border-color: #409EFF;
 }
 
-.tech-form >>> .el-form-item.is-error .el-input__inner,
-.tech-form >>> .el-form-item.is-error .el-input__inner:focus,
-.tech-form >>> .el-form-item.is-error .el-textarea__inner,
-.tech-form >>> .el-form-item.is-error .el-textarea__inner:focus {
+.tech-form>>>.el-form-item.is-error .el-input__inner,
+.tech-form>>>.el-form-item.is-error .el-input__inner:focus,
+.tech-form>>>.el-form-item.is-error .el-textarea__inner,
+.tech-form>>>.el-form-item.is-error .el-textarea__inner:focus {
   border-color: #F56C6C;
 }
 
@@ -1947,7 +1869,7 @@ export default {
 }
 
 /* 版本号输入框样式 */
-.version-input >>> .el-input-group__prepend {
+.version-input>>>.el-input-group__prepend {
   background: linear-gradient(135deg, #f0f5ff, #e6f7ff);
   border-color: #d9e8ff;
   padding: 0 12px;
@@ -1960,23 +1882,23 @@ export default {
   font-family: 'Arial', sans-serif;
 }
 
-.version-input >>> .el-input__inner {
+.version-input>>>.el-input__inner {
   border-color: #d9e8ff;
   transition: all 0.3s;
   font-family: 'Arial', sans-serif;
 }
 
-.version-input >>> .el-input__inner:focus {
+.version-input>>>.el-input__inner:focus {
   border-color: #1890ff;
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
-.version-input >>> .el-input__inner:hover {
+.version-input>>>.el-input__inner:hover {
   border-color: #1890ff;
 }
 
 /* 科技感对话框样式 - 与deviceSkills.vue保持一致 */
-.tech-dialog >>> .el-dialog {
+.tech-dialog>>>.el-dialog {
   background: #ffffff !important;
   border-radius: 12px !important;
   overflow: hidden !important;
@@ -1984,70 +1906,70 @@ export default {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
 }
 
-.tech-dialog >>> .el-dialog__header {
+.tech-dialog>>>.el-dialog__header {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
   border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
   padding: 16px 20px !important;
 }
 
-.tech-dialog >>> .el-dialog__title {
+.tech-dialog>>>.el-dialog__title {
   color: #1f2937 !important;
   font-weight: 600 !important;
   font-size: 16px !important;
 }
 
-.tech-dialog >>> .el-dialog__close {
+.tech-dialog>>>.el-dialog__close {
   color: #6b7280 !important;
   transition: color 0.3s ease !important;
 }
 
-.tech-dialog >>> .el-dialog__close:hover {
+.tech-dialog>>>.el-dialog__close:hover {
   color: #3b82f6 !important;
 }
 
-.tech-dialog >>> .el-dialog__body {
+.tech-dialog>>>.el-dialog__body {
   background: #ffffff !important;
   padding: 20px !important;
 }
 
 /* 科技感表单样式 */
-.tech-form >>> .el-form-item__label {
+.tech-form>>>.el-form-item__label {
   color: #1F2329 !important;
   font-weight: 600 !important;
 }
 
-.tech-form >>> .el-input__inner {
+.tech-form>>>.el-input__inner {
   border: 1px solid #e2e8f0 !important;
   border-radius: 6px !important;
   transition: all 0.3s ease !important;
 }
 
-.tech-form >>> .el-input__inner:hover {
+.tech-form>>>.el-input__inner:hover {
   border-color: #3b82f6 !important;
 }
 
-.tech-form >>> .el-input__inner:focus {
+.tech-form>>>.el-input__inner:focus {
   border-color: #3b82f6 !important;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
 }
 
-.tech-form >>> .el-textarea__inner {
+.tech-form>>>.el-textarea__inner {
   border: 1px solid #e2e8f0 !important;
   border-radius: 6px !important;
   transition: all 0.3s ease !important;
 }
 
-.tech-form >>> .el-textarea__inner:hover {
+.tech-form>>>.el-textarea__inner:hover {
   border-color: #3b82f6 !important;
 }
 
-.tech-form >>> .el-textarea__inner:focus {
+.tech-form>>>.el-textarea__inner:focus {
   border-color: #3b82f6 !important;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
 }
 
 /* 对话框按钮样式 - 与deviceSkills.vue保持一致 */
-.tech-dialog >>> .el-button--primary {
+.tech-dialog>>>.el-button--primary {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
   border: none !important;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
@@ -2057,13 +1979,13 @@ export default {
   border-radius: 6px !important;
 }
 
-.tech-dialog >>> .el-button--primary:hover {
+.tech-dialog>>>.el-button--primary:hover {
   background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
   box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
   transform: translateY(-1px) !important;
 }
 
-.tech-dialog >>> .el-button--default {
+.tech-dialog>>>.el-button--default {
   background: white !important;
   border: 1px solid #d1d5db !important;
   color: #4b5563 !important;
@@ -2071,7 +1993,7 @@ export default {
   border-radius: 6px !important;
 }
 
-.tech-dialog >>> .el-button--default:hover {
+.tech-dialog>>>.el-button--default:hover {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
   border-color: #3b82f6 !important;
   color: #1e40af !important;
@@ -2079,46 +2001,37 @@ export default {
 }
 
 /* 上传组件样式 */
-.tech-dialog >>> .el-upload-dragger {
+.tech-dialog>>>.el-upload-dragger {
   border: 2px dashed #d1d5db !important;
   border-radius: 8px !important;
   transition: all 0.3s ease !important;
 }
 
-.tech-dialog >>> .el-upload-dragger:hover {
+.tech-dialog>>>.el-upload-dragger:hover {
   border-color: #3b82f6 !important;
   background-color: rgba(59, 130, 246, 0.05) !important;
 }
 
-.tech-dialog >>> .el-upload__text {
+.tech-dialog>>>.el-upload__text {
   color: #6b7280 !important;
 }
 
-.tech-dialog >>> .el-upload__text em {
+.tech-dialog>>>.el-upload__text em {
   color: #3b82f6 !important;
   font-weight: 500 !important;
 }
 
 /* 加载状态优化 */
-.tech-dialog >>> .el-loading-mask {
+.tech-dialog>>>.el-loading-mask {
   background-color: rgba(59, 130, 246, 0.1) !important;
 }
 
-.tech-dialog >>> .el-loading-spinner .circular {
+.tech-dialog>>>.el-loading-spinner .circular {
   stroke: #3b82f6 !important;
 }
 
-/* 模型详情对话框特殊样式 - 与deviceSkills.vue保持一致 */
-.model-detail-dialog {
-  display: flex;
-  flex-direction: column;
-  margin-top: 5vh !important;
-  margin-bottom: 0;
-  max-height: 90vh;
-}
-
-/* 强制设置模型详情弹框的圆角样式，确保优先级最高 */
-.el-dialog__wrapper .model-detail-dialog .el-dialog {
+/* 模型详情对话框样式 - 与其他弹框保持一致 */
+.model-detail-dialog.el-dialog {
   background: #ffffff !important;
   border-radius: 12px !important;
   overflow: hidden !important;
@@ -2126,19 +2039,183 @@ export default {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
 }
 
-/* 使用更高优先级的选择器 */
-body .el-dialog__wrapper .model-detail-dialog .el-dialog {
+.model-detail-dialog.el-dialog .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+  text-align: center !important;
+}
+
+.model-detail-dialog.el-dialog .el-dialog__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.model-detail-dialog.el-dialog .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.model-detail-dialog.el-dialog .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+.model-detail-dialog.el-dialog .el-dialog__body {
+  background: #ffffff !important;
+  padding: 20px !important;
+  padding-top: 10px !important;
+}
+
+/* 简化的卡片样式 - 与其他弹框保持一致 */
+.model-detail-dialog.el-dialog .detail-card {
+  border-radius: 8px !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  background-color: #fff !important;
+  overflow: hidden !important;
+  margin-bottom: 16px !important;
+  margin-top: 0 !important;
+}
+
+.model-detail-dialog.el-dialog .detail-card .el-card__header {
+  border-bottom: none !important;
+}
+
+.model-detail-dialog.el-dialog .card-header {
+  background: #f8f9fa !important;
+  border-bottom: 1px solid #e4e7ed !important;
+  padding: 12px 16px !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  font-size: 14px !important;
+}
+
+/* 简化的信息内容样式 */
+.model-detail-dialog.el-dialog .info-content {
+  padding: 16px !important;
+}
+
+.model-detail-dialog.el-dialog .info-item {
+  margin-bottom: 12px !important;
+  padding: 8px 0 !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.model-detail-dialog.el-dialog .info-item:last-child {
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+}
+
+.model-detail-dialog.el-dialog .info-label {
+  color: #666 !important;
+  font-weight: 500 !important;
+  width: 85px !important;
+  flex-shrink: 0 !important;
+}
+
+.model-detail-dialog.el-dialog .info-value {
+  color: #333 !important;
+  font-weight: 400 !important;
+  flex: 1 !important;
+}
+
+.model-detail-dialog.el-dialog .model-id {
+  font-family: monospace !important;
+  background: #f5f5f5 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  color: #666 !important;
+}
+
+/* 简化的版本徽章 */
+.model-detail-dialog.el-dialog .version-badge {
+  background: #f0f5ff !important;
+  border: 1px solid #d1d5db !important;
+  padding: 4px 8px !important;
   border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.model-detail-dialog.el-dialog .version-icon {
+  color: #3b82f6 !important;
+  margin-right: 4px !important;
+  font-size: 12px !important;
+}
+
+.model-detail-dialog.el-dialog .version-text {
+  color: #3b82f6 !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+}
+
+/* 简化的技能卡片样式 */
+.model-detail-dialog.el-dialog .skill-card {
+  background: #ffffff !important;
+  border: 1px solid #e4e7ed !important;
+  border-radius: 6px !important;
+  padding: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.model-detail-dialog.el-dialog .skill-name {
+  color: #333 !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+}
+
+/* 简化的无技能状态 */
+.model-detail-dialog.el-dialog .no-skills {
+  text-align: center !important;
+  padding: 20px !important;
+  background: #f8f9fa !important;
+  border-radius: 6px !important;
+  margin: 16px !important;
+  color: #666 !important;
+}
+
+.model-detail-dialog.el-dialog .no-skills i {
+  color: #999 !important;
+  font-size: 16px !important;
+  margin-right: 6px !important;
+}
+
+/* 简化的底部按钮 - 与其他弹框保持一致 */
+.model-detail-dialog.el-dialog .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.model-detail-dialog.el-dialog .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* 使用更高优先级的选择器 */
+body .el-dialog__wrapper .model-detail-dialog {
+  border-radius: 16px !important;
   overflow: hidden !important;
 }
 
 /* 全局覆盖，确保模型详情弹框圆角 */
 .el-dialog[custom-class*="model-detail-dialog"] {
-  border-radius: 12px !important;
+  border-radius: 16px !important;
   overflow: hidden !important;
 }
 
-.model-detail-dialog >>> .el-dialog {
+/* 科技感对话框样式 - 导入和编辑弹框 */
+.tech-dialog.el-dialog {
   background: #ffffff !important;
   border-radius: 12px !important;
   overflow: hidden !important;
@@ -2146,103 +2223,70 @@ body .el-dialog__wrapper .model-detail-dialog .el-dialog {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
 }
 
-.model-detail-dialog >>> .el-dialog__header {
+.tech-dialog.el-dialog .el-dialog__header {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
   border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
   padding: 16px 20px !important;
 }
 
-.model-detail-dialog >>> .el-dialog__title {
+.tech-dialog.el-dialog .el-dialog__title {
   color: #1f2937 !important;
   font-weight: 600 !important;
   font-size: 16px !important;
 }
 
-.model-detail-dialog >>> .el-dialog__close {
+.tech-dialog.el-dialog .el-dialog__close {
   color: #6b7280 !important;
   transition: color 0.3s ease !important;
 }
 
-.model-detail-dialog >>> .el-dialog__close:hover {
+.tech-dialog.el-dialog .el-dialog__close:hover {
   color: #3b82f6 !important;
 }
 
-.model-detail-dialog >>> .el-dialog__body {
+.tech-dialog.el-dialog .el-dialog__body {
   background: #ffffff !important;
-  max-height: calc(85vh - 108px);
-  padding: 0 20px 20px;
-  overflow: hidden;
+  padding: 20px !important;
 }
 
-.model-detail-dialog >>> .el-button--default,
-.model-detail-dialog >>> .dialog-footer .el-button--default {
-  background: white !important;
-  border: 1px solid #d1d5db !important;
-  color: #4b5563 !important;
-  transition: all 0.3s ease !important;
-  border-radius: 6px !important;
-}
-
-.model-detail-dialog >>> .el-button--default:hover,
-.model-detail-dialog >>> .dialog-footer .el-button--default:hover {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
-  border-color: #3b82f6 !important;
-  color: #1e40af !important;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
-}
-
-.model-detail-dialog >>> .el-button--primary,
-.model-detail-dialog >>> .dialog-footer .el-button--primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
-  border: none !important;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
-  color: white !important;
-  font-weight: 500 !important;
-  transition: all 0.3s ease !important;
-  border-radius: 6px !important;
-}
-
-.model-detail-dialog >>> .el-button--primary:hover,
-.model-detail-dialog >>> .dialog-footer .el-button--primary:hover {
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
-  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
-  transform: translateY(-1px) !important;
-}
-
-/* 统一对话框样式 - 完全匹配deviceSkills.vue */
-.model-list >>> .el-dialog {
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.model-list >>> .el-dialog__header {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
-  padding: 16px 20px !important;
-}
-
-.model-list >>> .el-dialog__title {
-  color: #1f2937 !important;
+/* 科技感表单样式 */
+.tech-form .el-form-item__label {
+  color: #1F2329 !important;
   font-weight: 600 !important;
 }
 
-.model-list >>> .el-dialog__close {
-  color: #6b7280 !important;
-  transition: color 0.3s ease !important;
+.tech-form .el-input__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
 }
 
-.model-list >>> .el-dialog__close:hover {
-  color: #3b82f6 !important;
+.tech-form .el-input__inner:hover {
+  border-color: #3b82f6 !important;
 }
 
-.model-list >>> .el-dialog__body {
-  padding: 20px !important;
-  background: #ffffff !important;
+.tech-form .el-input__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
 }
 
-/* 弹框按钮统一样式 - 完全匹配deviceSkills.vue */
-.model-list >>> .el-dialog .el-button--primary {
+.tech-form .el-textarea__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.tech-form .el-textarea__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.tech-form .el-textarea__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* 对话框按钮样式 */
+.tech-dialog.el-dialog .el-button--primary {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
   border: none !important;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
@@ -2252,13 +2296,13 @@ body .el-dialog__wrapper .model-detail-dialog .el-dialog {
   border-radius: 6px !important;
 }
 
-.model-list >>> .el-dialog .el-button--primary:hover {
+.tech-dialog.el-dialog .el-button--primary:hover {
   background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
   box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
   transform: translateY(-1px) !important;
 }
 
-.model-list >>> .el-dialog .el-button--default {
+.tech-dialog.el-dialog .el-button--default {
   background: white !important;
   border: 1px solid #d1d5db !important;
   color: #4b5563 !important;
@@ -2266,150 +2310,203 @@ body .el-dialog__wrapper .model-detail-dialog .el-dialog {
   border-radius: 6px !important;
 }
 
-.model-list >>> .el-dialog .el-button--default:hover {
+.tech-dialog.el-dialog .el-button--default:hover {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
   border-color: #3b82f6 !important;
   color: #1e40af !important;
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
 }
 
-/* 上传组件样式 - 与deviceSkills.vue保持一致 */
-.model-list >>> .el-upload-dragger {
+/* 上传组件样式 */
+.tech-dialog.el-dialog .el-upload-dragger {
   border: 2px dashed #d1d5db !important;
   border-radius: 8px !important;
   transition: all 0.3s ease !important;
 }
 
-.model-list >>> .el-upload-dragger:hover {
+.tech-dialog.el-dialog .el-upload-dragger:hover {
   border-color: #3b82f6 !important;
   background-color: rgba(59, 130, 246, 0.05) !important;
 }
 
-.model-list >>> .el-upload-dragger .el-icon-upload {
-  color: #3b82f6 !important;
-}
-
-.model-list >>> .el-upload__text {
+.tech-dialog.el-dialog .el-upload__text {
   color: #6b7280 !important;
 }
 
-.model-list >>> .el-upload__text em {
+.tech-dialog.el-dialog .el-upload__text em {
   color: #3b82f6 !important;
   font-weight: 500 !important;
 }
 
 /* 加载状态优化 */
-.model-list >>> .el-loading-mask {
+.tech-dialog.el-dialog .el-loading-mask {
   background-color: rgba(59, 130, 246, 0.1) !important;
 }
 
-.model-list >>> .el-loading-spinner .circular {
+.tech-dialog.el-dialog .el-loading-spinner .circular {
   stroke: #3b82f6 !important;
 }
 
-/* 模型详情弹框的详细卡片样式优化 */
-.model-detail-dialog >>> .detail-card {
-  margin-top: -20px !important;
-  border-radius: 12px !important;
-  border: 1px solid #e4e7ed !important;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
-  background-color: #fff !important;
+/* 版本号输入框样式 */
+.version-input .el-input-group__prepend {
+  background: linear-gradient(135deg, #f0f5ff, #e6f7ff) !important;
+  border-color: #d9e8ff !important;
+  padding: 0 12px !important;
+}
+
+.version-prefix {
+  color: #1890ff !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  font-family: 'Arial', sans-serif !important;
+}
+
+.version-input .el-input__inner {
+  border-color: #d9e8ff !important;
+  transition: all 0.3s !important;
+  font-family: 'Arial', sans-serif !important;
+}
+
+.version-input .el-input__inner:focus {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+.version-input .el-input__inner:hover {
+  border-color: #1890ff !important;
+}
+
+/* 科技感确认对话框样式 */
+.tech-confirm-dialog.el-message-box {
+  background: #ffffff !important;
+  border-radius: 16px !important;
   overflow: hidden !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+  width: 420px !important;
 }
 
-.model-detail-dialog >>> .detail-card .el-card__header {
-  border-bottom: none !important;
+.tech-confirm-dialog.el-message-box .el-message-box__header {
+  background: linear-gradient(135deg, #fef3f2 0%, #fdf2f8 100%) !important;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.1) !important;
+  padding: 20px 24px 16px !important;
+  border-radius: 16px 16px 0 0 !important;
 }
 
-.model-detail-dialog >>> .card-header {
-  display: flex !important;
-  align-items: center !important;
-  color: #1f2937 !important;
+.tech-confirm-dialog.el-message-box .el-message-box__title {
+  color: #dc2626 !important;
   font-weight: 600 !important;
   font-size: 16px !important;
-  padding: 12px 15px !important;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
-  border-radius: 8px 8px 0 0 !important;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  line-height: 1.4 !important;
 }
 
-.model-detail-dialog >>> .card-header .el-tag {
-  margin-left: 10px !important;
+.tech-confirm-dialog.el-message-box .el-message-box__close {
+  color: #dc2626 !important;
+  font-size: 18px !important;
+  transition: all 0.3s ease !important;
+  top: 20px !important;
+  right: 20px !important;
 }
 
-.model-detail-dialog >>> .info-content {
-  padding: 15px !important;
-  margin-top: -20px !important;
+.tech-confirm-dialog.el-message-box .el-message-box__close:hover {
+  color: #b91c1c !important;
+  transform: scale(1.1) !important;
 }
 
-/* 确保技能状态标签样式正确 */
-.model-detail-dialog >>> .tech-status-tag.el-tag--success {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-  border-color: #10b981 !important;
-  color: white !important;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
-  border-radius: 12px !important;
-  font-weight: 500 !important;
+.tech-confirm-dialog.el-message-box .el-message-box__content {
+  background: #ffffff !important;
+  padding: 20px 24px !important;
+  color: #374151 !important;
+  line-height: 1.6 !important;
+  display: flex !important;
+  align-items: flex-start !important;
 }
 
-.model-detail-dialog >>> .tech-status-tag.el-tag--primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
-  border-color: #3b82f6 !important;
-  color: white !important;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3) !important;
-  border-radius: 12px !important;
-  font-weight: 500 !important;
+.tech-confirm-dialog.el-message-box .el-message-box__message {
+  font-size: 14px !important;
+  color: #374151 !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  flex: 1 !important;
+  margin-top: 2px !important;
 }
 
-.model-detail-dialog >>> .tech-status-tag.el-tag--info {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
-  border-color: #6b7280 !important;
-  color: white !important;
-  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3) !important;
-  border-radius: 12px !important;
-  font-weight: 500 !important;
-}
-
-.model-detail-dialog >>> .tech-status-tag.el-tag--warning {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-  border-color: #f59e0b !important;
-  color: white !important;
-  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3) !important;
-  border-radius: 12px !important;
-  font-weight: 500 !important;
-}
-
-/* 模型详情弹框的版本徽章样式 */
-.model-detail-dialog >>> .version-badge {
+.tech-confirm-dialog.el-message-box .el-message-box__icon {
+  color: #f59e0b !important;
+  font-size: 20px !important;
+  margin-right: 12px !important;
+  margin-top: 1px !important;
+  flex-shrink: 0 !important;
+  width: 20px !important;
+  height: 20px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 4px 12px !important;
-  border-radius: 16px !important;
-  background: linear-gradient(135deg, #f0f5ff, #e6f7ff) !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
-  border: 1px solid #d9e8ff !important;
-  width: fit-content !important;
-  transition: all 0.3s !important;
 }
 
-.model-detail-dialog >>> .version-badge:hover {
-  background: linear-gradient(135deg, #e6f7ff, #d6f0ff) !important;
-  box-shadow: 0 3px 6px rgba(24, 144, 255, 0.1) !important;
+.tech-confirm-dialog.el-message-box .el-message-box__btns {
+  background: #f8fafc !important;
+  padding: 16px 24px !important;
+  border-top: 1px solid #e5e7eb !important;
+  text-align: right !important;
+  border-radius: 0 0 16px 16px !important;
+}
+
+.tech-confirm-dialog.el-message-box .el-button {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  padding: 8px 20px !important;
+  margin-left: 12px !important;
+  transition: all 0.3s ease !important;
+}
+
+.tech-confirm-dialog.el-message-box .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+}
+
+.tech-confirm-dialog.el-message-box .el-button--default:hover {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
+  border-color: #9ca3af !important;
+  color: #374151 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   transform: translateY(-1px) !important;
 }
 
-.model-detail-dialog >>> .version-icon {
-  margin-right: 5px !important;
-  color: #1890ff !important;
-  font-size: 15px !important;
+.tech-confirm-dialog.el-message-box .el-button--primary {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+  border: none !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4) !important;
 }
 
-.model-detail-dialog >>> .version-text {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: #1890ff !important;
-  letter-spacing: 0.5px !important;
-  font-family: 'Arial', sans-serif !important;
+.tech-confirm-dialog.el-message-box .el-button--primary:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%) !important;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.5) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* 确认对话框动画效果 */
+.tech-confirm-dialog.el-message-box {
+  animation: techConfirmSlideIn 0.3s ease-out !important;
+}
+
+@keyframes techConfirmSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 确认对话框遮罩层样式 */
+.v-modal {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
 }
 </style>

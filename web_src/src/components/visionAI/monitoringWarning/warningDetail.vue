@@ -10,7 +10,7 @@
       <div v-if="warning" class="warning-detail-container">
         <!-- 预警详情头部 -->
         <div class="warning-detail-header">
-          <div class="warning-level-badge" :style="{'background-color': getWarningLevelColor(warning.level)}">
+          <div class="warning-level-badge" :class="getWarningLevelClass(warning.level)">
             {{ getWarningLevelText(warning.level) }}预警
           </div>
           <div class="warning-detail-time">
@@ -1095,6 +1095,28 @@ export default {
       };
       return colorMap[level] || '#f56c6c';
     },
+    // 获取预警等级CSS类名
+    getWarningLevelClass(level) {
+      // 如果是中文格式，转换为对应类名
+      if (level && level.includes('预警')) {
+        const chineseClassMap = {
+          '一级预警': 'level1-tag',
+          '二级预警': 'level2-tag',
+          '三级预警': 'level3-tag',
+          '四级预警': 'level4-tag'
+        };
+        return chineseClassMap[level] || 'level1-tag';
+      }
+      
+      // 如果是英文格式，使用原有映射
+      const classMap = {
+        'level1': 'level1-tag',
+        'level2': 'level2-tag',
+        'level3': 'level3-tag',
+        'level4': 'level4-tag'
+      };
+      return classMap[level] || 'level1-tag';
+    },
     // 获取预警类型文字
     getWarningTypeText(type) {
       const typeMap = {
@@ -1357,13 +1379,52 @@ export default {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
+/* 预警等级标签 - 科技感样式（参考摄像头页面状态标签） */
 .warning-level-badge {
-  font-size: 16px;
-  font-weight: bold;
-  padding: 8px 16px;
-  border-radius: 20px;
-  color: white;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  display: inline-block;
+  padding: 0 12px !important;
+  height: 32px !important;
+  line-height: 30px !important;
+  font-size: 14px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+  border: 1px solid !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.warning-level-badge:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 一级预警 - 危险红色渐变 */
+.warning-level-badge.level1-tag {
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%) !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
+}
+
+/* 二级预警 - 警告橙色渐变 */
+.warning-level-badge.level2-tag {
+  background: linear-gradient(135deg, #fffbeb 0%, #fed7aa 100%) !important;
+  color: #92400e !important;
+  border-color: #fbbf24 !important;
+}
+
+/* 三级预警 - 信息蓝色渐变 */
+.warning-level-badge.level3-tag {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #1e40af !important;
+  border-color: #93c5fd !important;
+}
+
+/* 四级预警 - 成功绿色渐变 */
+.warning-level-badge.level4-tag {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
 }
 
 .warning-detail-time {

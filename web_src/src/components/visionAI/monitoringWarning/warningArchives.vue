@@ -1277,32 +1277,92 @@ export default {
   white-space: nowrap;
 }
 
-/* 预警等级标签 */
+/* 预警等级标签 - 科技感样式（参考摄像头页面状态标签） */
 .level-tag {
   display: inline-block;
-  padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 2px;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border: 1px solid !important;
 }
 
+.level-tag:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 一级预警 - 危险红色渐变 */
 .level1-tag {
-  background-color: #fff0f0;
-  color: #f56c6c;
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%) !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
 }
 
+/* 二级预警 - 警告橙色渐变 */
 .level2-tag {
-  background-color: #fff8e6;
-  color: #e6a23c;
+  background: linear-gradient(135deg, #fffbeb 0%, #fed7aa 100%) !important;
+  color: #92400e !important;
+  border-color: #fbbf24 !important;
 }
 
+/* 三级预警 - 信息蓝色渐变 */
 .level3-tag {
-  background-color: #e6f2ff;
-  color: #1890ff;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #1e40af !important;
+  border-color: #93c5fd !important;
 }
 
+/* 四级预警 - 成功绿色渐变 */
 .level4-tag {
-  background-color: #e6f7e6;
-  color: #67c23a;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
+}
+
+/* 确保表格内的预警等级标签优先级足够高 */
+.table-section >>> .el-table .level-tag {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+  transition: all 0.3s ease !important;
+  border: 1px solid !important;
+}
+
+.table-section >>> .el-table .level-tag:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 表格内预警等级标签的具体样式 */
+.table-section >>> .el-table .level1-tag {
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%) !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
+}
+
+.table-section >>> .el-table .level2-tag {
+  background: linear-gradient(135deg, #fffbeb 0%, #fed7aa 100%) !important;
+  color: #92400e !important;
+  border-color: #fbbf24 !important;
+}
+
+.table-section >>> .el-table .level3-tag {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #1e40af !important;
+  border-color: #93c5fd !important;
+}
+
+.table-section >>> .el-table .level4-tag {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
 }
 
 /* 旧样式保留兼容 */

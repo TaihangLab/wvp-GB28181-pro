@@ -1441,16 +1441,16 @@ export default {
 
 .custom-tree-header {
   padding: 20px 16px;
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
-  color: white;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
   min-height: 80px;
   flex-shrink: 0;
   border-radius: 16px 16px 0 0;
   position: relative;
   overflow: hidden;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  text-shadow: none;
 }
 
 
@@ -1482,13 +1482,13 @@ export default {
 }
 
 .header-switch /deep/ .el-switch__label {
-  color: #ffffff !important;
+  color: #1e40af !important;
   font-weight: 600 !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  text-shadow: none !important;
 }
 
 .header-switch /deep/ .el-switch__label.is-active {
-  color: #ffffff !important;
+  color: #1e40af !important;
 }
 
 .custom-tree-container {
@@ -1962,36 +1962,36 @@ export default {
   padding: 16px 20px;
   font-size: 16px;
   font-weight: 600;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
-  color: white;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: relative;
   overflow: hidden;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  text-shadow: none;
   flex-shrink: 0;
 }
 
 
 
 .warning-list .list-header .more-btn {
-  color: white;
+  color: #1e40af;
   padding: 6px 12px;
   font-size: 13px;
   font-weight: 500;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(59, 130, 246, 0.1);
   border-radius: 6px;
   transition: all 0.3s ease;
   backdrop-filter: blur(4px);
 }
 
 .warning-list .list-header .more-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: rgba(59, 130, 246, 0.2);
+  color: #1e40af;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 }
 
 .warning-list .list-content {
@@ -2038,63 +2038,96 @@ export default {
   z-index: 2;
 }
 
-/* 预警标签 - 科技感设计 */
+/* 预警等级标签 - 科技感样式（参考摄像头页面状态标签） */
 .warning-list .list-content .warning-item .warning-level-badge {
-  padding: 4px 10px;
-  font-size: 12px;
-  color: white;
-  font-weight: bold;
-  border-radius: 6px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  display: inline-block;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border: 1px solid !important;
 }
 
-.warning-list .list-content .warning-item .warning-status-badge {
-  padding: 4px 10px;
-  font-size: 12px;
-  color: white;
-  font-weight: bold;
-  border-radius: 6px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+.warning-list .list-content .warning-item .warning-level-badge:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
+/* 一级预警 - 危险红色渐变 */
 .warning-list .list-content .warning-item .warning-level-badge.level1 {
-  background-color: #f56c6c;
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%) !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
 }
 
+/* 二级预警 - 警告橙色渐变 */
 .warning-list .list-content .warning-item .warning-level-badge.level2 {
-  background-color: #e6a23c;
+  background: linear-gradient(135deg, #fffbeb 0%, #fed7aa 100%) !important;
+  color: #92400e !important;
+  border-color: #fbbf24 !important;
 }
 
+/* 三级预警 - 信息蓝色渐变 */
 .warning-list .list-content .warning-item .warning-level-badge.level3 {
-  background-color: #909399;
-  color: #ffffff;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #1e40af !important;
+  border-color: #93c5fd !important;
 }
 
+/* 四级预警 - 成功绿色渐变 */
 .warning-list .list-content .warning-item .warning-level-badge.level4 {
-  background-color: #67c23a;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
 }
 
-/* 状态标签颜色 */
+/* 预警状态标签 - 科技感样式 */
+.warning-list .list-content .warning-item .warning-status-badge {
+  display: inline-block;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border: 1px solid !important;
+}
+
+.warning-list .list-content .warning-item .warning-status-badge:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 待处理状态 - 灰色渐变 */
 .warning-list .list-content .warning-item .warning-status-badge.status-pending {
-  background-color: #909399;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+  color: #4b5563 !important;
+  border-color: #d1d5db !important;
 }
 
+/* 处理中状态 - 蓝色渐变 */
 .warning-list .list-content .warning-item .warning-status-badge.status-processing {
-  background-color: #409EFF;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #1e40af !important;
+  border-color: #93c5fd !important;
 }
 
+/* 已完成状态 - 绿色渐变 */
 .warning-list .list-content .warning-item .warning-status-badge.status-completed {
-  background-color: #67c23a;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
 }
 
+/* 已归档状态 - 深灰色渐变 */
 .warning-list .list-content .warning-item .warning-status-badge.status-archived {
-  background-color: #606266;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
+  color: #374151 !important;
+  border-color: #9ca3af !important;
 }
 
 

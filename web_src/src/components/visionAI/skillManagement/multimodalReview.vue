@@ -214,11 +214,23 @@ export default {
     }
     skillDataManager.addListener(this.skillDataListener)
   },
+  
+  mounted() {
+    // 简单直接：每次进入页面自动刷新一次（避免状态污染）
+    if (!sessionStorage.getItem('multimodalReviewLoaded')) {
+      sessionStorage.setItem('multimodalReviewLoaded', 'true')
+      window.location.reload()
+      return
+    }
+  },
   beforeDestroy() {
     // 清理监听器，避免内存泄漏
     if (this.skillDataListener) {
       skillDataManager.removeListener(this.skillDataListener)
     }
+    
+    // 页面销毁时清除标志
+    sessionStorage.removeItem('multimodalReviewLoaded')
   },
   computed: {
     filteredSkills() {

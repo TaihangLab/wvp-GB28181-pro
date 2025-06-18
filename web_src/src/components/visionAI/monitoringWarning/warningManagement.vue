@@ -155,6 +155,28 @@ export default {
           locationId: 'northeast_corner',
           description: '检测到作业人员未穿着反光背心，在低照度环境下存在安全隐患，请立即整改',
           skill: 'reflective_vest_detection'
+        },
+        {
+          id: '7',
+          deviceName: '设备状态正常',
+          imageUrl: require('./images/2.jpg'),
+          value: 1,
+          unit: '设备',
+          level: '四级预警',
+          time: '2024-12-18 09:20:45',
+          status: 'completed',
+          cameraId: 'camera_7',
+          deviceInfo: {
+            name: '摄像头07',
+            position: '设备监控区'
+          },
+          remark: '设备运行正常，无需特殊处理',
+          device: '摄像头07',
+          type: '设备状态监控',
+          location: '设备监控区',
+          locationId: 'equipment_area',
+          description: '设备状态检查正常，所有参数在安全范围内，继续监控',
+          skill: 'equipment_monitoring'
         }
       ],
       
@@ -168,7 +190,8 @@ export default {
       warningLevelConfig: {
         '一级预警': { color: '#F56C6C', bg: '#FEF0F0' },
         '二级预警': { color: '#E6A23C', bg: '#FDF6EC' },
-        '三级预警': { color: '#409EFF', bg: '#ECF5FF' }
+        '三级预警': { color: '#409EFF', bg: '#ECF5FF' },
+        '四级预警': { color: '#67C23A', bg: '#F0F9FF' }
       },
       
 
@@ -583,7 +606,8 @@ export default {
         'camera_3': '摄像头03',
         'camera_4': '摄像头04',
         'camera_5': '摄像头05',
-        'camera_6': '摄像头06'
+        'camera_6': '摄像头06',
+        'camera_7': '摄像头07'
       }
       return cameraNames[this.currentCameraId] || '摄像头'
     },
@@ -828,6 +852,7 @@ export default {
       if (level === '一级预警') return 'level-1-bg'
       if (level === '二级预警') return 'level-2-bg'
       if (level === '三级预警') return 'level-3-bg'
+      if (level === '四级预警') return 'level-4-bg'
       return ''
     },
     
@@ -838,6 +863,7 @@ export default {
       if (level === '一级预警') return 'level-1-text'
       if (level === '二级预警') return 'level-2-text'
       if (level === '三级预警') return 'level-3-text'
+      if (level === '四级预警') return 'level-4-text'
       return ''
     },
     
@@ -1001,7 +1027,8 @@ export default {
       const levelMap = {
         '一级预警': '一级',
         '二级预警': '二级',
-        '三级预警': '三级'
+        '三级预警': '三级',
+        '四级预警': '四级'
       }
       return levelMap[level] || '未知'
     },
@@ -2155,33 +2182,50 @@ export default {
   z-index: 10;
 }
 
+/* 预警等级标签 - 科技感样式（参考摄像头页面状态标签） */
 .warning-level-badge {
-  padding: 4px 10px;
-  font-size: 12px;
-  color: white;
-  font-weight: bold;
-  border-radius: 6px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  display: inline-block;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border: 1px solid !important;
 }
 
-/* 等级标签背景颜色 - 保持原有颜色 */
+.warning-level-badge:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 一级预警 - 危险红色渐变 */
 .warning-level-badge.level-1-bg {
-  background-color: #f56c6c;
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%) !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
 }
 
+/* 二级预警 - 警告橙色渐变 */
 .warning-level-badge.level-2-bg {
-  background-color: #e6a23c;
+  background: linear-gradient(135deg, #fffbeb 0%, #fed7aa 100%) !important;
+  color: #92400e !important;
+  border-color: #fbbf24 !important;
 }
 
+/* 三级预警 - 信息蓝色渐变 */
 .warning-level-badge.level-3-bg {
-  background-color: #409EFF;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #1e40af !important;
+  border-color: #93c5fd !important;
 }
 
+/* 四级预警 - 成功绿色渐变 */
 .warning-level-badge.level-4-bg {
-  background-color: #67c23a;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
 }
 
 .warning-image {
@@ -2342,6 +2386,10 @@ export default {
   background-color: #ecf5ff;
 }
 
+.level-4-bg {
+  background-color: #f0f9ff;
+}
+
 .level-1-text {
   color: #f56c6c;
 }
@@ -2352,6 +2400,10 @@ export default {
 
 .level-3-text {
   color: #409eff;
+}
+
+.level-4-text {
+  color: #67c23a;
 }
 
 /* 导出对话框样式 */
@@ -2602,36 +2654,50 @@ export default {
 
 
 
-/* 预警状态标签样式 - 科技感设计 */
+/* 预警状态标签 - 科技感样式（参考摄像头页面状态标签） */
 .warning-status-badge {
-  padding: 4px 10px;
-  font-size: 12px;
-  color: white;
-  font-weight: bold;
-  border-radius: 6px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  display: inline-block;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border: 1px solid !important;
 }
 
-/* 旧的状态样式已移除，使用带warning-status-badge前缀的新样式 */
+.warning-status-badge:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
 
-/* 状态标签颜色 - 与实时监控页面保持一致 */
+/* 待处理状态 - 灰色渐变 */
 .warning-status-badge.status-pending {
-  background-color: #909399;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+  color: #4b5563 !important;
+  border-color: #d1d5db !important;
 }
 
+/* 处理中状态 - 蓝色渐变 */
 .warning-status-badge.status-processing {
-  background-color: #409EFF;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #1e40af !important;
+  border-color: #93c5fd !important;
 }
 
+/* 已完成状态 - 绿色渐变 */
 .warning-status-badge.status-completed {
-  background-color: #67c23a;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
 }
 
+/* 已归档状态 - 深灰色渐变 */
 .warning-status-badge.status-archived {
-  background-color: #606266;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
+  color: #374151 !important;
+  border-color: #9ca3af !important;
 }
 
 /* 删除对话框样式 */

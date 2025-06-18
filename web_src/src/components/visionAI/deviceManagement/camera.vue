@@ -1,145 +1,128 @@
 ﻿<template>
-  <div>
+  <div class="page-container">
     <div class="camera-management">
-      <!-- 左侧标签区域 -->
-      <div class="device-tree">
-        <!-- 摄像头分类标题 -->
-        <h3 class="tree-title location-title">
-          <div class="title-container">
+      <!-- 左侧分类卡片 -->
+      <div class="filter-card">
+        <div class="card-header">
+          <div class="card-title">
             <i class="el-icon-video-camera title-icon"></i>
-            <span class="title-text">摄像头分类</span>
+            <span>摄像头分类</span>
           </div>
-        </h3>
-
-        <div class="location-filter-container">
-          <div
-            class="location-item-wrapper"
-            @click="filterAllCameraTypes">
-            <el-tag
-              :color="currentCameraTypeFilter === 0 ? '#409EFF' : '#f5f7fa'"
-              :effect="currentCameraTypeFilter === 0 ? 'dark' : 'plain'"
-              :style="{ color: currentCameraTypeFilter === 0 ? '#ffffff' : '#333333' }"
-              class="location-item location-item-all">
+        </div>
+        <div class="card-content">
+          <div class="filter-options">
+            <div
+              class="filter-item"
+              :class="{ active: currentCameraTypeFilter === 0 }"
+              @click="filterAllCameraTypes">
               <i class="el-icon-check" v-if="currentCameraTypeFilter === 0"></i>
-              全部类型
-            </el-tag>
-          </div>
-          <div class="locations-grid">
-            <!-- 国标摄像头 -->
-            <div class="location-item-wrapper" @click="filterByCameraType(1)">
-              <el-tag
-                :color="currentCameraTypeFilter === 1 ? '#409EFF' : '#f8f9fc'"
-                :effect="currentCameraTypeFilter === 1 ? 'dark' : 'plain'"
-                :style="{ color: currentCameraTypeFilter === 1 ? '#ffffff' : '#67C23A' }"
-                class="location-item">
-                <i class="el-icon-check" v-if="currentCameraTypeFilter === 1"></i>
-                国标设备
-              </el-tag>
+              <span>全部类型</span>
             </div>
-            <!-- 推流摄像头 -->
-            <div class="location-item-wrapper" @click="filterByCameraType(2)">
-              <el-tag
-                :color="currentCameraTypeFilter === 2 ? '#409EFF' : '#f8f9fc'"
-                :effect="currentCameraTypeFilter === 2 ? 'dark' : 'plain'"
-                :style="{ color: currentCameraTypeFilter === 2 ? '#ffffff' : '#E6A23C' }"
-                class="location-item">
-                <i class="el-icon-check" v-if="currentCameraTypeFilter === 2"></i>
-                推流设备
-              </el-tag>
+            <div
+              class="filter-item gb-device"
+              :class="{ active: currentCameraTypeFilter === 1 }"
+              @click="filterByCameraType(1)">
+              <i class="el-icon-check" v-if="currentCameraTypeFilter === 1"></i>
+              <span>国标设备</span>
             </div>
-            <!-- 拉流摄像头 -->
-            <div class="location-item-wrapper" @click="filterByCameraType(3)">
-              <el-tag
-                :color="currentCameraTypeFilter === 3 ? '#409EFF' : '#f8f9fc'"
-                :effect="currentCameraTypeFilter === 3 ? 'dark' : 'plain'"
-                :style="{ color: currentCameraTypeFilter === 3 ? '#ffffff' : '#F56C6C' }"
-                class="location-item">
-                <i class="el-icon-check" v-if="currentCameraTypeFilter === 3"></i>
-                拉流设备
-              </el-tag>
+            <div
+              class="filter-item push-device"
+              :class="{ active: currentCameraTypeFilter === 2 }"
+              @click="filterByCameraType(2)">
+              <i class="el-icon-check" v-if="currentCameraTypeFilter === 2"></i>
+              <span>推流设备</span>
+            </div>
+            <div
+              class="filter-item pull-device"
+              :class="{ active: currentCameraTypeFilter === 3 }"
+              @click="filterByCameraType(3)">
+              <i class="el-icon-check" v-if="currentCameraTypeFilter === 3"></i>
+              <span>拉流设备</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧设备列表 -->
-      <div class="device-list">
-        <div class="operation-bar">
-          <div class="left-operations">
-            <!-- 添加刷新列表按钮 -->
+      <!-- 右侧主内容卡片 -->
+      <div class="main-content">
+        <!-- 操作栏卡片 -->
+        <div class="operation-card">
+          <div class="operation-left">
             <el-button type="primary" icon="el-icon-refresh" @click="handleRefresh">刷新列表</el-button>
-            <!-- 添加摄像头管理按钮 -->
             <el-button type="success" icon="el-icon-setting" @click="handleCameraManagement">摄像头管理</el-button>
           </div>
-          <div class="right-operations">
-            <el-input v-model="searchKeyword" placeholder="请输入设备名称搜索" style="width: 200px" clearable>
-              <i slot="prefix" style="align-items: center; display: flex; height: 40px;" class="el-icon-search"></i>
+          <div class="operation-right">
+            <el-input v-model="searchKeyword" placeholder="请输入设备名称搜索" style="width: 250px" clearable>
+              <i slot="prefix" class="el-icon-search"></i>
             </el-input>
           </div>
         </div>
 
-        <el-table
-          :data="deviceList"
-          style="width: 100%"
-          v-loading="loading"
-          element-loading-text="加载中..."
-          empty-text="暂无摄像头数据">
-          <el-table-column type="index" label="序号" width="70" align="center" />
-          <el-table-column prop="id" label="ID" width="80" align="center" />
-          <el-table-column prop="name" label="摄像头名称" width="150" align="center" />
-          <el-table-column prop="camera_type" label="类型" width="100" align="center">
-            <template slot-scope="{ row }">
-              <el-tag size="mini" effect="plain">{{ getCameraTypeText(row.camera_type) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="status" label="状态" width="100" align="center">
-            <template slot-scope="{ row }">
-              <el-tag :type="row.status === true ? 'success' : 'danger'">
-                <!-- 根据摄像头类型显示不同的状态文字 -->
-                <template v-if="row.camera_type === 1">
-                  {{ row.status === true ? '在线' : '离线' }}
-                </template>
-                <template v-else-if="row.camera_type === 2">
-                  {{ row.status === true ? '推流中' : '已停止' }}
-                </template>
-                <template v-else-if="row.camera_type === 3">
-                  {{ row.status === true ? '正在拉流' : '尚未拉流' }}
-                </template>
-                <template v-else>{{ row.status }}
-                  {{ row.status === true ? '启用' : '禁用' }}
-                </template>
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="location" label="设备来源" width="140" align="center" />
-          <el-table-column prop="skill" label="视频技能" min-width="220" align="center">
-            <template slot-scope="{ row }">
-              <div v-if="row.skill && row.skill !== '-'" class="skill-tags-container">
-                <div v-for="(skillName, idx) in row.skill.split(',')" :key="idx" class="skill-tag-item">
-                  <span class="skill-name" :style="{color: row.config && row.config[skillName.trim()] && row.config[skillName.trim()].status ? '#67C23A' : '#909399'}">
-                    {{ skillName.trim() }}
-                  </span>
+        <!-- 表格卡片 -->
+        <div class="table-card">
+          <el-table
+            :data="deviceList"
+            style="width: 100%"
+            v-loading="loading"
+            element-loading-text="加载中..."
+            empty-text="暂无摄像头数据">
+            <el-table-column type="index" label="序号" width="70" align="center" />
+            <el-table-column prop="id" label="ID" width="80" align="center" />
+            <el-table-column prop="name" label="摄像头名称" width="150" align="center" />
+            <el-table-column prop="camera_type" label="类型" width="100" align="center">
+              <template slot-scope="{ row }">
+                <el-tag size="mini" effect="plain" type="">{{ getCameraTypeText(row.camera_type) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" label="状态" width="100" align="center">
+              <template slot-scope="{ row }">
+                <el-tag :type="row.status === true ? 'success' : 'danger'" size="mini">
+                  <template v-if="row.camera_type === 1">
+                    {{ row.status === true ? '在线' : '离线' }}
+                  </template>
+                  <template v-else-if="row.camera_type === 2">
+                    {{ row.status === true ? '推流中' : '已停止' }}
+                  </template>
+                  <template v-else-if="row.camera_type === 3">
+                    {{ row.status === true ? '正在拉流' : '尚未拉流' }}
+                  </template>
+                  <template v-else>{{ row.status }}
+                    {{ row.status === true ? '启用' : '禁用' }}
+                  </template>
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="location" label="设备来源" width="140" align="center" />
+            <el-table-column prop="skill" label="视频技能" min-width="220" align="center">
+              <template slot-scope="{ row }">
+                <div v-if="row.skill && row.skill !== '-'" class="skill-tags-container">
+                  <div v-for="(skillName, idx) in row.skill.split(',')" :key="idx" class="skill-tag-item">
+                    <span class="skill-name" :style="{color: row.config && row.config[skillName.trim()] && row.config[skillName.trim()].status ? '#67C23A' : '#909399'}">
+                      {{ skillName.trim() }}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <span v-else>-</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="220" align="center">
-            <template slot-scope="{ row }">
-              <div class="operation-buttons">
-                <el-button type="primary" size="mini" icon="el-icon-setting"
-                  @click="handleConfigSkill(row)">配置技能</el-button>
-                <el-button type="info" size="mini" icon="el-icon-view"
-                  @click="handleViewDetails(row)">查看详情</el-button>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="220" align="center">
+              <template slot-scope="{ row }">
+                <div class="operation-buttons">
+                  <el-button type="text" size="mini" icon="el-icon-setting" class="config-skill-btn"
+                    @click="handleConfigSkill(row)">配置技能</el-button>
+                  <el-button type="text" size="mini" icon="el-icon-view" class="view-detail-btn"
+                    @click="handleViewDetails(row)">查看详情</el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
 
-        <div class="pagination-container">
-          <el-pagination :current-page.sync="currentPage" :page-size.sync="pageSize" :page-sizes="[10, 20, 30, 50]"
-            layout="total, sizes, prev, pager, next, jumper" :total="total" @size-change="handleSizeChange"
-            @current-change="handleCurrentChange" />
+          <!-- 分页区域 -->
+          <div class="pagination-wrapper">
+            <el-pagination :current-page.sync="currentPage" :page-size.sync="pageSize" :page-sizes="[10, 20, 30, 50]"
+              layout="total, sizes, prev, pager, next, jumper" :total="total" @size-change="handleSizeChange"
+              @current-change="handleCurrentChange" />
+          </div>
         </div>
       </div>
 
@@ -270,9 +253,9 @@
       </el-dialog>
 
       <!-- 配置技能对话框 -->
-      <el-dialog :title="isUpdateMode ? '更新技能' : '配置技能'" :visible.sync="skillDialogVisible" width="55%" :close-on-click-modal="false"
+      <el-dialog :title="isUpdateMode ? '更新技能' : '配置技能'" :visible.sync="skillDialogVisible" width="60%" :close-on-click-modal="false"
         :destroy-on-close="false" :modal-append-to-body="true" :append-to-body="true" :show-close="true"
-        :lock-scroll="true" custom-class="skill-dialog" center @close="handleClose">
+        :lock-scroll="true" custom-class="skill-config-dialog" center @close="handleClose">
         <div class="current-skill-header" v-if="currentSkill">
           <div class="skill-info-wrapper">
             <div class="skill-info-icon" :style="{ background: getSkillGradient(currentSkill) }">
