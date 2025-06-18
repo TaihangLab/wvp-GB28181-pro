@@ -3625,7 +3625,7 @@
 /* 页面容器 */
 .page-container {
   padding: 16px;
-  background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+  background: linear-gradient(to bottom, #fafbff 0%, #f0f4ff 100%);
   min-height: calc(100vh - 60px);
 }
 
@@ -3648,8 +3648,8 @@
 
 .card-header {
   padding: 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
 }
 
 .card-title {
@@ -3739,6 +3739,85 @@
   gap: 12px;
 }
 
+/* 操作按钮样式 - 参考modelList.vue的按钮尺寸 */
+.operation-left .el-button {
+  height: 32px !important;
+  padding: 6px 16px !important;
+  font-size: 14px !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  margin-right: 0 !important;
+}
+
+/* 刷新列表按钮样式 */
+.operation-left .el-button--primary {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.operation-left .el-button--primary::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent) !important;
+  transition: left 0.6s ease !important;
+}
+
+.operation-left .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+.operation-left .el-button--primary:hover::before {
+  left: 100% !important;
+}
+
+/* 摄像头管理按钮样式 - 保持绿色主题 */
+.operation-left .el-button--success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4), 0 2px 4px rgba(5, 150, 105, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.operation-left .el-button--success::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent) !important;
+  transition: left 0.6s ease !important;
+}
+
+.operation-left .el-button--success:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5), 0 4px 8px rgba(5, 150, 105, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+.operation-left .el-button--success:hover::before {
+  left: 100% !important;
+}
+
 .operation-right {
   display: flex;
   align-items: center;
@@ -3763,7 +3842,7 @@
 }
 
 .table-card >>> .el-table__header-wrapper {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
 }
 
 .table-card >>> .el-table th {
@@ -3799,8 +3878,8 @@
   padding: 16px 20px;
   display: flex;
   justify-content: center;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-top: 1px solid rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-top: 1px solid rgba(59, 130, 246, 0.15);
 }
 
 /* ========================================
@@ -3838,56 +3917,256 @@
 }
 
 /* ========================================
-   所有技能弹框科技感样式
+   所有技能弹框科技感样式 - 参考modelList.vue的方法
    ======================================== */
 
-.skill-config-dialog >>> .el-dialog,
-.skill-select-dialog >>> .el-dialog {
-  border-radius: 16px !important;
+/* 科技感对话框样式 - 选择技能弹框 */
+.skill-select-dialog.el-dialog {
+  background: #ffffff !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
-  box-shadow: 0 20px 60px rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
 }
 
-.skill-config-dialog >>> .el-dialog__header,
-.skill-select-dialog >>> .el-dialog__header {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2) !important;
-  padding: 20px 24px !important;
+/* 使用更高优先级确保圆角生效 */
+body .el-dialog__wrapper .skill-select-dialog {
+  border-radius: 12px !important;
+  overflow: hidden !important;
 }
 
-.skill-config-dialog >>> .el-dialog__title,
-.skill-select-dialog >>> .el-dialog__title {
-  color: #1e40af !important;
+.el-dialog[custom-class*="skill-select-dialog"] {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.skill-select-dialog.el-dialog .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+}
+
+.skill-select-dialog.el-dialog .el-dialog__title {
+  color: #1f2937 !important;
   font-weight: 600 !important;
-  font-size: 18px !important;
+  font-size: 16px !important;
 }
 
-.skill-config-dialog >>> .el-dialog__close,
-.skill-select-dialog >>> .el-dialog__close {
-  color: #64748b !important;
-  font-size: 18px !important;
+.skill-select-dialog.el-dialog .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.skill-select-dialog.el-dialog .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+.skill-select-dialog.el-dialog .el-dialog__body {
+  background: #ffffff !important;
+  padding: 20px !important;
+}
+
+.skill-select-dialog.el-dialog .el-dialog__footer {
+  background: #ffffff !important;
+  padding: 16px 20px !important;
+  border-top: 1px solid #e5e7eb !important;
+  text-align: right !important;
+}
+
+/* 科技感对话框样式 - 配置技能弹框 */
+.skill-config-dialog.el-dialog {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 使用更高优先级确保圆角生效 */
+body .el-dialog__wrapper .skill-config-dialog {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.el-dialog[custom-class*="skill-config-dialog"] {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.skill-config-dialog.el-dialog .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+}
+
+.skill-config-dialog.el-dialog .el-dialog__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+}
+
+.skill-config-dialog.el-dialog .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.skill-config-dialog.el-dialog .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+.skill-config-dialog.el-dialog .el-dialog__body {
+  background: #ffffff !important;
+  padding: 20px !important;
+}
+
+.skill-config-dialog.el-dialog .el-dialog__footer {
+  background: #ffffff !important;
+  padding: 16px 20px !important;
+  border-top: 1px solid #e5e7eb !important;
+  text-align: right !important;
+}
+
+/* 科技感对话框样式 - 技能参数弹框 */
+.skill-params-dialog.el-dialog {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 使用更高优先级确保圆角生效 */
+body .el-dialog__wrapper .skill-params-dialog {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.el-dialog[custom-class*="skill-params-dialog"] {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.skill-params-dialog.el-dialog .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+}
+
+.skill-params-dialog.el-dialog .el-dialog__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+}
+
+.skill-params-dialog.el-dialog .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.skill-params-dialog.el-dialog .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+.skill-params-dialog.el-dialog .el-dialog__body {
+  background: #ffffff !important;
+  padding: 20px !important;
+}
+
+.skill-params-dialog.el-dialog .el-dialog__footer {
+  background: #ffffff !important;
+  padding: 16px 20px !important;
+  border-top: 1px solid #e5e7eb !important;
+  text-align: right !important;
+}
+
+/* 对话框按钮样式 - 参考modelList.vue */
+.skill-config-dialog.el-dialog .el-button--primary,
+.skill-select-dialog.el-dialog .el-button--primary,
+.skill-params-dialog.el-dialog .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.skill-config-dialog.el-dialog .el-button--primary:hover,
+.skill-select-dialog.el-dialog .el-button--primary:hover,
+.skill-params-dialog.el-dialog .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.skill-config-dialog.el-dialog .el-button--default,
+.skill-select-dialog.el-dialog .el-button--default,
+.skill-params-dialog.el-dialog .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.skill-config-dialog.el-dialog .el-button--default:hover,
+.skill-select-dialog.el-dialog .el-button--default:hover,
+.skill-params-dialog.el-dialog .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* 对话框表单样式 - 参考modelList.vue */
+.skill-config-dialog.el-dialog .el-form-item__label,
+.skill-select-dialog.el-dialog .el-form-item__label,
+.skill-params-dialog.el-dialog .el-form-item__label {
+  color: #1F2329 !important;
+  font-weight: 600 !important;
+}
+
+.skill-config-dialog.el-dialog .el-input__inner,
+.skill-select-dialog.el-dialog .el-input__inner,
+.skill-params-dialog.el-dialog .el-input__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
   transition: all 0.3s ease !important;
 }
 
-.skill-config-dialog >>> .el-dialog__close:hover,
-.skill-select-dialog >>> .el-dialog__close:hover {
-  color: #3b82f6 !important;
-  transform: rotate(90deg) !important;
+.skill-config-dialog.el-dialog .el-input__inner:hover,
+.skill-select-dialog.el-dialog .el-input__inner:hover,
+.skill-params-dialog.el-dialog .el-input__inner:hover {
+  border-color: #3b82f6 !important;
 }
 
-.skill-config-dialog >>> .el-dialog__body,
-.skill-select-dialog >>> .el-dialog__body {
-  padding: 24px !important;
-  background: #ffffff !important;
-  max-height: 70vh !important;
-  overflow-y: auto !important;
+.skill-config-dialog.el-dialog .el-input__inner:focus,
+.skill-select-dialog.el-dialog .el-input__inner:focus,
+.skill-params-dialog.el-dialog .el-input__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
 }
 
-.skill-config-dialog >>> .el-dialog__footer,
-.skill-select-dialog >>> .el-dialog__footer {
-  padding: 16px 24px 24px !important;
-  border-top: 1px solid rgba(59, 130, 246, 0.1) !important;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+.skill-config-dialog.el-dialog .el-textarea__inner,
+.skill-select-dialog.el-dialog .el-textarea__inner,
+.skill-params-dialog.el-dialog .el-textarea__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.skill-config-dialog.el-dialog .el-textarea__inner:hover,
+.skill-select-dialog.el-dialog .el-textarea__inner:hover,
+.skill-params-dialog.el-dialog .el-textarea__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.skill-config-dialog.el-dialog .el-textarea__inner:focus,
+.skill-select-dialog.el-dialog .el-textarea__inner:focus,
+.skill-params-dialog.el-dialog .el-textarea__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
 }
 
 /* 当前技能头部优化 */
@@ -4129,5 +4408,49 @@
     padding-left: 12px;
     padding-right: 12px;
   }
+}
+
+/* ========================================
+   技能弹框圆角修复 - 高优先级样式
+   ======================================== */
+
+/* 全局覆盖，确保所有技能弹框都有圆角 */
+.el-dialog.skill-select-dialog,
+.el-dialog.skill-config-dialog,
+.el-dialog.skill-params-dialog {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+/* 进一步覆盖 Element UI 默认样式 */
+.el-dialog__wrapper .el-dialog.skill-select-dialog,
+.el-dialog__wrapper .el-dialog.skill-config-dialog,
+.el-dialog__wrapper .el-dialog.skill-params-dialog {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+/* 最高优先级覆盖 */
+body .camera-management .el-dialog.skill-select-dialog,
+body .camera-management .el-dialog.skill-config-dialog,
+body .camera-management .el-dialog.skill-params-dialog {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+/* 针对 Vue 动态类名的样式 */
+.el-dialog[class*="skill-select-dialog"],
+.el-dialog[class*="skill-config-dialog"],
+.el-dialog[class*="skill-params-dialog"] {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+/* 使用属性选择器确保生效 */
+div[class*="skill-select-dialog"].el-dialog,
+div[class*="skill-config-dialog"].el-dialog,
+div[class*="skill-params-dialog"].el-dialog {
+  border-radius: 12px !important;
+  overflow: hidden !important;
 }
 

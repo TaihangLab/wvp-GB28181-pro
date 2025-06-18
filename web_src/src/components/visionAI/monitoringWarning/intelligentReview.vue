@@ -200,7 +200,19 @@ export default {
     }
   },
   mounted() {
+    // 简单直接：每次进入页面自动刷新一次（避免状态污染）
+    if (!sessionStorage.getItem('intelligentReviewLoaded')) {
+      sessionStorage.setItem('intelligentReviewLoaded', 'true')
+      window.location.reload()
+      return
+    }
+    
     this.initData()
+  },
+
+  beforeDestroy() {
+    // 页面销毁时清除标志
+    sessionStorage.removeItem('intelligentReviewLoaded')
   },
   methods: {
     // 初始化数据

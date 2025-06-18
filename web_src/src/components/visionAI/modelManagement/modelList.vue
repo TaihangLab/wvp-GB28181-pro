@@ -100,6 +100,7 @@
     <!-- 模型列表 -->
     <div class="table-container">
       <el-table v-loading="loading" :data="currentPageData" @selection-change="handleSelectionChange" class="tech-table"
+        height="calc(100vh - 280px)"
         :header-cell-style="{ background: '#f5f7fa', color: '#303133', fontWeight: '500', textAlign: 'center' }"
         :cell-style="{ textAlign: 'center', backgroundColor: '#ffffff' }" :row-style="{ backgroundColor: '#ffffff' }">
         <el-table-column type="selection" width="55" align="center" />
@@ -114,7 +115,7 @@
         </el-table-column>
         <el-table-column label="加载状态" width="100" align="center" header-align="center">
           <template slot-scope="{ row }">
-            <el-tag :type="row.model_status === 'loaded' ? 'primary' : 'warning'" class="tech-status-tag">
+            <el-tag :type="row.model_status === 'loaded' ? 'success' : 'warning'" class="tech-status-tag">
               {{ row.model_status === 'loaded' ? '已加载' : '未加载' }}
             </el-tag>
           </template>
@@ -197,7 +198,7 @@
               </div>
               <div class="info-item half-width">
                 <span class="info-label">加载状态：</span>
-                <el-tag :type="detailForm.model_status === 'loaded' ? 'primary' : 'warning'" size="small"
+                <el-tag :type="detailForm.model_status === 'loaded' ? 'success' : 'warning'" size="small"
                   class="tech-status-tag">
                   {{ detailForm.model_status === 'loaded' ? '已加载' : '未加载' }}
                 </el-tag>
@@ -832,9 +833,10 @@ export default {
 .model-list {
   padding: 20px;
   background-color: #f5f5f5;
-  min-height: calc(100vh - 100px);
+  height: calc(100vh - 100px); /* 固定整体高度 */
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* 防止整体页面出现滚动条 */
 }
 
 /* 科技感蓝色主题的过滤区域 */
@@ -1061,17 +1063,68 @@ export default {
   margin-bottom: 20px;
   border: 1px solid rgba(59, 130, 246, 0.1);
   overflow: hidden;
-  flex: 1;
+  flex: 1; /* 占据剩余空间 */
+  min-height: 0; /* 确保flex子元素可以收缩 */
+  height: calc(100vh - 250px); /* 增加表格容器高度，与卡片高度保持一致 */
+  padding: 0; /* 移除内边距让表格贴合容器边缘 */
+}
+
+/* 自定义表格容器滚动条样式 */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Firefox 滚动条样式 */
+.table-container {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 rgba(0, 0, 0, 0.05);
 }
 
 /* 科技感表格样式 */
 .tech-table {
   border-radius: 16px;
-  overflow: hidden;
+  overflow: hidden; /* 确保圆角效果 */
+  height: 100%; /* 表格占满容器高度 */
+  border: none; /* 移除默认边框 */
 }
 
 .tech-table>>>.el-table__header-wrapper {
   background: #f5f7fa;
+  border-radius: 16px 16px 0 0; /* 表头顶部圆角 */
+}
+
+.tech-table>>>.el-table__body-wrapper {
+  border-radius: 0 0 16px 16px; /* 表体底部圆角 */
+}
+
+/* 确保表格边框圆角 */
+.tech-table>>>.el-table {
+  border-radius: 16px;
+  overflow: hidden;
+  border: none;
+}
+
+.tech-table>>>.el-table__header {
+  border-radius: 16px 16px 0 0;
+}
+
+.tech-table>>>.el-table__body {
+  border-radius: 0 0 16px 16px;
 }
 
 .tech-table>>>.el-table th {
@@ -1079,6 +1132,27 @@ export default {
   color: #303133 !important;
   font-weight: 500 !important;
   border-bottom: 1px solid #ebeef5 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+}
+
+/* 第一列和最后一列的圆角处理 */
+.tech-table>>>.el-table th:first-child {
+  border-top-left-radius: 16px !important;
+}
+
+.tech-table>>>.el-table th:last-child {
+  border-top-right-radius: 16px !important;
+}
+
+/* 表格最后一行的圆角处理 */
+.tech-table>>>.el-table__body tr:last-child td:first-child {
+  border-bottom-left-radius: 16px !important;
+}
+
+.tech-table>>>.el-table__body tr:last-child td:last-child {
+  border-bottom-right-radius: 16px !important;
 }
 
 .tech-table>>>.el-table--enable-row-hover .el-table__body tr:hover>td {
@@ -1091,6 +1165,18 @@ export default {
 
 .tech-table>>>.el-table td {
   border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+}
+
+/* 表格外边框样式 */
+.tech-table>>>.el-table::before {
+  display: none !important; /* 移除默认的表格边框线 */
+}
+
+.tech-table>>>.el-table::after {
+  display: none !important; /* 移除默认的表格边框线 */
 }
 
 /* 科技感状态标签 */
@@ -1139,14 +1225,19 @@ export default {
   background: white;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  flex-shrink: 0;
+  flex-shrink: 0; /* 防止收缩 */
 }
 
-.pagination>>>.el-pagination {
+/* 深度选择器 - 使用多种语法确保兼容性 */
+.pagination /deep/ .el-pagination,
+.pagination ::v-deep .el-pagination,
+.pagination >>> .el-pagination {
   justify-content: center;
 }
 
-.pagination>>>.el-pagination .el-pager li {
+.pagination /deep/ .el-pagination .el-pager li,
+.pagination ::v-deep .el-pagination .el-pager li,
+.pagination >>> .el-pagination .el-pager li {
   background: white !important;
   border: 1px solid #dcdfe6 !important;
   color: #606266 !important;
@@ -1155,22 +1246,28 @@ export default {
   margin: 0 2px !important;
 }
 
-.pagination>>>.el-pagination .el-pager li:hover {
+.pagination /deep/ .el-pagination .el-pager li:hover,
+.pagination ::v-deep .el-pagination .el-pager li:hover,
+.pagination >>> .el-pagination .el-pager li:hover {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
   border-color: #3b82f6 !important;
   color: #1e40af !important;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15) !important;
 }
 
-.pagination>>>.el-pagination .el-pager li.active {
+.pagination /deep/ .el-pagination .el-pager li.active,
+.pagination ::v-deep .el-pagination .el-pager li.active,
+.pagination >>> .el-pagination .el-pager li.active {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
   border-color: #3b82f6 !important;
   color: white !important;
   font-weight: 600 !important;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
 }
 
-.pagination>>>.el-pagination button {
+.pagination /deep/ .el-pagination button,
+.pagination ::v-deep .el-pagination button,
+.pagination >>> .el-pagination button {
   background: white !important;
   border: 1px solid #dcdfe6 !important;
   color: #606266 !important;
@@ -1179,11 +1276,13 @@ export default {
   margin: 0 2px !important;
 }
 
-.pagination>>>.el-pagination button:hover {
+.pagination /deep/ .el-pagination button:hover,
+.pagination ::v-deep .el-pagination button:hover,
+.pagination >>> .el-pagination button:hover {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
   border-color: #3b82f6 !important;
   color: #1e40af !important;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15) !important;
 }
 
 /* 表单布局相关样式 */
@@ -2508,5 +2607,177 @@ body .el-dialog__wrapper .model-detail-dialog {
 .v-modal {
   background-color: rgba(0, 0, 0, 0.5) !important;
   backdrop-filter: blur(4px) !important;
+}
+
+/* 全局分页栏样式覆盖 - 使用更高优先级确保样式生效 */
+body .model-list .pagination .el-pagination {
+  justify-content: center !important;
+}
+
+body .model-list .pagination .el-pagination .el-pager li {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+body .model-list .pagination .el-pagination .el-pager li:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15) !important;
+}
+
+body .model-list .pagination .el-pagination .el-pager li.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
+}
+
+body .model-list .pagination .el-pagination button {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+body .model-list .pagination .el-pagination button:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* 确保分页栏输入框和选择器也有科技感样式 */
+body .model-list .pagination .el-pagination .el-pagination__sizes .el-select .el-input__inner {
+  border: 1px solid #dcdfe6 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+body .model-list .pagination .el-pagination .el-pagination__sizes .el-select .el-input__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+body .model-list .pagination .el-pagination .el-pagination__jump .el-input__inner {
+  border: 1px solid #dcdfe6 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+body .model-list .pagination .el-pagination .el-pagination__jump .el-input__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+/* ========================================
+   状态标签样式优化 - 参照camera.vue使用浅色
+   ======================================== */
+
+/* 使用全局样式确保生效 */
+.model-list /deep/ .el-tag--success,
+.model-list >>> .el-tag--success,
+body .model-list .el-tag--success {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+}
+
+.model-list /deep/ .el-tag--info,
+.model-list >>> .el-tag--info,
+body .model-list .el-tag--info {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+  color: #6b7280 !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+}
+
+.model-list /deep/ .el-tag--warning,
+.model-list >>> .el-tag--warning,
+body .model-list .el-tag--warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #fed7aa 100%) !important;
+  color: #92400e !important;
+  border: 1px solid #fbbf24 !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+}
+
+.model-list /deep/ .el-tag--danger,
+.model-list >>> .el-tag--danger,
+body .model-list .el-tag--danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%) !important;
+  color: #991b1b !important;
+  border: 1px solid #fca5a5 !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+}
+
+/* 统一所有状态标签样式 */
+.model-list /deep/ .el-tag,
+.model-list >>> .el-tag,
+body .model-list .el-tag {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+  transition: all 0.3s ease !important;
+}
+
+.model-list /deep/ .el-tag:hover,
+.model-list >>> .el-tag:hover,
+body .model-list .el-tag:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 针对tech-status-tag类的特殊样式 */
+.tech-status-tag.el-tag--success {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+
+  .tech-status-tag.el-tag--info {
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+    color: #6b7280 !important;
+    border: 1px solid #d1d5db !important;
+  }
+
+.tech-status-tag.el-tag--warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #fed7aa 100%) !important;
+  color: #92400e !important;
+  border: 1px solid #fbbf24 !important;
+}
+
+.tech-status-tag.el-tag--danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%) !important;
+  color: #991b1b !important;
+  border: 1px solid #fca5a5 !important;
 }
 </style>

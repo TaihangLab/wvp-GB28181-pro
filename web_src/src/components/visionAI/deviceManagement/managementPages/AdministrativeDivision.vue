@@ -424,10 +424,10 @@ export default {
   align-items: center;
   margin-bottom: 20px;
   padding: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border-radius: 12px;
-  color: white;
-  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+  color: #1e40af;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .header-left .page-title {
@@ -459,15 +459,16 @@ export default {
 
 .header-right .el-button {
   margin-left: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.1);
+  color: #1e40af;
   font-weight: 600;
 }
 
 .header-right .el-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #1e3a8a;
 }
 
 
