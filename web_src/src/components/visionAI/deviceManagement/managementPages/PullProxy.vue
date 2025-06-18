@@ -1,8 +1,8 @@
 <template>
   <div class="pull-proxy-wrapper">
-    <div class="pull-proxy-container" v-if="!streamProxy">
+    <div class="pull-proxy-container management-page-container" v-if="!streamProxy">
     <!-- 页面头部 -->
-    <div class="page-header">
+    <div class="page-header management-page-header">
       <div class="header-left">
         <h2 class="page-title">
           <i class="el-icon-download"></i>
@@ -24,7 +24,7 @@
     </div>
 
     <!-- 搜索筛选区域 -->
-    <el-card class="search-card" shadow="never">
+    <el-card class="search-card management-search-card" shadow="never">
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
@@ -81,8 +81,8 @@
     </el-card>
 
     <!-- 代理统计卡片 -->
-    <div class="stats-cards">
-      <el-card class="stat-card" shadow="hover">
+    <div class="stats-cards management-stats-cards">
+      <el-card class="stat-card management-stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon active">
             <i class="el-icon-video-play"></i>
@@ -94,7 +94,7 @@
         </div>
       </el-card>
       
-      <el-card class="stat-card" shadow="hover">
+      <el-card class="stat-card management-stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon inactive">
             <i class="el-icon-video-pause"></i>
@@ -106,7 +106,7 @@
         </div>
       </el-card>
       
-      <el-card class="stat-card" shadow="hover">
+      <el-card class="stat-card management-stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon total">
             <i class="el-icon-box"></i>
@@ -118,7 +118,7 @@
         </div>
       </el-card>
       
-      <el-card class="stat-card" shadow="hover">
+      <el-card class="stat-card management-stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon enabled">
             <i class="el-icon-check"></i>
@@ -132,7 +132,7 @@
     </div>
 
     <!-- 代理列表 -->
-    <el-card class="table-card" shadow="never">
+    <el-card class="table-card management-table-card" shadow="never">
       <div slot="header" class="card-header">
         <span class="card-title">拉流代理列表</span>
         <div class="card-actions">
@@ -564,6 +564,9 @@ export default {
 </script>
 
 <style scoped>
+/* 引入通用管理页面样式 */
+@import './common-style.css';
+
 .pull-proxy-wrapper {
   min-height: 100vh;
 }
@@ -794,6 +797,28 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+/* 滚动条样式 */
+.proxy-cards::-webkit-scrollbar {
+  width: 6px;
+}
+
+.proxy-cards::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.proxy-cards::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.proxy-cards::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .proxy-card {
@@ -866,12 +891,17 @@ export default {
 
 .proxy-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 
 .proxy-card-actions .el-button {
   flex: 1;
-  font-size: 12px;
+  font-size: 10px;
+  padding: 4px 6px;
+  height: 24px;
+  line-height: 1;
+  border-radius: 4px;
+  min-width: 60px;
 }
 
 /* 分页样式 */

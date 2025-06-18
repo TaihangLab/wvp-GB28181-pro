@@ -777,23 +777,28 @@ export default {
 </script>
 
 <style scoped>
+/* ========================================
+   科技感蓝色UI样式 - 与 camera.vue 一致
+   ======================================== */
+
 .gb-devices-container {
-  padding: 20px;
-  background-color: #f5f7fa;
+  padding: 16px;
+  background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
   min-height: 100vh;
 }
 
-/* 页面头部 */
+/* 页面头部 - 科技感卡片样式 */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   padding: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  color: white;
-  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  color: #1e40af;
 }
 
 .header-left .page-title {
@@ -802,39 +807,49 @@ export default {
   margin: 0 0 8px 0;
   display: flex;
   align-items: center;
+  color: #1e40af;
 }
 
 .header-left .page-title i {
   margin-right: 12px;
   font-size: 32px;
+  color: #3b82f6;
 }
 
 .header-left .page-subtitle {
   font-size: 16px;
-  opacity: 0.9;
   margin: 0;
   font-weight: 400;
+  color: #6b7280;
 }
 
 .header-right .el-button {
   margin-left: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  height: 36px;
+  padding: 8px 20px;
+  font-size: 14px;
+  border-radius: 8px;
   font-weight: 600;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
 }
 
 .header-right .el-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
 }
 
-/* 搜索卡片 */
+/* 搜索卡片 - 科技感优化 */
 .search-card {
-  margin-bottom: 20px;
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08);
 }
 
 .search-form .search-row {
@@ -852,7 +867,7 @@ export default {
 
 .search-item label {
   font-weight: 600;
-  color: #606266;
+  color: #374151;
   white-space: nowrap;
 }
 
@@ -860,24 +875,27 @@ export default {
   margin-left: auto;
 }
 
-/* 统计卡片 */
+/* 统计卡片 - 科技感优化 */
 .stats-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .stat-card {
-  border-radius: 12px;
-  border: none;
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   overflow: hidden;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08);
 }
 
 .stat-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .stat-content {
@@ -899,39 +917,40 @@ export default {
 }
 
 .stat-icon.online {
-  background: linear-gradient(135deg, #67C23A, #85ce61);
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
 }
 
 .stat-icon.offline {
-  background: linear-gradient(135deg, #F56C6C, #f78989);
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
 }
 
 .stat-icon.total {
-  background: linear-gradient(135deg, #409EFF, #66b1ff);
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
 }
 
 .stat-icon.channels {
-  background: linear-gradient(135deg, #E6A23C, #ebb563);
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
 }
 
 .stat-info .stat-number {
   font-size: 32px;
   font-weight: 700;
-  color: #303133;
+  color: #1e40af;
   line-height: 1;
 }
 
 .stat-info .stat-label {
   font-size: 14px;
-  color: #909399;
+  color: #6b7280;
   margin-top: 4px;
 }
 
-/* 表格卡片 */
+/* 表格卡片 - 科技感优化 */
 .table-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08);
 }
 
 .card-header {
@@ -943,7 +962,7 @@ export default {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: #1e40af;
 }
 
 /* 表格样式 */
@@ -966,7 +985,7 @@ export default {
 
 .device-icon {
   margin-right: 8px;
-  color: #409EFF;
+  color: #3b82f6;
 }
 
 .subscribe-status {
@@ -1123,6 +1142,133 @@ export default {
   font-weight: 600;
   font-size: 14px;
   border: 1px solid #dbeafe;
+}
+
+/* 科技感按钮样式 - 与 camera.vue 一致 */
+.gb-devices-container >>> .el-button {
+  height: 32px;
+  padding: 6px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin: 0;
+}
+
+.gb-devices-container >>> .el-button--primary {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.gb-devices-container >>> .el-button--primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.gb-devices-container >>> .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+.gb-devices-container >>> .el-button--primary:hover::before {
+  left: 100%;
+}
+
+.gb-devices-container >>> .el-button--success {
+  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4), 0 2px 4px rgba(5, 150, 105, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.gb-devices-container >>> .el-button--success:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 50%, #10b981 100%) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5), 0 4px 8px rgba(5, 150, 105, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+.gb-devices-container >>> .el-button--info {
+  background: linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #22d3ee 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4), 0 2px 4px rgba(8, 145, 178, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.gb-devices-container >>> .el-button--info:hover {
+  background: linear-gradient(135deg, #0e7490 0%, #0891b2 50%, #06b6d4 100%) !important;
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5), 0 4px 8px rgba(8, 145, 178, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+.gb-devices-container >>> .el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--info):not(.el-button--danger):not(.el-button--warning) {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+}
+
+.gb-devices-container >>> .el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--info):not(.el-button--danger):not(.el-button--warning):hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 输入框样式 */
+.gb-devices-container >>> .el-input__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.gb-devices-container >>> .el-input__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.gb-devices-container >>> .el-input__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* 选择器样式 */
+.gb-devices-container >>> .el-select .el-input__inner {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.gb-devices-container >>> .el-select .el-input__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.gb-devices-container >>> .el-select .el-input__inner:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
 }
 
 /* 深色主题支持 */

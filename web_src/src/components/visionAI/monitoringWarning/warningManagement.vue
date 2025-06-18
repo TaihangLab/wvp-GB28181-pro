@@ -271,7 +271,12 @@ export default {
         { label: '人员入侵检测', value: 'personnel_intrusion_detection' },
         { label: '高空作业检测', value: 'high_altitude_work_detection' },
         { label: '区域入侵检测', value: 'area_intrusion_detection' }
-      ]
+      ],
+      
+      // 分页相关
+      currentPage: 1,
+      pageSize: 12,
+      totalCount: 0
     }
   },
   computed: {
@@ -368,13 +373,17 @@ export default {
         })
       }
       
+      // 更新总数
+      this.totalCount = list.length
+      
       return list
     },
     
-    // 当前页的数据
+    // 分页后的数据
     currentPageData() {
-      // 这里模拟每页12条数据，实际项目中可能需要结合分页组件
-      return this.filteredWarningList.slice(0, 12)
+      const start = (this.currentPage - 1) * this.pageSize
+      const end = start + this.pageSize
+      return this.filteredWarningList.slice(start, end)
     },
     
     // 当前摄像头可用的档案列表
@@ -414,11 +423,13 @@ export default {
         location: ''
       }
       this.dateRange = null
+      this.currentPage = 1
       this.getWarningList()
     },
     
     // 执行搜索
     handleSearch() {
+      this.currentPage = 1
       this.getWarningList()
     },
     
@@ -657,15 +668,22 @@ export default {
     
     // 选择当前页
     handleSelectPage() {
-      if (this.selectedWarnings.length === this.currentPageData.length) {
-        // 如果当前页已全选，则取消选择
+      // 获取当前页的所有预警ID
+      const currentPageIds = this.currentPageData.map(item => item.id)
+      
+      // 检查当前页是否全部已选
+      const isCurrentPageFullySelected = currentPageIds.every(id => 
+        this.selectedWarnings.includes(id)
+      )
+      
+      if (isCurrentPageFullySelected) {
+        // 如果当前页已全选，则取消选择当前页
         this.selectedWarnings = this.selectedWarnings.filter(id => 
-          !this.currentPageData.some(item => item.id === id)
+          !currentPageIds.includes(id)
         )
         this.$message.info('已取消选择本页')
       } else {
         // 选择当前页所有项，同时保留其他已选项
-        const currentPageIds = this.currentPageData.map(item => item.id)
         const otherSelectedIds = this.selectedWarnings.filter(id => 
           !currentPageIds.includes(id)
         )
@@ -1445,6 +1463,16 @@ export default {
     // 隐藏卡片选择框
     hideCardCheckbox(warningId) {
       this.$set(this.cardHoverStates, warningId, false)
+    },
+    
+    // 分页处理
+    handleSizeChange(val) {
+      this.pageSize = val
+      this.currentPage = 1
+    },
+    
+    handleCurrentChange(val) {
+      this.currentPage = val
     }
   }
 }
@@ -1625,7 +1653,7 @@ export default {
       <div class="warning-cards-container">
         <div class="warning-cards-grid">
           <div 
-            v-for="item in filteredWarningList" 
+            v-for="item in currentPageData" 
             :key="item.id" 
             class="warning-col"
           >
@@ -1741,6 +1769,23 @@ export default {
           <p>暂无预警数据</p>
           <span class="no-data-tip">可尝试调整搜索条件或筛选条件</span>
         </div>
+      </div>
+      
+      <!-- 分页 -->
+      <div class="pagination-section" v-if="filteredWarningList.length > 0">
+        <el-pagination 
+          @size-change="handleSizeChange" 
+          @current-change="handleCurrentChange" 
+          :current-page="currentPage"
+          :page-sizes="[12, 24, 48, 96]" 
+          :page-size="pageSize" 
+          :total="totalCount"
+          layout="total, sizes, prev, pager, next, jumper" 
+          background>
+          <template slot="total">
+            <span>共 {{ totalCount }} 条数据</span>
+          </template>
+        </el-pagination>
       </div>
     </div>
     
@@ -1965,19 +2010,20 @@ export default {
 
 <style scoped>
 .warning-management-container {
-  height: calc(100vh - 60px);
+  height: calc(100vh - 80px); /* 减去顶部导航栏高度，增加缓冲空间 */
   background: #f5f5f5;
   padding: 0;
+  overflow: hidden; /* 防止出现外部滚动条 */
 }
 
 /* 内容区样式 - 科技感蓝色背景 */
 .content-area {
-  flex: 1;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  overflow-x: hidden;
-  overflow-y: auto;
+  padding: 16px 16px 8px 16px; /* 减少底部内边距 */
+  overflow: hidden; /* 防止内容区域产生滚动条 */
+  box-sizing: border-box;
 }
 
 /* 搜索和筛选区域 - 科技感样式 */
@@ -1990,6 +2036,8 @@ export default {
   border: 1px solid rgba(59, 130, 246, 0.1);
   position: relative;
   overflow: hidden;
+  flex-shrink: 0; /* 不允许收缩 */
+  min-height: 100px; /* 减少最小高度 */
 }
 
 
@@ -2111,12 +2159,37 @@ export default {
 /* 预警卡片样式 - 科技感设计 */
 .warning-cards-container {
   flex: 1;
+  height: calc(100vh - 200px); /* 进一步减少预留空间，让分页栏紧贴底部 */
   overflow-y: auto;
   overflow-x: hidden;
   padding: 20px;
   background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
   border-radius: 16px;
   margin: 1px;
+  /* 自定义滚动条样式 - 灰色主题 */
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 transparent;
+  box-sizing: border-box;
+}
+
+/* 自定义滚动条样式 - WebKit 灰色主题 */
+.warning-cards-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.warning-cards-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.warning-cards-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.warning-cards-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .warning-cards-grid {
@@ -2125,6 +2198,9 @@ export default {
   justify-content: flex-start;
   gap: 16px;
   margin: 0;
+  padding-bottom: 20px; /* 底部预留空间，避免最后一行卡片贴底 */
+  min-height: 100%; /* 确保网格填满容器 */
+  align-content: flex-start; /* 卡片从顶部开始排列 */
 }
 
 .warning-col {
@@ -2463,6 +2539,15 @@ export default {
     width: 100%;
     justify-content: flex-end;
   }
+  
+  /* 调整卡片容器高度以适应更大的搜索区域 */
+  .warning-cards-container {
+    height: calc(100vh - 250px) !important;
+  }
+  
+  .search-filter-area {
+    min-height: 130px !important;
+  }
 }
 
 @media (max-width: 768px) {
@@ -2477,8 +2562,16 @@ export default {
   }
   
   .warning-management-container {
-    height: auto;
-    min-height: calc(100vh - 60px);
+    height: calc(100vh - 80px) !important;
+  }
+  
+  /* 移动端调整卡片容器高度 */
+  .warning-cards-container {
+    height: calc(100vh - 300px) !important;
+  }
+  
+  .search-filter-area {
+    min-height: 160px !important;
   }
 }
 
@@ -2542,9 +2635,11 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+  height: 100%; /* 填满整个容器高度 */
+  padding: 40px 20px;
   color: #909399;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .no-data i {
@@ -2928,5 +3023,123 @@ export default {
 .warning-management-container >>> .el-date-editor .el-input__inner:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* 分页样式 - 参照multimodalLlmSkills.vue */
+.pagination-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  padding: 8px 24px; /* 减少上下内边距 */
+  margin-top: 8px; /* 减少上边距 */
+  margin-bottom: 0; /* 取消底边距 */
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  flex-shrink: 0; /* 不允许收缩 */
+  height: 60px; /* 减少固定高度 */
+  box-sizing: border-box;
+}
+
+/* 覆盖Element UI分页组件样式 */
+.pagination-section >>> .el-pagination .el-pager li {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.pagination-section >>> .el-pagination .el-pager li:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.pagination-section >>> .el-pagination .el-pager li.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.pagination-section >>> .el-pagination button {
+  background: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.pagination-section >>> .el-pagination button:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+/* 更强的Element UI样式覆盖 */
+.pagination-section >>> .el-pagination .el-pager li.number {
+  background-color: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+}
+
+.pagination-section >>> .el-pagination .el-pager li.number:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.pagination-section >>> .el-pagination .el-pager li.number.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.pagination-section >>> .el-pagination .btn-prev,
+.pagination-section >>> .el-pagination .btn-next {
+  background-color: white !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+}
+
+.pagination-section >>> .el-pagination .btn-prev:hover,
+.pagination-section >>> .el-pagination .btn-next:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.pagination-section >>> .el-pagination .el-select .el-input .el-input__inner {
+  border-color: #dcdfe6 !important;
+  color: #606266 !important;
+  border-radius: 6px !important;
+}
+
+.pagination-section >>> .el-pagination .el-select .el-input .el-input__inner:hover {
+  border-color: #3b82f6 !important;
+}
+
+.pagination-section >>> .el-pagination .el-input__inner {
+  border-radius: 6px !important;
+}
+
+.pagination-section >>> .el-pagination__jump {
+  color: #606266 !important;
+}
+
+.pagination-section >>> .el-pagination__total {
+  color: #606266 !important;
+  font-weight: 500 !important;
 }
 </style>

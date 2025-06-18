@@ -1,5 +1,5 @@
 <template>
-  <div class="camera-management-main">
+  <div class="camera-management-main management-page-container">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">
@@ -266,23 +266,32 @@ export default {
 </script>
 
 <style scoped>
+/* 引入通用管理页面样式 */
+@import './managementPages/common-style.css';
+
+/* ========================================
+   科技感蓝色UI样式 - 与 camera.vue 一致
+   ======================================== */
+
 .camera-management-main {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f5f7fa;
+  background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+  padding: 16px;
 }
 
-/* 页面头部 */
+/* 页面头部 - 科技感卡片样式 */
 .page-header {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .header-content {
-  padding: 16px 20px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 .page-title {
@@ -292,13 +301,21 @@ export default {
 }
 
 .back-btn {
-  color: #409EFF;
-  font-size: 14px;
-  padding: 0;
+  color: #3b82f6 !important;
+  font-size: 14px !important;
+  padding: 8px 16px !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+  font-weight: 500 !important;
 }
 
 .back-btn:hover {
-  color: #66b1ff;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+  transform: translateY(-2px) !important;
 }
 
 .title-info {
@@ -306,17 +323,17 @@ export default {
   align-items: center;
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: #1e40af;
 }
 
 .title-info i {
   font-size: 20px;
-  color: #409EFF;
+  color: #3b82f6;
   margin-right: 8px;
 }
 
 .subtitle {
-  color: #909399;
+  color: #6b7280;
   font-weight: 400;
   margin-left: 8px;
 }
@@ -325,18 +342,33 @@ export default {
 .management-content {
   display: flex;
   flex: 1;
-  gap: 20px;
+  gap: 16px;
   overflow: hidden;
 }
 
-/* 左侧菜单 */
+/* 左侧菜单 - 科技感卡片样式 */
 .sidebar-menu {
-  width: 260px;
+  width: 280px;
   flex-shrink: 0;
 }
 
 .menu-card {
   height: 100%;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08) !important;
+  border: 1px solid rgba(59, 130, 246, 0.1) !important;
+  overflow: hidden !important;
+}
+
+.menu-card >>> .el-card__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 20px !important;
+}
+
+.menu-card >>> .el-card__body {
+  padding: 16px !important;
 }
 
 .menu-header {
@@ -345,50 +377,51 @@ export default {
   justify-content: space-between;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: #1e40af;
   cursor: pointer;
   transition: all 0.3s;
-  padding: 8px 0;
+  padding: 0;
 }
 
 .menu-header:hover {
-  color: #409EFF;
+  color: #3b82f6;
 }
 
 .menu-header i {
   font-size: 18px;
-  color: #409EFF;
+  color: #3b82f6;
 }
 
 .back-to-home-icon {
   font-size: 14px;
-  color: #909399;
+  color: #6b7280;
   transition: all 0.3s;
 }
 
 .menu-header:hover .back-to-home-icon {
-  color: #409EFF;
+  color: #3b82f6;
   transform: rotate(180deg);
 }
 
 .management-menu {
   border: none;
   padding: 8px 0;
+  background: transparent !important;
 }
 
-/* 菜单项样式 */
+/* 菜单项样式 - 科技感优化 */
 .menu-item,
 .menu-sub-item,
 .menu-submenu {
-  margin: 6px 0;
-  border-radius: 8px;
+  margin: 8px 0;
+  border-radius: 12px;
   transition: all 0.3s;
 }
 
 .menu-item-content {
   display: flex;
   align-items: center;
-  padding: 2px 0 ;
+  padding: 2px 0;
 }
 
 .menu-item-content.sub-item {
@@ -396,52 +429,59 @@ export default {
 }
 
 .menu-icon {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 10px;
   margin-right: 12px;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(59, 130, 246, 0.1);
   transition: all 0.3s;
 }
 
 .menu-icon i {
-  font-size: 16px;
-  color: #606266;
+  font-size: 18px;
+  color: #6b7280;
   transition: all 0.3s;
 }
 
 .menu-text {
   font-size: 14px;
   font-weight: 500;
-  color: #606266;
+  color: #374151;
   transition: all 0.3s;
 }
 
-/* 菜单项悬停效果 */
+/* 菜单项悬停效果 - 科技感优化 */
 .management-menu .el-menu-item:hover .menu-icon {
-  background: #ecf5ff;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
 
 .management-menu .el-menu-item:hover .menu-icon i {
-  color: #409EFF;
+  color: #3b82f6;
 }
 
 .management-menu .el-menu-item:hover .menu-text {
-  color: #409EFF;
+  color: #1e40af;
+  font-weight: 600;
 }
 
-/* 激活状态 */
+/* 激活状态 - 科技感优化 */
 .management-menu .el-menu-item.is-active {
-  background: linear-gradient(135deg, #ecf5ff 0%, #e6f4ff 100%);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
 
 .management-menu .el-menu-item.is-active .menu-icon {
-  background: #409EFF;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .management-menu .el-menu-item.is-active .menu-icon i {
@@ -449,25 +489,28 @@ export default {
 }
 
 .management-menu .el-menu-item.is-active .menu-text {
-  color: #409EFF;
+  color: #1e40af;
   font-weight: 600;
 }
 
-/* 子菜单样式 */
+/* 子菜单样式 - 科技感优化 */
 .management-menu .el-submenu__title:hover .menu-icon {
-  background: #ecf5ff;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
 }
 
 .management-menu .el-submenu__title:hover .menu-icon i {
-  color: #409EFF;
+  color: #3b82f6;
 }
 
 .management-menu .el-submenu__title:hover .menu-text {
-  color: #409EFF;
+  color: #1e40af;
 }
 
 .management-menu .el-submenu.is-active .el-submenu__title .menu-icon {
-  background: #409EFF;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border-color: #3b82f6;
 }
 
 .management-menu .el-submenu.is-active .el-submenu__title .menu-icon i {
@@ -475,15 +518,16 @@ export default {
 }
 
 .management-menu .el-submenu.is-active .el-submenu__title .menu-text {
-  color: #409EFF;
+  color: #1e40af;
   font-weight: 600;
 }
 
 /* 子菜单项样式 */
 .menu-sub-item .menu-icon {
-  width: 28px;
-  height: 28px;
-  background: #f8f9fa;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 .menu-sub-item .menu-icon i {
@@ -499,16 +543,17 @@ export default {
 .management-menu .el-submenu__title {
   height: auto;
   line-height: normal;
-  padding: 12px 16px !important;
-  border-radius: 8px;
-  margin: 6px 0;
+  padding: 16px !important;
+  border-radius: 12px;
+  margin: 8px 0;
   border: none;
+  background: transparent !important;
 }
 
 /* 特别处理submenu标题的对齐问题 */
 .management-menu .el-submenu__title {
-  padding: 12px 16px !important;
-  margin: 6px 0;
+  padding: 16px !important;
+  margin: 8px 0;
   position: relative;
 }
 
@@ -526,25 +571,32 @@ export default {
   transform: translateY(-50%);
   margin-right: 0;
   margin-left: 0;
+  color: #6b7280;
+  transition: all 0.3s;
+}
+
+.management-menu .el-submenu__title:hover .el-submenu__icon-arrow {
+  color: #3b82f6;
 }
 
 /* 确保submenu内容与其他菜单项内容对齐 */
 .management-menu .el-submenu__title .menu-item-content {
-  margin-right: 20px; /* 为展开图标留出空间 */
+  margin-right: 30px; /* 为展开图标留出空间 */
 }
 
 .management-menu .el-menu-item:hover,
 .management-menu .el-submenu__title:hover {
-  background-color: transparent;
+  background-color: transparent !important;
 }
 
 .management-menu .el-submenu .el-menu-item {
-  padding: 8px 16px !important;
+  padding: 12px 16px !important;
   height: auto;
   line-height: normal;
+  margin: 4px 0;
 }
 
-/* 右侧内容区域 */
+/* 右侧内容区域 - 科技感优化 */
 .content-area {
   flex: 1;
   overflow: hidden;
@@ -555,15 +607,23 @@ export default {
   overflow-y: auto;
 }
 
-/* 默认内容 */
+/* 默认内容 - 科技感优化 */
 .default-content {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .welcome-card {
-  padding: 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08) !important;
+  border: 1px solid rgba(59, 130, 246, 0.1) !important;
+  overflow: hidden !important;
+}
+
+.welcome-card >>> .el-card__body {
+  padding: 40px !important;
 }
 
 .welcome-content {
@@ -572,60 +632,87 @@ export default {
 }
 
 .welcome-icon i {
-  font-size: 48px;
-  color: #409EFF;
-  margin-bottom: 16px;
+  font-size: 64px;
+  color: #3b82f6;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .welcome-title {
-  font-size: 20px;
-  color: #303133;
-  margin-bottom: 8px;
+  font-size: 24px;
+  color: #1e40af;
+  margin-bottom: 12px;
   font-weight: 600;
 }
 
 .welcome-desc {
-  font-size: 14px;
-  color: #909399;
+  font-size: 16px;
+  color: #6b7280;
 }
 
-/* 功能卡片网格 */
+/* 功能卡片网格 - 科技感优化 */
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
 }
 
 .feature-card {
   cursor: pointer;
   transition: all 0.3s;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08) !important;
+  border: 1px solid rgba(59, 130, 246, 0.1) !important;
+  overflow: hidden !important;
 }
 
 .feature-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.feature-card >>> .el-card__body {
+  padding: 20px !important;
 }
 
 .feature-content {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 0;
 }
 
 .feature-icon {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ecf5ff;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
   margin-right: 16px;
+  transition: all 0.3s;
+}
+
+.feature-card:hover .feature-icon {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .feature-icon i {
   font-size: 24px;
-  color: #409EFF;
+  color: #3b82f6;
+  transition: all 0.3s;
+}
+
+.feature-card:hover .feature-icon i {
+  color: #fff;
 }
 
 .feature-info {
@@ -635,20 +722,79 @@ export default {
 .feature-title {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
-  margin-bottom: 4px;
+  color: #1e40af;
+  margin-bottom: 6px;
 }
 
 .feature-desc {
   font-size: 14px;
-  color: #909399;
+  color: #6b7280;
+}
+
+/* 科技感按钮样式 - 与 camera.vue 一致 */
+.camera-management-main >>> .el-button {
+  height: 32px;
+  padding: 6px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin: 0;
+}
+
+.camera-management-main >>> .el-button--primary {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.camera-management-main >>> .el-button--primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.camera-management-main >>> .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+.camera-management-main >>> .el-button--primary:hover::before {
+  left: 100%;
+}
+
+.camera-management-main >>> .el-button:not(.el-button--primary) {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+}
+
+.camera-management-main >>> .el-button:not(.el-button--primary):hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+  transform: translateY(-1px) !important;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
   .management-content {
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
   }
   
   .sidebar-menu {

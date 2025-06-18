@@ -708,9 +708,21 @@ export default {
   },
 
   mounted() {
+    // 简单直接：每次进入页面自动刷新一次（避免状态污染）
+    if (!sessionStorage.getItem('deviceSkillsLoaded')) {
+      sessionStorage.setItem('deviceSkillsLoaded', 'true')
+      window.location.reload()
+      return
+    }
+    
     this.fetchSkills();
     // 设置默认每页显示12条数据
     this.pageSize = 12;
+  },
+
+  beforeDestroy() {
+    // 页面销毁时清除标志
+    sessionStorage.removeItem('deviceSkillsLoaded')
   },
 
   methods: {

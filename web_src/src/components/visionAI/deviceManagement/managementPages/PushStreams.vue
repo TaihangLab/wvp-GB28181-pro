@@ -1,7 +1,7 @@
 <template>
-  <div class="push-streams-container">
+  <div class="push-streams-container management-page-container">
     <!-- 页面头部 -->
-    <div class="page-header">
+    <div class="page-header management-page-header">
       <div class="header-left">
         <h2 class="page-title">
           <i class="el-icon-upload2"></i>
@@ -27,7 +27,7 @@
     </div>
 
     <!-- 搜索筛选区域 -->
-    <el-card class="search-card" shadow="never">
+    <el-card class="search-card management-search-card" shadow="never">
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
@@ -85,8 +85,8 @@
     </el-card>
 
     <!-- 推流统计卡片 -->
-    <div class="stats-cards">
-      <el-card class="stat-card" shadow="hover">
+    <div class="stats-cards management-stats-cards">
+      <el-card class="stat-card management-stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon online">
             <i class="el-icon-video-play"></i>
@@ -98,7 +98,7 @@
         </div>
       </el-card>
       
-      <el-card class="stat-card" shadow="hover">
+      <el-card class="stat-card management-stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon offline">
             <i class="el-icon-video-pause"></i>
@@ -110,7 +110,7 @@
         </div>
       </el-card>
       
-      <el-card class="stat-card" shadow="hover">
+      <el-card class="stat-card management-stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon total">
             <i class="el-icon-menu"></i>
@@ -124,7 +124,7 @@
     </div>
 
     <!-- 推流列表 -->
-    <el-card class="table-card" shadow="never">
+    <el-card class="table-card management-table-card" shadow="never">
       <div slot="header" class="card-header">
         <span class="card-title">推流列表</span>
         <div class="card-actions">
@@ -287,22 +287,18 @@
             </div>
             
             <div class="stream-card-actions">
-              <div class="action-row">
-                <el-button size="mini" type="primary" icon="el-icon-video-play" :loading="stream.playLoading" @click="playPush(stream)">
-                  播放
-                </el-button>
-                <el-button size="mini" type="success" icon="el-icon-edit" @click="edit(stream)">
-                  编辑
-                </el-button>
-              </div>
-              <div class="action-row">
-                <el-button size="mini" type="info" icon="el-icon-cloudy" @click="queryCloudRecords(stream)">
-                  云端录像
-                </el-button>
-                <el-button size="mini" type="danger" icon="el-icon-delete" @click="deletePush(stream.id)">
-                  删除
-                </el-button>
-              </div>
+              <el-button size="mini" type="primary" icon="el-icon-video-play" :loading="stream.playLoading" @click="playPush(stream)">
+                播放
+              </el-button>
+              <el-button size="mini" type="success" icon="el-icon-edit" @click="edit(stream)">
+                编辑
+              </el-button>
+              <el-button size="mini" type="info" icon="el-icon-cloudy" @click="queryCloudRecords(stream)">
+                云端录像
+              </el-button>
+              <el-button size="mini" type="danger" icon="el-icon-delete" @click="deletePush(stream.id)">
+                删除
+              </el-button>
             </div>
           </el-card>
         </div>
@@ -572,6 +568,8 @@ export default {
 </script>
 
 <style scoped>
+/* 引入通用管理页面样式 */
+@import './common-style.css';
 .push-streams-container {
   height: 100%;
   padding: 20px;
@@ -805,6 +803,28 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+/* 滚动条样式 */
+.stream-cards::-webkit-scrollbar {
+  width: 6px;
+}
+
+.stream-cards::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.stream-cards::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.stream-cards::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .stream-card {
@@ -876,21 +896,20 @@ export default {
 
 .stream-card-actions {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
-.action-row {
-  display: flex;
-  gap: 8px;
-}
-
-.action-row .el-button {
+.stream-card-actions .el-button {
   flex: 1;
-  font-size: 12px;
-  min-width: 0;
+  font-size: 10px;
+  min-width: 60px;
+  max-width: calc(25% - 3px);
   text-align: center;
-  padding: 7px 8px;
+  padding: 4px 6px;
+  height: 24px;
+  line-height: 1;
+  border-radius: 4px;
 }
 
 /* 分页样式 */

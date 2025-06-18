@@ -2344,17 +2344,21 @@
 .el-table .operation-buttons {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 4px;
+  flex-wrap: nowrap;
 }
 
 .el-table .operation-buttons .el-button {
-  padding: 6px 12px;
-  height: 32px;
+  padding: 2px 8px;
+  height: 24px;
   line-height: 1;
+  font-size: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s;
+  min-width: 50px;
+  border-radius: 4px;
 }
 
 .el-table .operation-buttons .el-button:hover {
@@ -3173,13 +3177,25 @@
 
 /* 全局按钮样式 */
 .camera-management >>> .el-button {
-  height: 32px;
-  padding: 6px 16px;
-  font-size: 14px;
+  height: 28px;
+  padding: 4px 12px;
+  font-size: 12px;
   border-radius: 6px;
   font-weight: 500;
   transition: all 0.3s ease;
   margin-right: 0;
+}
+
+/* 专门针对表格中的操作按钮进一步缩小 */
+.camera-management >>> .el-table .el-button {
+  height: 24px !important;
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  margin: 0 1px !important;
+  min-width: 50px !important;
 }
 
 /* 主要按钮样式 - 科技蓝渐变 */
@@ -3795,21 +3811,22 @@
 .operation-buttons {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
+  flex-wrap: nowrap;
 }
 
 .config-skill-btn,
 .view-detail-btn {
-  padding: 6px 12px !important;
-  font-size: 12px !important;
-  border-radius: 6px !important;
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+  border-radius: 4px !important;
   font-weight: 500 !important;
   transition: all 0.3s ease !important;
   border: 1px solid #3b82f6 !important;
   color: #3b82f6 !important;
   background: transparent !important;
-  height: 28px !important;
-  min-width: 70px !important;
+  height: 24px !important;
+  min-width: 50px !important;
 }
 
 .config-skill-btn:hover,

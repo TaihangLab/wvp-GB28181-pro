@@ -1,7 +1,7 @@
 <template>
-	<div class="media-server-manager">
+	<div class="media-server-manager management-page-container">
 		<!-- 页面头部 -->
-		<div class="page-header">
+		<div class="page-header management-page-header">
 			<div class="header-left">
 				<h2 class="page-title">
 					<i class="el-icon-connection"></i>
@@ -20,8 +20,8 @@
 		</div>
 
 		<!-- 节点统计卡片 -->
-		<div class="stats-cards">
-			<el-card class="stat-card" shadow="hover">
+		<div class="stats-cards management-stats-cards">
+			<el-card class="stat-card management-stat-card" shadow="hover">
 				<div class="stat-content">
 					<div class="stat-icon online">
 						<i class="el-icon-connection"></i>
@@ -33,7 +33,7 @@
 				</div>
 			</el-card>
 			
-			<el-card class="stat-card" shadow="hover">
+			<el-card class="stat-card management-stat-card" shadow="hover">
 				<div class="stat-content">
 					<div class="stat-icon offline">
 						<i class="el-icon-close"></i>
@@ -45,7 +45,7 @@
 				</div>
 			</el-card>
 			
-			<el-card class="stat-card" shadow="hover">
+			<el-card class="stat-card management-stat-card" shadow="hover">
 				<div class="stat-content">
 					<div class="stat-icon total">
 						<i class="el-icon-box"></i>
@@ -57,7 +57,7 @@
 				</div>
 			</el-card>
 			
-			<el-card class="stat-card" shadow="hover">
+			<el-card class="stat-card management-stat-card" shadow="hover">
 				<div class="stat-content">
 					<div class="stat-icon default">
 						<i class="el-icon-star-on"></i>
@@ -71,7 +71,7 @@
 		</div>
 
 		<!-- 节点列表 -->
-		<el-card class="server-list-card" shadow="never">
+		<el-card class="server-list-card management-table-card" shadow="never">
 			<div slot="header" class="card-header">
 				<span class="card-title">节点列表</span>
 			</div>
@@ -287,6 +287,9 @@ export default {
 </script>
 
 <style scoped>
+/* 引入通用管理页面样式 */
+@import './common-style.css';
+
 .media-server-manager {
 	padding: 20px;
 	background-color: #f5f7fa;
