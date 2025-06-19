@@ -360,53 +360,57 @@
       title="关联设备列表"
       :visible.sync="deviceListVisible"
       width="800px"
-      :close-on-click-modal="false">
+      :close-on-click-modal="false"
+      custom-class="fixed-height-device-dialog">
       <div class="device-list-container">
         <div class="device-list-header">
           <span class="skill-name">{{ currentSkill.name }}</span>
           <span class="device-count">共 {{ deviceList.length }} 台设备</span>
         </div>
-        <el-table :data="deviceList" style="width: 100%" stripe>
-          <el-table-column prop="name" label="设备名称" width="200">
-            <template slot-scope="scope">
-              <div class="device-name">
-                <i class="el-icon-monitor"></i>
-                <span>{{ scope.row.name }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="id" label="设备ID" width="180">
-            <template slot-scope="scope">
-              <span class="device-id">{{ scope.row.id }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="location" label="位置" width="200">
-            <template slot-scope="scope">
-              <div class="device-location">
-                <i class="el-icon-location-outline"></i>
-                <span>{{ scope.row.location }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="status" label="状态" width="120">
-            <template slot-scope="scope">
-              <el-tag 
-                size="small" 
-                :type="scope.row.status === 'online' ? 'success' : scope.row.status === 'offline' ? 'danger' : 'warning'">
-                {{ getDeviceStatusText(scope.row.status) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="100">
-            <template slot-scope="scope">
-              <el-button size="mini" type="text" @click="viewDevice(scope.row)">查看</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+        <div class="device-table-scroll-wrapper">
+          <el-table 
+            :data="deviceList" 
+            style="width: 100%" 
+            stripe
+            height="380">
+            <el-table-column prop="name" label="设备名称" width="230">
+              <template slot-scope="scope">
+                <div class="device-name">
+                  <i class="el-icon-monitor"></i>
+                  <span>{{ scope.row.name }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="id" label="设备ID" width="140">
+              <template slot-scope="scope">
+                <span class="device-id">{{ scope.row.id }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="location" label="位置" width="200">
+              <template slot-scope="scope">
+                <div class="device-location">
+                  <i class="el-icon-location-outline"></i>
+                  <span>{{ scope.row.location }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" label="状态" width="100">
+              <template slot-scope="scope">
+                <el-tag 
+                  size="small" 
+                  :type="scope.row.status === 'online' ? 'success' : scope.row.status === 'offline' ? 'danger' : 'warning'">
+                  {{ getDeviceStatusText(scope.row.status) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="80">
+              <template slot-scope="scope">
+                <el-button size="mini" type="text" @click="viewDevice(scope.row)">查看</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </div>
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="deviceListVisible = false">关闭</el-button>
-      </span>
     </el-dialog>
 
     <!-- 技能详情弹窗 -->
@@ -2648,20 +2652,30 @@ export default {
 }
 
 /* 设备列表弹窗样式 */
+.fixed-height-device-dialog {
+  max-height: 600px !important;
+}
+
+.fixed-height-device-dialog >>> .el-dialog {
+  margin-top: 5vh !important;
+  margin-bottom: 5vh !important;
+  max-height: 600px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.fixed-height-device-dialog >>> .el-dialog__body {
+  padding: 20px !important;
+  overflow: hidden !important;
+  flex: 1 !important;
+}
+
+
+
 .device-list-container {
-  padding: 0;
-}
-
-/* 表格内按钮样式 */
-.device-list-container >>> .el-button--text {
-  color: #3b82f6 !important;
-  font-weight: 500 !important;
-  transition: all 0.3s ease !important;
-}
-
-.device-list-container >>> .el-button--text:hover {
-  color: #1e40af !important;
-  background-color: rgba(59, 130, 246, 0.1) !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .device-list-header {
@@ -2674,6 +2688,66 @@ export default {
   border-radius: 10px;
   border: 1px solid rgba(59, 130, 246, 0.2);
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  flex-shrink: 0;
+}
+
+.device-table-scroll-wrapper {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  overflow: hidden;
+}
+
+.device-table-scroll-wrapper >>> .el-table__header-wrapper {
+  background: #f8fafc;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.device-table-scroll-wrapper >>> .el-table__header {
+  background: #f8fafc !important;
+}
+
+.device-table-scroll-wrapper >>> .el-table th {
+  background: #f8fafc !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  border-bottom: 2px solid #e5e7eb !important;
+  text-align: center !important;
+}
+
+.device-table-scroll-wrapper >>> .el-table td {
+  border-bottom: 1px solid #f3f4f6 !important;
+  padding: 12px 0 !important;
+  text-align: center !important;
+}
+
+.device-table-scroll-wrapper >>> .el-table th .cell {
+  text-align: center !important;
+}
+
+.device-table-scroll-wrapper >>> .el-table td .cell {
+  text-align: center !important;
+}
+
+.device-table-scroll-wrapper >>> .el-table--striped .el-table__body tr.el-table__row--striped td {
+  background-color: #fafbfc !important;
+}
+
+.device-table-scroll-wrapper >>> .el-table__body tr:hover td {
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+/* 表格内按钮样式 */
+.device-list-container >>> .el-button--text {
+  color: #3b82f6 !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+}
+
+.device-list-container >>> .el-button--text:hover {
+  color: #1e40af !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
 }
 
 .skill-name {
@@ -2694,12 +2768,21 @@ export default {
 .device-name {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  overflow: hidden;
 }
 
 .device-name i {
   color: #1e40af;
   font-size: 16px;
+  flex-shrink: 0;
+}
+
+.device-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .device-id {
@@ -2709,17 +2792,52 @@ export default {
   padding: 2px 6px;
   border-radius: 4px;
   color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  max-width: 100%;
+  text-align: center;
 }
 
 .device-location {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  overflow: hidden;
 }
 
 .device-location i {
   color: #ef4444;
   font-size: 14px;
+  flex-shrink: 0;
+}
+
+.device-location span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 滚动条美化 */
+.device-table-scroll-wrapper >>> .el-table__body-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.device-table-scroll-wrapper >>> .el-table__body-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.device-table-scroll-wrapper >>> .el-table__body-wrapper::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.device-table-scroll-wrapper >>> .el-table__body-wrapper::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
 }
 
 /* 详情弹窗底部按钮 */
