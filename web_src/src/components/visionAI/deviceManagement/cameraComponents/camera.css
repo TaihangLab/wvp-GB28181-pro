@@ -527,6 +527,124 @@
   color: #606266;
 }
 
+/* 实时推流设置样式 */
+.rtsp-streaming-settings {
+  margin-top: 5px;
+}
+
+.rtsp-streaming-settings .setting-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.rtsp-streaming-settings .setting-label {
+  min-width: 120px;
+  font-size: 14px;
+  color: #606266;
+  margin-right: 10px;
+}
+
+.rtsp-streaming-settings .status-text {
+  margin-left: 10px;
+  font-size: 13px;
+  color: #909399;
+  transition: color 0.3s;
+}
+
+.rtsp-streaming-settings .status-text.status-active {
+  color: #67C23A;
+  font-weight: 500;
+}
+
+.rtsp-streaming-settings .warning-tip {
+  margin-top: 8px;
+}
+
+.rtsp-streaming-settings .warning-tip >>> .el-alert {
+  background-color: #fdf6ec;
+  border: 1px solid #faecd8;
+}
+
+.rtsp-streaming-settings .warning-tip >>> .el-alert .el-alert__title {
+  font-size: 13px;
+  color: #e6a23c;
+}
+
+/* 预警等级相关样式 */
+.alarm-level-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.alarm-description-inline {
+  flex: 1;
+  margin-left: 15px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f6f9ff 0%, #e8f4fd 100%);
+  border: 1px solid #d1e7ff;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #4a6cf7;
+  line-height: 1.5;
+  box-shadow: 0 2px 4px rgba(74, 108, 247, 0.08);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.alarm-description-inline:before {
+  content: "💡";
+  margin-right: 6px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.alarm-description-inline:hover {
+  background: linear-gradient(135deg, #f0f6ff 0%, #ddeafc 100%);
+  border-color: #b8d4ff;
+  box-shadow: 0 4px 8px rgba(74, 108, 247, 0.12);
+  transform: translateY(-1px);
+}
+
+/* 无预警功能提示样式 */
+.no-alarm-tip {
+  width: 100%;
+}
+
+.no-alarm-content {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f9f9fb 0%, #f0f2f5 100%);
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.no-alarm-content i {
+  color: #8c92a4;
+  font-size: 16px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.tip-text {
+  font-size: 14px;
+  color: #4a5568;
+  font-weight: 500;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.tip-description {
+  font-size: 13px;
+  color: #718096;
+  line-height: 1.4;
+  flex: 1;
+}
+
 .form-row.two-column {
   display: flex;
   flex-direction: row;

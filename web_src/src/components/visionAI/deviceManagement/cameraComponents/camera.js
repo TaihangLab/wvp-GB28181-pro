@@ -90,16 +90,22 @@ export default {
           isDragging: false,
           currentPolygon: [],
           imageLoading: false
+        },
+        rtspStreaming: {
+          enabled: false
         }
       },
 
-      // 预警等级选项
+      // 预警等级选项（默认选项，会被技能的alert_definitions覆盖）
       alarmLevelOptions: [
-        { value: '一级预警', label: '一级预警', color: '#F56C6C' },
-        { value: '二级预警', label: '二级预警', color: '#E6A23C' },
-        { value: '三级预警', label: '三级预警', color: '#409EFF' },
-        { value: '四级预警', label: '四级预警', color: '#67C23A' }
+        { value: '一级预警', label: '一级预警', color: '#F56C6C', level: 1, description: '一级预警' },
+        { value: '二级预警', label: '二级预警', color: '#E6A23C', level: 2, description: '二级预警' },
+        { value: '三级预警', label: '三级预警', color: '#409EFF', level: 3, description: '三级预警' },
+        { value: '四级预警', label: '四级预警', color: '#67C23A', level: 4, description: '四级预警' }
       ],
+      
+      // 当前技能的预警定义
+      currentSkillAlertDefinitions: [],
 
       // 表单验证规则
       rules: {
@@ -110,7 +116,22 @@ export default {
           { max: 200, message: '任务描述不能超过200个字符', trigger: 'blur' }
         ],
         alarmLevel: [
-          { required: true, message: '请选择预警等级', trigger: 'change' }
+          { 
+            validator: (rule, value, callback) => {
+              // 如果技能不支持预警功能，则不需要验证预警等级
+              if (this.alarmLevelOptions.length === 0) {
+                callback();
+                return;
+              }
+              // 如果技能支持预警功能，则必须选择预警等级
+              if (!value) {
+                callback(new Error('请选择预警等级'));
+              } else {
+                callback();
+              }
+            }, 
+            trigger: 'change' 
+          }
         ],
         frequency: [
           { 
@@ -199,6 +220,14 @@ export default {
     // 技能总页数
     skillTotalPages() {
       return Math.ceil(this.skillOptionsTotal / this.skillPageSize);
+    },
+    
+    // 当前选中预警等级的描述
+    currentAlarmDescription() {
+      if (!this.skillForm.alarmLevel) return '';
+      
+      const selectedOption = this.alarmLevelOptions.find(option => option.value === this.skillForm.alarmLevel);
+      return selectedOption ? selectedOption.description : '';
     }
   },
 
@@ -559,6 +588,9 @@ export default {
             currentPolygon: [],
             imageLoading: false
         },
+          rtspStreaming: {
+            enabled: false
+          },
           images: []
         };
 
@@ -590,12 +622,22 @@ export default {
         skillAPI.getAITaskSkillDetail(skillInfo.id)
           .then(response => {
             let params = {};
+            let alertDefinitions = [];
             if (response.data && (response.data.code === 0 || response.data.success)) {
               const skillDetail = response.data.data;
               if (skillDetail && skillDetail.default_config && skillDetail.default_config.params) {
                 params = skillDetail.default_config.params;
               }
+              if (skillDetail && skillDetail.default_config && skillDetail.default_config.alert_definitions) {
+                alertDefinitions = skillDetail.default_config.alert_definitions;
+              }
             }
+            
+            // 保存当前技能的预警定义
+            this.currentSkillAlertDefinitions = alertDefinitions;
+            
+            // 根据alert_definitions动态生成预警等级选项
+            this.updateAlarmLevelOptions(alertDefinitions);
             
             this.skillDetailData = {
               id: skillInfo.id,
@@ -604,9 +646,12 @@ export default {
               params: { ...params }
             };
             console.log('为新技能加载默认参数:', this.skillDetailData);
+            console.log('为新技能加载预警定义:', alertDefinitions);
           })
           .catch(error => {
             console.error('获取技能默认参数失败:', error);
+            // 重置为默认预警选项
+            this.resetToDefaultAlarmLevels();
             this.skillDetailData = {
               id: skillInfo.id,
               name: skillInfo.value,
@@ -804,6 +849,12 @@ export default {
                 // 自定义技能配置
                 skill_config: {
                   params: this.skillDetailData && this.skillDetailData.params ? this.skillDetailData.params : {}
+                },
+                // 实时推流配置
+                config: {
+                  rtsp_streaming: {
+                    enabled: this.skillForm.rtspStreaming.enabled
+                  }
                 }
               };
               
@@ -1514,6 +1565,18 @@ export default {
     
     // 根据预警等级获取数值
     getWarningLevelValue(levelName) {
+      // 首先尝试从当前技能的预警定义中查找
+      if (this.currentSkillAlertDefinitions && this.currentSkillAlertDefinitions.length > 0) {
+        const alertDef = this.currentSkillAlertDefinitions.find(def => {
+          const levelLabel = this.getLevelLabel(def.level);
+          return levelLabel === levelName;
+        });
+        if (alertDef) {
+          return alertDef.level;
+        }
+      }
+      
+      // 如果没有找到，使用默认映射
       const levelMap = {
         '一级预警': 1,
         '二级预警': 2,
@@ -1521,6 +1584,68 @@ export default {
         '四级预警': 4
       };
       return levelMap[levelName] || 2;
+    },
+    
+    // 根据level数字获取对应的标签
+    getLevelLabel(level) {
+      const levelLabels = {
+        1: '一级预警',
+        2: '二级预警', 
+        3: '三级预警',
+        4: '四级预警'
+      };
+      return levelLabels[level] || `${level}级预警`;
+    },
+    
+    // 根据alert_definitions更新预警等级选项
+    updateAlarmLevelOptions(alertDefinitions) {
+      if (!alertDefinitions || alertDefinitions.length === 0) {
+        // 如果没有预警定义，设置为空数组，表示该技能不支持预警功能
+        this.alarmLevelOptions = [];
+        this.currentSkillAlertDefinitions = [];
+        console.log('该技能没有预警功能');
+        return;
+      }
+      
+      // 预警等级颜色映射（最多4个等级）
+      const levelColors = {
+        1: '#F56C6C', // 红色 - 最高等级
+        2: '#E6A23C', // 橙色
+        3: '#409EFF', // 蓝色  
+        4: '#67C23A'  // 绿色 - 最低等级
+      };
+      
+      // 根据alert_definitions生成新的选项
+      this.alarmLevelOptions = alertDefinitions.map(def => {
+        const levelLabel = this.getLevelLabel(def.level);
+        return {
+          value: levelLabel,
+          label: levelLabel,
+          color: levelColors[def.level] || '#909399',
+          level: def.level,
+          description: def.description || `${levelLabel}预警`
+        };
+      }).sort((a, b) => a.level - b.level); // 按level排序
+      
+      console.log('更新后的预警等级选项:', this.alarmLevelOptions);
+    },
+    
+    // 重置为默认预警等级
+    resetToDefaultAlarmLevels() {
+      this.currentSkillAlertDefinitions = [];
+      this.alarmLevelOptions = [
+        { value: '一级预警', label: '一级预警', color: '#F56C6C', level: 1, description: '一级预警' },
+        { value: '二级预警', label: '二级预警', color: '#E6A23C', level: 2, description: '二级预警' },
+        { value: '三级预警', label: '三级预警', color: '#409EFF', level: 3, description: '三级预警' },
+        { value: '四级预警', label: '四级预警', color: '#67C23A', level: 4, description: '四级预警' }
+      ];
+    },
+    
+    // 处理预警等级变化
+    handleAlarmLevelChange(value) {
+      console.log('预警等级已变更为:', value);
+      // 当预警等级变化时，计算属性会自动更新currentAlarmDescription
+      // 这里可以添加其他需要的逻辑
     },
     
     // 格式化时间字符串 (HH:mm 格式)
@@ -1567,6 +1692,9 @@ export default {
           image: this.skillForm.electronicFence.image,
           points: [...this.skillForm.electronicFence.points], // 深拷贝
           triggerMode: this.skillForm.electronicFence.triggerMode
+        },
+        rtspStreaming: {
+          enabled: this.skillForm.rtspStreaming.enabled
         }
       };
     },
@@ -2041,6 +2169,9 @@ export default {
           isDragging: false,
           currentPolygon: [],
           imageLoading: false
+        },
+        rtspStreaming: {
+          enabled: false
         }
       };
       
@@ -2130,6 +2261,15 @@ export default {
 
                   this.currentSkill = skillData.name || skillData.name_zh;
                   this.currentSkillInfo = skillData;
+                  
+                  // 保存当前技能的预警定义并更新选项
+                  if (skillData.default_config && skillData.default_config.alert_definitions) {
+                    this.currentSkillAlertDefinitions = skillData.default_config.alert_definitions;
+                    this.updateAlarmLevelOptions(skillData.default_config.alert_definitions);
+                    console.log('从编辑任务中加载预警定义:', skillData.default_config.alert_definitions);
+                  } else {
+                    this.resetToDefaultAlarmLevels();
+                  }
                   
                   // 填充技能表单数据
                   this.fillSkillFormFromTask(taskData);
@@ -2266,6 +2406,18 @@ export default {
         
         // 设置触发模式
         this.skillForm.electronicFence.triggerMode = taskData.electronic_fence.trigger_mode || 'inside';
+      }
+      
+      // 填充实时推流配置
+      // 确保 rtspStreaming 对象存在
+      if (!this.skillForm.rtspStreaming) {
+        this.$set(this.skillForm, 'rtspStreaming', { enabled: false });
+      }
+      
+      if (taskData.config && taskData.config.rtsp_streaming) {
+        this.skillForm.rtspStreaming.enabled = taskData.config.rtsp_streaming.enabled || false;
+      } else {
+        this.skillForm.rtspStreaming.enabled = false;
       }
       
       // 获取摄像头截图

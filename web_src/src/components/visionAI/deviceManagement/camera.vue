@@ -313,12 +313,33 @@
             </el-input>
           </el-form-item>
 
-          <el-form-item label="预警等级" required prop="alarmLevel">
-            <el-select v-model="skillForm.alarmLevel" placeholder="请选择预警等级" style="width: 220px;">
-              <el-option v-for="item in alarmLevelOptions" :key="item.value" :label="item.label" :value="item.value">
-                <span :style="{ color: item.color }">{{ item.label }}</span>
-              </el-option>
-            </el-select>
+          <el-form-item label="预警等级" :required="alarmLevelOptions.length > 0" prop="alarmLevel">
+            <!-- 有预警功能的技能 -->
+            <div v-if="alarmLevelOptions.length > 0" class="alarm-level-container">
+              <el-select 
+                v-model="skillForm.alarmLevel" 
+                placeholder="请选择预警等级" 
+                style="width: 220px;"
+                @change="handleAlarmLevelChange">
+                <el-option v-for="item in alarmLevelOptions" :key="item.value" :label="item.label" :value="item.value">
+                  <span :style="{ color: item.color }">{{ item.label }}</span>
+                </el-option>
+              </el-select>
+              
+              <!-- 预警等级描述显示在右侧 -->
+              <div v-if="currentAlarmDescription" class="alarm-description-inline">
+                <span>{{ currentAlarmDescription }}</span>
+              </div>
+            </div>
+            
+            <!-- 没有预警功能的技能提示 -->
+            <div v-else class="no-alarm-tip">
+              <div class="no-alarm-content">
+                <i class="el-icon-info"></i>
+                <span class="tip-text">该技能不支持预警功能</span>
+                <span class="tip-description">此技能专注于检测分析，无需配置预警等级</span>
+              </div>
+            </div>
           </el-form-item>
 
           <el-form-item label="抽帧频率" required prop="frequency">
@@ -471,6 +492,34 @@
                 </el-radio-group>
               </div>
 
+            </div>
+          </el-form-item>
+
+          <el-form-item label="实时推流" style="margin-left: 10px;">
+            <div class="rtsp-streaming-settings">
+              <div class="setting-item">
+                <span class="setting-label">检测结果实时推流：</span>
+                <el-switch 
+                  v-model="skillForm.rtspStreaming.enabled" 
+                  active-color="#67C23A" 
+                  inactive-color="#909399">
+                </el-switch>
+                <span class="status-text" :class="{ 'status-active': skillForm.rtspStreaming.enabled }">
+                  {{ skillForm.rtspStreaming.enabled ? '已启用' : '已禁用' }}
+                </span>
+                <el-tooltip content="开启后将实时推流检测结果画面，会消耗较多系统资源，不推荐开启" placement="top">
+                  <i class="el-icon-question" style="margin-left: 8px; color: #909399; cursor: help;"></i>
+                </el-tooltip>
+              </div>
+              <div v-if="skillForm.rtspStreaming.enabled" class="warning-tip" style="margin-top: 8px;">
+                <el-alert 
+                  title="注意：开启实时推流会显著增加系统资源消耗，建议仅在必要时使用" 
+                  type="warning" 
+                  :closable="false" 
+                  show-icon
+                  effect="light">
+                </el-alert>
+              </div>
             </div>
           </el-form-item>
         </el-form>
