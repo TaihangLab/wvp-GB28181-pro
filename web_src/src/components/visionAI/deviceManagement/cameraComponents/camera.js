@@ -2268,7 +2268,10 @@ export default {
                     this.updateAlarmLevelOptions(skillData.default_config.alert_definitions);
                     console.log('从编辑任务中加载预警定义:', skillData.default_config.alert_definitions);
                   } else {
-                    this.resetToDefaultAlarmLevels();
+                    // 如果没有预警定义，清空预警选项（表示该技能不支持预警功能）
+                    this.currentSkillAlertDefinitions = [];
+                    this.alarmLevelOptions = [];
+                    console.log('该技能不支持预警功能');
                   }
                   
                   // 填充技能表单数据
