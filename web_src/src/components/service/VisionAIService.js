@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 创建专用于visionAI模块的axios实例
 const visionAIAxios = axios.create({
-  baseURL: 'http://192.168.1.118:8000',
+  baseURL: 'http://192.168.1.106:8000',
   timeout: 15000,
   withCredentials: false,  // 将withCredentials设置为false，避免CORS错误
 });
