@@ -1,5 +1,6 @@
 <script>
 import WarningDetail from './warningDetail.vue'
+import { alertAPI } from '@/components/service/VisionAIService.js'
 
 export default {
   name: "WarningManagement",
@@ -280,111 +281,6 @@ export default {
     }
   },
   computed: {
-    // 根据筛选条件过滤的预警列表
-    filteredWarningList() {
-      let list = [...this.warningList]
-      
-      // 过滤掉已归档的预警（已归档的预警不在预警管理页面显示）
-      list = list.filter(item => item.status !== 'archived' && !item.isFalseAlarm)
-      
-      // 按位置搜索过滤
-      if (this.searchForm.location) {
-        list = list.filter(item => 
-          item.location && item.location.toLowerCase().includes(this.searchForm.location.toLowerCase())
-        )
-      }
-      
-      // 按开始日期过滤
-      if (this.searchForm.startDate) {
-        list = list.filter(item => new Date(item.time) >= new Date(this.searchForm.startDate))
-      }
-      
-      // 按结束日期过滤
-      if (this.searchForm.endDate) {
-        list = list.filter(item => new Date(item.time) <= new Date(this.searchForm.endDate))
-      }
-      
-
-      
-      // 按预警类型过滤 (根据设备名称包含的关键词进行筛选)
-      if (this.searchForm.warningType) {
-        switch(this.searchForm.warningType) {
-          case 'safety_helmet':
-            list = list.filter(item => item.deviceName.includes('安全帽'))
-            break
-          case 'safety_belt':
-            list = list.filter(item => item.deviceName.includes('安全带'))
-            break
-          case 'protective_clothing':
-            list = list.filter(item => item.deviceName.includes('反光背心') || item.deviceName.includes('工作服'))
-            break
-          case 'unauthorized_personnel':
-            list = list.filter(item => item.deviceName.includes('闲杂人员'))
-            break
-          case 'smoking':
-            list = list.filter(item => item.deviceName.includes('吸烟'))
-            break
-          case 'high_altitude':
-            list = list.filter(item => item.deviceName.includes('高空'))
-            break
-        }
-      }
-      
-      // 按预警等级过滤
-      if (this.searchForm.warningLevel) {
-        const levelMap = {
-          'level1': '一级预警',
-          'level2': '二级预警',
-          'level3': '三级预警',
-          'level4': '四级预警'
-        }
-        list = list.filter(item => item.level === levelMap[this.searchForm.warningLevel])
-      }
-      
-      // 按预警技能过滤
-      if (this.searchForm.warningSkill) {
-        list = list.filter(item => item.skill === this.searchForm.warningSkill)
-      }
-      
-      // 按预警名称过滤
-      if (this.searchForm.warningName) {
-        list = list.filter(item => 
-          item.deviceName.toLowerCase().includes(this.searchForm.warningName.toLowerCase())
-        )
-      }
-      
-      // 按预警ID过滤
-      if (this.searchForm.warningId) {
-        list = list.filter(item => 
-          item.id.toLowerCase().includes(this.searchForm.warningId.toLowerCase())
-        )
-      }
-      
-      // 按处理状态过滤
-      if (this.searchForm.status) {
-        list = list.filter(item => {
-          const currentStatus = this.getCurrentWarningStatus(item)
-          const statusMap = {
-            'pending': '待处理',
-            'processing': '处理中', 
-            'completed': '已处理'
-          }
-          return currentStatus.text === statusMap[this.searchForm.status]
-        })
-      }
-      
-      // 更新总数
-      this.totalCount = list.length
-      
-      return list
-    },
-    
-    // 分页后的数据
-    currentPageData() {
-      const start = (this.currentPage - 1) * this.pageSize
-      const end = start + this.pageSize
-      return this.filteredWarningList.slice(start, end)
-    },
     
     // 当前摄像头可用的档案列表
     availableArchives() {
@@ -437,17 +333,196 @@ export default {
     async getWarningList() {
       this.loading = true
       try {
-        // 实际应用中，将搜索条件传给API
-        // this.warningList = await getWarningListAPI(this.searchForm)
-        
-        // 当前是模拟数据，先显示loading效果
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // 构建API请求参数
+        const apiParams = {
+          page: this.currentPage,
+          limit: this.pageSize,
+          // 搜索条件映射
+          startDate: this.searchForm.startDate,
+          endDate: this.searchForm.endDate,
+          warningLevel: this.searchForm.warningLevel,
+          warningType: this.searchForm.warningType,
+          warningSkill: this.searchForm.warningSkill,
+          warningName: this.searchForm.warningName,
+          location: this.searchForm.location,
+          statusFilter: this.searchForm.status
+        }
+
+        // 过滤空值参数
+        Object.keys(apiParams).forEach(key => {
+          if (apiParams[key] === '' || apiParams[key] === null || apiParams[key] === undefined) {
+            delete apiParams[key]
+          }
+        })
+
+        console.log('获取预警列表 - 请求参数:', apiParams)
+
+        // 调用API获取数据
+        const response = await alertAPI.getRealTimeAlerts(apiParams)
+        console.log('获取预警列表 - API响应:', response.data)
+
+        if (response.data && response.data.code === 0) {
+          // 转换API数据为页面数据格式
+          this.warningList = this.transformApiDataToPageData(response.data.data || [])
+          
+          // 更新分页信息
+          if (response.data.pagination) {
+            this.totalCount = response.data.pagination.total || 0
+            this.currentPage = response.data.pagination.page || 1
+            this.pageSize = response.data.pagination.limit || 12
+          } else {
+            this.totalCount = response.data.total || 0
+          }
+          
+          console.log('预警列表转换完成:', this.warningList.length, '条数据，总数:', this.totalCount)
+        } else {
+          console.error('获取预警列表失败:', response.data)
+          this.$message.error('获取预警列表失败')
+          this.warningList = []
+          this.totalCount = 0
+        }
         
         // 刷新后清空选择和悬停状态
         this.selectedWarnings = []
         this.cardHoverStates = {}
+      } catch (error) {
+        console.error('获取预警列表异常:', error)
+        this.$message.error('获取预警列表失败：' + (error.message || '网络错误'))
+        // 发生错误时保持现有的模拟数据，避免页面为空
+        // this.warningList = []
+        // this.totalCount = 0
       } finally {
         this.loading = false
+      }
+    },
+
+    // 转换API数据为页面数据格式
+    transformApiDataToPageData(apiData) {
+      if (!Array.isArray(apiData)) {
+        console.warn('API数据格式不正确，期望数组:', apiData)
+        return []
+      }
+
+      return apiData.map(item => {
+        // 预警等级映射
+        const levelMap = {
+          1: '一级预警',
+          2: '二级预警', 
+          3: '三级预警',
+          4: '四级预警'
+        }
+
+        // 状态映射
+        const statusMap = {
+          1: 'pending',
+          2: 'processing',
+          3: 'completed'
+        }
+
+        // 处理操作历史，将API的process数据转换为operationHistory格式
+        const operationHistory = []
+        if (item.process && item.process.steps && Array.isArray(item.process.steps)) {
+          item.process.steps.forEach(step => {
+            operationHistory.push({
+              id: Date.now() + Math.random(),
+              status: 'completed',
+              statusText: step.step || '预警产生',
+              time: step.time || item.alert_time,
+              description: step.desc || item.alert_description,
+              operationType: step.step === '预警产生' ? 'create' : 'process',
+              operator: step.operator || '系统'
+            })
+          })
+        }
+
+        // 如果没有操作历史，创建默认的
+        if (operationHistory.length === 0) {
+          operationHistory.push({
+            id: Date.now() + Math.random(),
+            status: 'completed',
+            statusText: '预警产生',
+            time: item.alert_time || item.created_at,
+            description: item.alert_description || '系统检测到异常情况',
+            operationType: 'create',
+            operator: '系统'
+          })
+          
+          // 如果状态是待处理，添加待处理记录
+          if (item.status === 1) {
+            operationHistory.push({
+              id: Date.now() + Math.random() + 1,
+              status: 'active',
+              statusText: '待处理',
+              time: item.created_at || item.alert_time,
+              description: '预警已产生，等待处理人员确认并开始处理',
+              operationType: 'pending',
+              operator: ''
+            })
+          }
+        }
+
+        return {
+          // 基本信息映射
+          id: String(item.alert_id || item.id || Date.now()),
+          deviceName: item.alert_name || '未知预警',
+          imageUrl: item.minio_frame_url || null,
+          value: 1,
+          unit: '件',
+          level: levelMap[item.alert_level] || '未知等级',
+          time: this.formatApiTime(item.alert_time || item.created_at),
+          status: statusMap[item.status] || 'pending',
+          
+          // 摄像头信息
+          cameraId: String(item.camera_id || 'unknown'),
+          deviceInfo: {
+            name: item.camera_name || '未知摄像头',
+            position: item.location || '未知位置'
+          },
+          
+          // 预警详细信息
+          device: item.camera_name || '未知摄像头',
+          type: item.alert_type || item.alert_name || '未知类型',
+          location: item.location || '未知位置',
+          locationId: `loc_${item.camera_id || 'unknown'}`,
+          description: item.alert_description || '未知描述',
+          skill: item.alert_type || 'unknown_skill',
+          
+          // 处理信息
+          remark: item.processing_notes || '',
+          
+          // 操作历史
+          operationHistory: operationHistory,
+          
+          // 原始API数据（用于调试和扩展）
+          _apiData: item
+        }
+      })
+    },
+
+    // 格式化API时间格式
+    formatApiTime(timeString) {
+      if (!timeString) return new Date().toLocaleString()
+      
+      try {
+        // 处理ISO格式时间 (2025-06-27T15:15:52)
+        if (timeString.includes('T')) {
+          const date = new Date(timeString)
+          if (!isNaN(date.getTime())) {
+            const year = date.getFullYear()
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const day = String(date.getDate()).padStart(2, '0')
+            const hours = String(date.getHours()).padStart(2, '0')
+            const minutes = String(date.getMinutes()).padStart(2, '0')
+            const seconds = String(date.getSeconds()).padStart(2, '0')
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+          }
+        }
+        
+        // 如果已经是标准格式，直接返回
+        return timeString
+      } catch (error) {
+        console.warn('时间格式转换失败:', timeString, error)
+        return timeString || new Date().toLocaleString()
       }
     },
     
@@ -655,13 +730,13 @@ export default {
     
     // 全选/取消全选
     handleSelectAll() {
-      if (this.selectedWarnings.length === this.filteredWarningList.length) {
+      if (this.selectedWarnings.length === this.warningList.length) {
         // 如果已经全选，则取消全选
         this.selectedWarnings = []
         this.$message.info('已取消全选')
       } else {
-        // 全选所有筛选后的预警
-        this.selectedWarnings = this.filteredWarningList.map(item => item.id)
+        // 全选当前页的预警
+        this.selectedWarnings = this.warningList.map(item => item.id)
         this.$message.success(`已选择 ${this.selectedWarnings.length} 项预警`)
       }
     },
@@ -669,7 +744,7 @@ export default {
     // 选择当前页
     handleSelectPage() {
       // 获取当前页的所有预警ID
-      const currentPageIds = this.currentPageData.map(item => item.id)
+      const currentPageIds = this.warningList.map(item => item.id)
       
       // 检查当前页是否全部已选
       const isCurrentPageFullySelected = currentPageIds.every(id => 
@@ -714,39 +789,60 @@ export default {
       try {
         this.loading = true
         
-        // 模拟API调用处理时间
-        await new Promise(resolve => setTimeout(resolve, 800))
+        // 调用API进行批量处理
+        const updateData = {
+          status: 2, // 处理中状态
+          processing_notes: this.batchRemarkForm.remark,
+          processed_by: this.getCurrentUserName()
+        }
+
+        // 将页面ID转换为数字类型的API ID
+        const apiAlertIds = this.selectedWarnings.map(id => {
+          const warning = this.warningList.find(item => item.id === id)
+          return warning && warning._apiData ? warning._apiData.alert_id : parseInt(id)
+        }).filter(id => !isNaN(id))
+
+        console.log('批量处理预警:', apiAlertIds, updateData)
+
+        const response = await alertAPI.batchUpdateAlertStatus(apiAlertIds, updateData)
         
-        // 为所有选中项添加处理记录
-        for (const id of this.selectedWarnings) {
-          const index = this.warningList.findIndex(item => item.id === id)
-          if (index !== -1) {
-            // 添加处理记录到操作历史
-            if (!this.warningList[index].operationHistory) {
-              this.$set(this.warningList[index], 'operationHistory', [])
+        if (response.data && response.data.code === 0) {
+          // API调用成功，更新本地数据
+          for (const id of this.selectedWarnings) {
+            const index = this.warningList.findIndex(item => item.id === id)
+            if (index !== -1) {
+              // 添加处理记录到操作历史
+              if (!this.warningList[index].operationHistory) {
+                this.$set(this.warningList[index], 'operationHistory', [])
+              }
+              
+              const newRecord = {
+                id: Date.now() + Math.random(),
+                status: 'completed',
+                statusText: '批量处理记录',
+                time: this.getCurrentTime(),
+                description: `批量处理意见：${this.batchRemarkForm.remark}`,
+                operationType: 'process',
+                operator: this.getCurrentUserName()
+              }
+              
+              this.warningList[index].operationHistory.unshift(newRecord)
+              // 更新状态为处理中
+              this.warningList[index].status = 'processing'
             }
-            
-            const newRecord = {
-              id: Date.now() + Math.random(),
-              status: 'completed',
-              statusText: '批量处理记录',
-              time: this.getCurrentTime(),
-              description: `批量处理意见：${this.batchRemarkForm.remark}`,
-              operationType: 'process',
-              operator: this.getCurrentUserName()
-            }
-            
-            this.warningList[index].operationHistory.unshift(newRecord)
-            // 不再改变预警状态，保持预警可继续处理
           }
+          
+          this.$message.success(`已为 ${this.selectedWarnings.length} 项预警添加处理记录`)
+        } else {
+          console.error('批量处理API失败:', response.data)
+          this.$message.error('批量处理失败：' + (response.data && response.data.msg || '服务器错误'))
         }
         
-        this.$message.success(`已为 ${this.selectedWarnings.length} 项预警添加处理记录，可继续添加多次处理记录`)
         this.selectedWarnings = []
         this.closeBatchProcessDialog()
       } catch (error) {
         console.error('批量处理失败:', error)
-        this.$message.error('批量处理失败')
+        this.$message.error('批量处理失败：' + (error.message || '网络错误'))
       } finally {
         this.loading = false
       }
@@ -783,7 +879,7 @@ export default {
       // 获取要导出的数据
       const data = this.selectedWarnings.length > 0
         ? this.warningList.filter(item => this.selectedWarnings.includes(item.id))
-        : this.filteredWarningList
+        : this.warningList
       
       // 转换数据为导出格式
       const exportData = data.map(item => ({
@@ -895,36 +991,61 @@ export default {
       try {
         this.loading = true
         
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // 获取当前预警信息
+        const warning = this.warningList.find(item => item.id === this.currentWarningId)
+        if (!warning) {
+          this.$message.error('未找到预警信息')
+          return
+        }
+
+        // 准备API更新数据
+        const apiAlertId = warning._apiData ? warning._apiData.alert_id : parseInt(this.currentWarningId)
+        const updateData = {
+          status: 2, // 处理中状态
+          processing_notes: this.remarkForm.remark,
+          processed_by: this.getCurrentUserName()
+        }
+
+        console.log('更新预警状态:', apiAlertId, updateData)
+
+        // 调用API更新预警状态
+        const response = await alertAPI.updateAlertStatus(apiAlertId, updateData)
         
-        // 更新本地数据状态 - 添加新的处理记录
-        const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
-        if (index !== -1) {
-          // 确保有操作历史数组
-          if (!this.warningList[index].operationHistory) {
-            this.$set(this.warningList[index], 'operationHistory', [])
+        if (response.data && response.data.code === 0) {
+          // API调用成功，更新本地数据状态 - 添加新的处理记录
+          const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
+          if (index !== -1) {
+            // 确保有操作历史数组
+            if (!this.warningList[index].operationHistory) {
+              this.$set(this.warningList[index], 'operationHistory', [])
+            }
+            
+            // 添加新的处理中记录
+            const newRecord = {
+              id: Date.now() + Math.random(),
+              status: 'completed',
+              statusText: '处理中',
+              time: this.getCurrentTime(),
+              description: `处理意见：${this.remarkForm.remark}`,
+              operationType: 'processing',
+              operator: this.getCurrentUserName()
+            }
+            
+            this.warningList[index].operationHistory.unshift(newRecord)
+            // 更新状态为处理中
+            this.warningList[index].status = 'processing'
           }
           
-          // 添加新的处理中记录
-          const newRecord = {
-            id: Date.now() + Math.random(),
-            status: 'completed',
-            statusText: '处理中',
-            time: this.getCurrentTime(),
-            description: `处理意见：${this.remarkForm.remark}`,
-            operationType: 'processing',
-            operator: this.getCurrentUserName()
-          }
-          
-          this.warningList[index].operationHistory.unshift(newRecord)
+          this.$message.success('处理记录已添加')
+        } else {
+          console.error('更新预警状态API失败:', response.data)
+          this.$message.error('处理失败：' + (response.data && response.data.msg || '服务器错误'))
         }
         
-        this.$message.success('处理记录已添加')
         this.closeRemarkDialog()
       } catch (error) {
         console.error('处理失败:', error)
-        this.$message.error('处理失败')
+        this.$message.error('处理失败：' + (error.message || '网络错误'))
       } finally {
         this.loading = false
       }
@@ -991,9 +1112,101 @@ export default {
     },
     
     // 显示预警详情
-    showWarningDetail(item) {
-      this.currentWarningDetail = item
-      this.warningDetailVisible = true
+    async showWarningDetail(item) {
+      try {
+        this.loading = true
+        
+        // 获取API预警ID
+        const apiAlertId = item._apiData ? item._apiData.alert_id : parseInt(item.id)
+        
+        console.log('获取预警详情:', apiAlertId, item)
+        
+        // 调用API获取完整的预警详情
+        const response = await alertAPI.getAlertDetail(apiAlertId)
+        
+        console.log('预警详情API完整响应:', response)
+        console.log('预警详情API响应数据:', response.data)
+        console.log('检查条件 response.data:', !!response.data)
+        console.log('检查条件 response.data.alert_id:', response.data ? response.data.alert_id : 'undefined')
+        
+        if (response.data && response.data.alert_id) {
+          // 转换API数据为页面数据格式
+          const apiDetail = response.data
+          
+          // 创建增强的预警详情对象，包含API返回的完整信息
+          const enhancedDetail = {
+            // 基本信息（保持原有结构用于兼容）
+            ...item,
+            
+            // API返回的完整数据
+            apiData: apiDetail,
+            
+            // 增强的详情信息
+            alert_id: apiDetail.alert_id,
+            alert_time: apiDetail.alert_time,
+            alert_type: apiDetail.alert_type,
+            alert_level: apiDetail.alert_level,
+            alert_name: apiDetail.alert_name,
+            alert_description: apiDetail.alert_description,
+            location: apiDetail.location,
+            camera_id: apiDetail.camera_id,
+            camera_name: apiDetail.camera_name,
+            task_id: apiDetail.task_id,
+            
+            // 电子围栏信息
+            electronic_fence: apiDetail.electronic_fence,
+            
+            // 检测结果
+            result: apiDetail.result,
+            
+            // 媒体URL
+            minio_frame_url: apiDetail.minio_frame_url,
+            minio_video_url: apiDetail.minio_video_url,
+            
+            // 技能信息
+            skill_class_id: apiDetail.skill_class_id,
+            skill_name_zh: apiDetail.skill_name_zh,
+            
+            // 状态和处理信息
+            status: apiDetail.status,
+            status_display: apiDetail.status_display,
+            processed_at: apiDetail.processed_at,
+            processed_by: apiDetail.processed_by,
+            processing_notes: apiDetail.processing_notes,
+            
+            // 时间信息
+            created_at: apiDetail.created_at,
+            updated_at: apiDetail.updated_at,
+            
+            // 处理流程信息
+            process: apiDetail.process,
+            
+            // 更新图片URL使用API返回的
+            imageUrl: apiDetail.minio_frame_url || item.imageUrl,
+            
+            // 更新描述使用API返回的
+            description: apiDetail.alert_description || item.description
+          }
+          
+          console.log('预警详情API响应:', apiDetail)
+          console.log('增强后的预警详情:', enhancedDetail)
+          
+          this.currentWarningDetail = enhancedDetail
+        } else {
+          console.warn('API返回数据格式不正确，使用原始数据:', response.data)
+          this.currentWarningDetail = item
+        }
+        
+        this.warningDetailVisible = true
+      } catch (error) {
+        console.error('获取预警详情失败:', error)
+        this.$message.error('获取预警详情失败：' + (error.message || '网络错误'))
+        // 如果API调用失败，仍然显示基本信息
+        this.currentWarningDetail = item
+        this.warningDetailVisible = true
+      } finally {
+        this.loading = false
+      }
     },
     
     // 处理预警详情对话框中的事件
@@ -1256,36 +1469,61 @@ export default {
       try {
         this.loading = true
         
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // 获取当前预警信息
+        const warning = this.warningList.find(item => item.id === this.currentWarningId)
+        if (!warning) {
+          this.$message.error('未找到预警信息')
+          return
+        }
+
+        // 准备API更新数据
+        const apiAlertId = warning._apiData ? warning._apiData.alert_id : parseInt(this.currentWarningId)
+        const updateData = {
+          status: 3, // 已处理状态
+          processing_notes: (warning.remark || '') + '\n处理已完成',
+          processed_by: this.getCurrentUserName()
+        }
+
+        console.log('结束处理预警:', apiAlertId, updateData)
+
+        // 调用API更新预警状态
+        const response = await alertAPI.updateAlertStatus(apiAlertId, updateData)
         
-        // 更新本地数据状态
-        const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
-        if (index !== -1) {
-          // 确保有操作历史数组
-          if (!this.warningList[index].operationHistory) {
-            this.$set(this.warningList[index], 'operationHistory', [])
+        if (response.data && response.data.code === 0) {
+          // API调用成功，更新本地数据状态
+          const index = this.warningList.findIndex(item => item.id === this.currentWarningId)
+          if (index !== -1) {
+            // 确保有操作历史数组
+            if (!this.warningList[index].operationHistory) {
+              this.$set(this.warningList[index], 'operationHistory', [])
+            }
+            
+            // 添加新的已处理记录
+            const newRecord = {
+              id: Date.now() + Math.random(),
+              status: 'completed',
+              statusText: '已处理',
+              time: this.getCurrentTime(),
+              description: '预警处理已完成，可以进行后续操作',
+              operationType: 'completed',
+              operator: this.getCurrentUserName()
+            }
+            
+            this.warningList[index].operationHistory.unshift(newRecord)
+            // 更新状态为已处理
+            this.warningList[index].status = 'completed'
           }
           
-          // 添加新的已处理记录
-          const newRecord = {
-            id: Date.now() + Math.random(),
-            status: 'completed',
-            statusText: '已处理',
-            time: this.getCurrentTime(),
-            description: '预警处理已完成，可以进行后续操作',
-            operationType: 'completed',
-            operator: this.getCurrentUserName()
-          }
-          
-          this.warningList[index].operationHistory.unshift(newRecord)
+          this.$message.success('处理已完成，现在可以进行归档等操作')
+        } else {
+          console.error('结束处理API失败:', response.data)
+          this.$message.error('结束处理失败：' + (response.data && response.data.msg || '服务器错误'))
         }
         
-        this.$message.success('处理已完成，现在可以进行归档等操作')
         this.closeRemarkDialog()
       } catch (error) {
         console.error('结束处理失败:', error)
-        this.$message.error('结束处理失败')
+        this.$message.error('结束处理失败：' + (error.message || '网络错误'))
       } finally {
         this.loading = false
       }
@@ -1412,22 +1650,35 @@ export default {
       try {
         this.deleteLoading = true
         
-        // 模拟API调用删除时间
-        await new Promise(resolve => setTimeout(resolve, 800))
+        // 将页面ID转换为数字类型的API ID
+        const apiAlertIds = this.selectedWarnings.map(id => {
+          const warning = this.warningList.find(item => item.id === id)
+          return warning && warning._apiData ? warning._apiData.alert_id : parseInt(id)
+        }).filter(id => !isNaN(id))
+
+        console.log('批量删除预警:', apiAlertIds)
+
+        // 调用API进行批量删除
+        const response = await alertAPI.batchDeleteAlerts(apiAlertIds)
         
-        // 从预警列表中移除选中的项
-        this.warningList = this.warningList.filter(item => 
-          !this.selectedWarnings.includes(item.id)
-        )
-        
-        this.$message.success(`已成功删除 ${this.selectedWarnings.length} 项预警`)
+        if (response.data && response.data.code === 0) {
+          // API调用成功，从预警列表中移除选中的项
+          this.warningList = this.warningList.filter(item => 
+            !this.selectedWarnings.includes(item.id)
+          )
+          
+          this.$message.success(`已成功删除 ${this.selectedWarnings.length} 项预警`)
+        } else {
+          console.error('删除预警API失败:', response.data)
+          this.$message.error('删除失败：' + (response.data && response.data.msg || '服务器错误'))
+        }
         
         // 清空选择
         this.selectedWarnings = []
         this.closeDeleteDialog()
       } catch (error) {
         console.error('删除失败:', error)
-        this.$message.error('删除失败，请稍后重试')
+        this.$message.error('删除失败：' + (error.message || '网络错误'))
       } finally {
         this.deleteLoading = false
       }
@@ -1469,10 +1720,12 @@ export default {
     handleSizeChange(val) {
       this.pageSize = val
       this.currentPage = 1
+      this.getWarningList() // 重新获取数据
     },
     
     handleCurrentChange(val) {
       this.currentPage = val
+      this.getWarningList() // 重新获取数据
     }
   }
 }
@@ -1653,7 +1906,7 @@ export default {
       <div class="warning-cards-container">
         <div class="warning-cards-grid">
           <div 
-            v-for="item in currentPageData" 
+            v-for="item in warningList" 
             :key="item.id" 
             class="warning-col"
           >
@@ -1764,7 +2017,7 @@ export default {
         </div>
         
         <!-- 没有数据时的提示 -->
-        <div class="no-data" v-if="filteredWarningList.length === 0">
+        <div class="no-data" v-if="warningList.length === 0 && !loading">
           <i class="el-icon-folder-opened"></i>
           <p>暂无预警数据</p>
           <span class="no-data-tip">可尝试调整搜索条件或筛选条件</span>
@@ -1772,7 +2025,7 @@ export default {
       </div>
       
       <!-- 分页 -->
-      <div class="pagination-section" v-if="filteredWarningList.length > 0">
+      <div class="pagination-section" v-if="totalCount > 0">
         <el-pagination 
           @size-change="handleSizeChange" 
           @current-change="handleCurrentChange" 

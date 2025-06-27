@@ -7,15 +7,15 @@
       :before-close="handleClose"
       v-loading="loading"
       element-loading-text="处理中...">
-      <div v-if="warning" class="warning-detail-container">
+      <div v-if="internalWarning" class="warning-detail-container">
         <!-- 预警详情头部 -->
         <div class="warning-detail-header">
-          <div class="warning-level-badge" :class="getWarningLevelClass(warning.level)">
-            {{ getWarningLevelText(warning.level) }}预警
+          <div class="warning-level-badge" :class="getWarningLevelClass(internalWarning.level)">
+            {{ getWarningLevelText(internalWarning.level) }}预警
           </div>
           <div class="warning-detail-time">
             <i class="el-icon-time"></i>
-            {{ formatTime(warning.time) }}
+            {{ formatTime(internalWarning.time) }}
           </div>
         </div>
         
@@ -35,31 +35,31 @@
                   <div class="info-row">
                     <div class="info-cell">
                       <span class="label">设备名称</span>
-                      <span class="value">{{ warning.device }}</span>
+                      <span class="value">{{ internalWarning.device }}</span>
                     </div>
                     <div class="info-cell">
                       <span class="label">违规位置</span>
-                      <span class="value">{{ warning.location || (warning.deviceInfo && warning.deviceInfo.position) || '未知位置' }}</span>
+                      <span class="value">{{ internalWarning.location || (internalWarning.deviceInfo && internalWarning.deviceInfo.position) || '未知位置' }}</span>
                     </div>
                   </div>
                   <div class="info-row">
                     <div class="info-cell">
                       <span class="label">预警名称</span>
-                      <span class="value">{{ warning.type }}</span>
+                      <span class="value">{{ internalWarning.type }}</span>
                     </div>
                     <div class="info-cell">
                       <span class="label">预警类型</span>
-                      <span class="value">{{ getWarningTypeText(warning.type) }}</span>
+                      <span class="value">{{ getWarningTypeText(internalWarning.type) }}</span>
                     </div>
                   </div>
                   <!-- 复判信息行 (仅在复判记录页面显示) -->
-                  <div class="info-row" v-if="warning.reviewType && source === 'reviewRecords'">
+                  <div class="info-row" v-if="internalWarning.reviewType && source === 'reviewRecords'">
                     <div class="info-cell">
                       <span class="label">复判分类</span>
-                      <span class="value review-classification" :class="'review-' + warning.reviewType">
-                        {{ getReviewClassificationText(warning.reviewType) }}
+                      <span class="value review-classification" :class="'review-' + internalWarning.reviewType">
+                        {{ getReviewClassificationText(internalWarning.reviewType) }}
                         <el-tooltip 
-                          v-if="warning.reviewType === 'auto'" 
+                          v-if="internalWarning.reviewType === 'auto'" 
                           content="还原复判" 
                           placement="top"
                         >
@@ -84,7 +84,7 @@
                   预警描述
                 </div>
                 <div class="info-content">
-                  <p class="description-content">{{ warning.description || '检测到工作人员未佩戴安全帽，存在安全隐患，请立即整改' }}</p>
+                  <p class="description-content">{{ internalWarning.description || '检测到工作人员未佩戴安全帽，存在安全隐患，请立即整改' }}</p>
                 </div>
               </div>
             </div>
@@ -97,15 +97,15 @@
                   违规截图
                 </h4>
                 <div class="image-container" @click="openImageViewer">
-                  <div v-if="warning.imageUrl" class="real-image">
-                    <img :src="warning.imageUrl" :alt="warning.type" />
+                  <div v-if="internalWarning.imageUrl" class="real-image">
+                    <img :src="internalWarning.imageUrl" :alt="internalWarning.type" />
                     <div class="media-overlay">
                       <i class="el-icon-zoom-in"></i>
                       <span>点击放大查看</span>
                     </div>
                   </div>
                   <div v-else class="placeholder-image">
-                    <i :class="getWarningIcon(warning.level)"></i>
+                    <i :class="getWarningIcon(internalWarning.level)"></i>
                     <span>违规截图</span>
                   </div>
                 </div>
@@ -117,7 +117,18 @@
                   视频片段
                 </h4>
                 <div class="video-container" @click="openVideoViewer">
-                  <div class="placeholder-video">
+                  <div v-if="internalWarning.videoUrl || internalWarning.minio_video_url" class="real-video">
+                    <video 
+                      :src="internalWarning.videoUrl || internalWarning.minio_video_url"
+                      preload="metadata"
+                      style="width: 100%; height: 100%; object-fit: cover;"
+                    ></video>
+                    <div class="media-overlay">
+                      <i class="el-icon-video-play"></i>
+                      <span>点击播放视频</span>
+                    </div>
+                  </div>
+                  <div v-else class="placeholder-video">
                     <i class="el-icon-video-camera"></i>
                     <span>视频片段</span>
                     <div class="media-overlay">
@@ -340,9 +351,9 @@
        @click="closeImageViewer">
        <div class="simple-image-container" @click.stop>
          <img 
-           v-if="warning && warning.imageUrl"
-           :src="warning.imageUrl" 
-           :alt="warning.type"
+           v-if="internalWarning && internalWarning.imageUrl"
+           :src="internalWarning.imageUrl" 
+           :alt="internalWarning.type"
            class="simple-enlarged-image" />
        </div>
      </div>
@@ -356,10 +367,26 @@
         <div class="simple-video-player">
           <!-- 视频预览区域 -->
           <div class="video-preview">
+            <video 
+              v-if="internalWarning && (internalWarning.minio_video_url || internalWarning.videoUrl)"
+              ref="videoPlayer"
+              :src="internalWarning.minio_video_url || internalWarning.videoUrl"
+              @loadedmetadata="onVideoLoaded"
+              @timeupdate="onVideoTimeUpdate"
+              @ended="onVideoEnded"
+              style="width: 100%; height: 100%; object-fit: contain;"
+              preload="metadata"
+              controls="false"
+            ></video>
             <img 
-              v-if="warning && warning.imageUrl"
-              :src="warning.imageUrl" 
-              :alt="warning.type" />
+              v-else-if="internalWarning && (internalWarning.minio_frame_url || internalWarning.imageUrl)"
+              :src="internalWarning.minio_frame_url || internalWarning.imageUrl" 
+              :alt="internalWarning.type"
+              style="width: 100%; height: 100%; object-fit: contain;" />
+            <div v-else class="no-media-placeholder">
+              <i class="el-icon-video-camera" style="font-size: 48px; color: #909399;"></i>
+              <p style="color: #909399; margin-top: 16px;">暂无视频数据</p>
+            </div>
           </div>
           
           <!-- 简化的视频控制条 - 只保留必要按钮 -->
@@ -398,6 +425,8 @@
 </template>
 
 <script>
+import { alertAPI } from '@/components/service/VisionAIService.js'
+
 export default {
   name: "WarningDetail",
   props: {
@@ -409,6 +438,10 @@ export default {
       type: Object,
       default: null
     },
+    warningId: {
+      type: [String, Number],
+      default: null
+    },
     source: {
       type: String,
       default: ''
@@ -418,6 +451,8 @@ export default {
     return {
       dialogVisible: false,
       loading: false,
+      // 内部预警数据（从API获取或使用传入的props）
+      internalWarning: null,
       // 归档相关
       archiveDialogVisible: false,
       selectedArchiveId: '',
@@ -453,10 +488,27 @@ export default {
     visible: {
       handler(val) {
         this.dialogVisible = val;
-        if (val && this.warning) {
-          // 当对话框打开时，初始化档案数据和操作历史
+        if (val) {
+          // 当对话框打开时，获取或设置预警数据
+          this.loadWarningData();
+        }
+      },
+      immediate: true
+    },
+    warning: {
+      handler(val) {
+        if (val) {
+          this.internalWarning = val;
           this.initArchivesList();
           this.initOperationHistory();
+        }
+      },
+      immediate: true
+    },
+    warningId: {
+      handler(val) {
+        if (val && this.visible) {
+          this.loadWarningData();
         }
       },
       immediate: true
@@ -484,6 +536,150 @@ export default {
     }
   },
   methods: {
+    // 加载预警数据（从props或API获取）
+    async loadWarningData() {
+      try {
+        if (this.warning) {
+          // 如果传入了完整的预警对象，直接使用
+          this.internalWarning = this.warning;
+          this.initArchivesList();
+          this.initOperationHistory();
+        } else if (this.warningId) {
+          // 如果只传入了ID，调用API获取详情
+          this.loading = true;
+          console.log('通过ID获取预警详情:', this.warningId);
+          
+          const response = await alertAPI.getAlertDetail(this.warningId);
+          console.log('预警详情API响应:', response.data);
+          
+          if (response.data && response.data.alert_id) {
+            // API直接返回预警详情对象，转换API数据为页面数据格式
+            this.internalWarning = this.transformApiDetailToPageData(response.data);
+            this.initArchivesList();
+            this.initOperationHistory();
+          } else {
+            console.error('获取预警详情失败:', response.data);
+            this.$message.error('获取预警详情失败：' + (response.data && response.data.msg || '服务器错误'));
+            this.closeDialog();
+          }
+        } else {
+          console.warn('缺少预警数据或预警ID');
+          this.$message.error('缺少预警数据');
+          this.closeDialog();
+        }
+      } catch (error) {
+        console.error('加载预警数据失败:', error);
+        this.$message.error('获取预警详情失败：' + (error.message || '网络错误'));
+        this.closeDialog();
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // 转换API详情数据为页面数据格式
+    transformApiDetailToPageData(apiData) {
+      if (!apiData) {
+        console.warn('API详情数据为空');
+        return null;
+      }
+
+      // 预警等级映射
+      const levelMap = {
+        1: '一级预警',
+        2: '二级预警', 
+        3: '三级预警',
+        4: '四级预警'
+      };
+
+      // 状态映射
+      const statusMap = {
+        1: 'pending',
+        2: 'processing',
+        3: 'completed'
+      };
+
+      // 转换格式（类似warningManagement.vue中的转换逻辑）
+      const transformedData = {
+        // 基本信息映射
+        id: String(apiData.alert_id || apiData.id || Date.now()),
+        deviceName: apiData.alert_name || '未知预警',
+        imageUrl: apiData.minio_frame_url || null,
+        videoUrl: apiData.minio_video_url || null, // 添加视频URL
+        // 同时保留API原始字段名，用于视频播放器
+        minio_frame_url: apiData.minio_frame_url || null,
+        minio_video_url: apiData.minio_video_url || null,
+        level: levelMap[apiData.alert_level] || '未知等级',
+        time: this.formatApiTime(apiData.alert_time || apiData.created_at),
+        status: statusMap[apiData.status] || 'pending',
+        
+        // 设备信息
+        device: apiData.camera_name || '未知摄像头',
+        deviceInfo: {
+          name: apiData.camera_name || '未知摄像头',
+          position: apiData.location || '未知位置'
+        },
+        
+        // 预警详细信息
+        type: apiData.alert_type || apiData.alert_name || '未知类型',
+        location: apiData.location || '未知位置',
+        description: apiData.alert_description || '未知描述',
+        skill: apiData.alert_type || 'unknown_skill',
+        
+        // 处理信息
+        remark: apiData.processing_notes || '',
+        
+        // 检测结果（如果有的话）
+        detectionResults: apiData.result || [],
+        
+        // 电子围栏信息（如果有的话）
+        electronicFence: apiData.electronic_fence || null,
+        
+        // 技能相关信息
+        skillClassId: apiData.skill_class_id,
+        skillNameZh: apiData.skill_name_zh,
+        taskId: apiData.task_id,
+        
+        // 处理时间信息
+        processedAt: apiData.processed_at,
+        processedBy: apiData.processed_by,
+        createdAt: apiData.created_at,
+        updatedAt: apiData.updated_at,
+        
+        // 原始API数据（用于调试和扩展）
+        _apiData: apiData
+      };
+
+      console.log('API详情数据转换完成:', transformedData);
+      return transformedData;
+    },
+
+    // 格式化API时间格式（复用warningManagement.vue的方法）
+    formatApiTime(timeString) {
+      if (!timeString) return new Date().toLocaleString();
+      
+      try {
+        // 处理ISO格式时间 (2025-06-27T15:15:52)
+        if (timeString.includes('T')) {
+          const date = new Date(timeString);
+          if (!isNaN(date.getTime())) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+          }
+        }
+        
+        // 如果已经是标准格式，直接返回
+        return timeString;
+      } catch (error) {
+        console.warn('时间格式转换失败:', timeString, error);
+        return timeString || new Date().toLocaleString();
+      }
+    },
+
     // 初始化档案列表
     initArchivesList() {
       // 模拟一些档案数据
@@ -528,7 +724,7 @@ export default {
     
     // 处理还原复判
     async handleRestoreReview() {
-      if (!this.warning || !this.warning.id) {
+      if (!this.internalWarning || !this.internalWarning.id) {
         this.$message.error('预警信息不完整');
         return;
       }
@@ -551,19 +747,19 @@ export default {
         
         // 创建要还原到预警管理页面的预警数据
         const restoredWarning = {
-          id: this.warning.id,
-          type: this.warning.type,
-          device: this.warning.device,
-          deviceInfo: this.warning.deviceInfo,
-          location: this.warning.location,
-          time: this.warning.time,
-          level: this.warning.level,
-          imageUrl: this.warning.imageUrl,
-          description: this.warning.description,
+          id: this.internalWarning.id,
+          type: this.internalWarning.type,
+          device: this.internalWarning.device,
+          deviceInfo: this.internalWarning.deviceInfo,
+          location: this.internalWarning.location,
+          time: this.internalWarning.time,
+          level: this.internalWarning.level,
+          imageUrl: this.internalWarning.imageUrl,
+          description: this.internalWarning.description,
           status: 'pending', // 重新设置为待处理状态
           // 重置操作历史，只保留预警触发记录
-          operationHistory: this.warning.operationHistory ? 
-            this.warning.operationHistory.filter(record => record.operationType === 'create') : []
+          operationHistory: this.internalWarning.operationHistory ? 
+            this.internalWarning.operationHistory.filter(record => record.operationType === 'create') : []
         };
         
         // 触发还原事件，通知父组件将预警添加到预警管理页面
@@ -586,7 +782,7 @@ export default {
     
     // 处理预警事件 - 复制预警管理页面的核心逻辑
     async handleWarningAction(action) {
-      if (!this.warning || !this.warning.id) {
+      if (!this.internalWarning || !this.internalWarning.id) {
         this.$message.error('预警信息不完整');
         return;
       }
@@ -1133,14 +1329,20 @@ export default {
     },
     // 初始化操作历史
     initOperationHistory() {
-      if (!this.warning) return;
+      if (!this.internalWarning) return;
       
       // 重置操作历史
       this.operationHistory = [];
       
       // 如果预警有保存的操作历史，则直接加载
-      if (this.warning.operationHistory && Array.isArray(this.warning.operationHistory) && this.warning.operationHistory.length > 0) {
-        this.operationHistory = [...this.warning.operationHistory];
+      if (this.internalWarning.operationHistory && Array.isArray(this.internalWarning.operationHistory) && this.internalWarning.operationHistory.length > 0) {
+        this.operationHistory = [...this.internalWarning.operationHistory];
+        return;
+      }
+
+      // 如果是通过API获取的数据，处理API中的process信息
+      if (this.internalWarning._apiData && this.internalWarning._apiData.process) {
+        this.processApiOperationHistory();
         return;
       }
       
@@ -1149,8 +1351,8 @@ export default {
       this.addOperationRecord({
         status: 'completed',
         statusText: '预警产生',
-        time: this.warning.time || this.getCurrentTime(),
-        description: `${this.warning.type || '系统检测'}：${this.warning.description || '检测到异常情况，请及时处理'}`,
+        time: this.internalWarning.time || this.getCurrentTime(),
+        description: `${this.internalWarning.type || '系统检测'}：${this.internalWarning.description || '检测到异常情况，请及时处理'}`,
         operationType: 'create',
         operator: '系统'
       });
@@ -1159,11 +1361,68 @@ export default {
       this.addOperationRecord({
         status: 'active',
         statusText: '待处理',
-        time: this.warning.createTime || this.getCurrentTime(),
+        time: this.internalWarning.createTime || this.getCurrentTime(),
         description: '预警已产生，等待处理人员确认并开始处理',
         operationType: 'pending',
         operator: ''
       });
+    },
+
+    // 处理API中的process信息转换为操作历史
+    processApiOperationHistory() {
+      const processData = this.internalWarning._apiData.process;
+      
+      if (processData.steps && Array.isArray(processData.steps)) {
+        processData.steps.forEach(step => {
+          this.addOperationRecord({
+            status: 'completed',
+            statusText: step.step || '处理步骤',
+            time: this.formatApiTime(step.time),
+            description: step.desc || '处理描述',
+            operationType: step.step === '预警产生' ? 'create' : 'process',
+            operator: step.operator || '系统'
+          });
+        });
+      }
+
+      // 根据预警状态添加当前状态记录
+      const status = this.internalWarning.status;
+      if (status === 'pending') {
+        this.addOperationRecord({
+          status: 'active',
+          statusText: '待处理',
+          time: this.internalWarning.createdAt || this.getCurrentTime(),
+          description: '预警已产生，等待处理人员确认并开始处理',
+          operationType: 'pending',
+          operator: ''
+        });
+      } else if (status === 'processing') {
+        this.addOperationRecord({
+          status: 'active',
+          statusText: '处理中',
+          time: this.internalWarning.updatedAt || this.getCurrentTime(),
+          description: '预警正在处理中，处理人员：' + (this.internalWarning.processedBy || '未知'),
+          operationType: 'processing',
+          operator: this.internalWarning.processedBy || '处理人员'
+        });
+      } else if (status === 'completed') {
+        this.addOperationRecord({
+          status: 'completed',
+          statusText: '已处理',
+          time: this.internalWarning.processedAt || this.getCurrentTime(),
+          description: '预警处理已完成。' + (this.internalWarning.remark || ''),
+          operationType: 'completed',
+          operator: this.internalWarning.processedBy || '处理人员'
+        });
+      }
+
+      // 如果有备注信息，添加到描述中
+      if (processData.remark) {
+        const lastRecord = this.operationHistory[0];
+        if (lastRecord) {
+          lastRecord.description += ' 备注：' + processData.remark;
+        }
+      }
     },
     
     // 添加操作记录到历史
@@ -1184,31 +1443,31 @@ export default {
       this.operationHistory.unshift(newRecord);
       
       // 更新预警对象的操作历史
-      if (this.warning) {
-        if (!this.warning.operationHistory) {
-          this.$set(this.warning, 'operationHistory', []);
+      if (this.internalWarning) {
+        if (!this.internalWarning.operationHistory) {
+          this.$set(this.internalWarning, 'operationHistory', []);
         }
-        this.warning.operationHistory.unshift(newRecord);
+        this.internalWarning.operationHistory.unshift(newRecord);
       }
     },
     
     // 检查处理按钮是否应该禁用
     isProcessingDisabled() {
-      if (!this.warning || !this.warning.operationHistory || this.warning.operationHistory.length === 0) {
+      if (!this.internalWarning || !this.internalWarning.operationHistory || this.internalWarning.operationHistory.length === 0) {
         return false; // 没有历史记录，可以处理
       }
       
       // 如果已归档，禁用处理按钮
-      const hasArchived = this.warning.operationHistory.some(record => 
+      const hasArchived = this.internalWarning.operationHistory.some(record => 
         record.operationType === 'archive' || record.operationType === 'falseAlarm'
-      ) || this.warning.status === 'archived';
+      ) || this.internalWarning.status === 'archived';
       
       if (hasArchived) {
         return true;
       }
       
       // 如果已完成处理，禁用处理按钮
-      const hasCompletedProcessing = this.warning.operationHistory.some(record => 
+      const hasCompletedProcessing = this.internalWarning.operationHistory.some(record => 
         record.operationType === 'completed'
       );
       
@@ -1241,7 +1500,7 @@ export default {
     
     // 打开图片查看器
     openImageViewer() {
-      if (this.warning && this.warning.imageUrl) {
+      if (this.internalWarning && this.internalWarning.imageUrl) {
         this.imageViewerVisible = true;
       } else {
         this.$message.warning('暂无违规截图');
@@ -1266,73 +1525,125 @@ export default {
     
     // ==================== 视频播放器相关方法 ====================
     
-    // 打开视频播放器
-    openVideoViewer() {
-      this.resetVideoPlayer();
-      this.videoViewerVisible = true;
-    },
-    
-    // 关闭视频播放器
-    closeVideoViewer() {
-      this.videoViewerVisible = false;
-      this.resetVideoPlayer();
-    },
-    
-    // 重置视频播放器状态
-    resetVideoPlayer() {
-      this.isVideoPlaying = false;
-      this.videoProgress = 0;
-      this.currentTime = '00:00';
-      this.volume = 80;
-      this.isMuted = false;
-    },
-    
-    // 切换播放/暂停
-    toggleVideoPlay() {
-      this.isVideoPlaying = !this.isVideoPlaying;
+          // 打开视频播放器
+      openVideoViewer() {
+        console.log('打开视频播放器');
+        console.log('预警数据:', this.internalWarning);
+        console.log('视频URL:', this.internalWarning ? this.internalWarning.minio_video_url || this.internalWarning.videoUrl : 'null');
+        
+        this.resetVideoPlayer();
+        this.videoViewerVisible = true;
+        // 延迟一下确保DOM已渲染
+        this.$nextTick(() => {
+          if (this.$refs.videoPlayer) {
+            console.log('视频元素已创建，初始化视频');
+            this.initializeVideo();
+          } else {
+            console.warn('视频元素未找到');
+          }
+        });
+      },
       
-      if (this.isVideoPlaying) {
-        this.startVideoProgress();
-      } else {
-        this.stopVideoProgress();
-      }
-    },
-    
-    // 开始播放进度更新
-    startVideoProgress() {
-      this.videoTimer = setInterval(() => {
-        if (this.videoProgress < 100) {
-          this.videoProgress += 1;
-          this.updateCurrentTime();
-        } else {
-          this.isVideoPlaying = false;
-          this.stopVideoProgress();
+      // 关闭视频播放器
+      closeVideoViewer() {
+        this.videoViewerVisible = false;
+        this.resetVideoPlayer();
+        // 停止视频播放
+        if (this.$refs.videoPlayer) {
+          this.$refs.videoPlayer.pause();
+          this.$refs.videoPlayer.currentTime = 0;
         }
-      }, 1350); // 模拟2分15秒的视频，135秒/100步 = 1.35秒每步
-    },
+      },
+      
+      // 重置视频播放器状态
+      resetVideoPlayer() {
+        this.isVideoPlaying = false;
+        this.videoProgress = 0;
+        this.currentTime = '00:00';
+        this.totalTime = '00:00';
+        this.volume = 80;
+        this.isMuted = false;
+      },
+      
+      // 初始化视频
+      initializeVideo() {
+        const video = this.$refs.videoPlayer;
+        if (video) {
+          video.volume = this.volume / 100;
+          video.muted = this.isMuted;
+          
+          // 尝试加载视频
+          video.load();
+        }
+      },
     
-    // 停止播放进度更新
-    stopVideoProgress() {
-      if (this.videoTimer) {
-        clearInterval(this.videoTimer);
-        this.videoTimer = null;
-      }
-    },
-    
-    // 更新当前播放时间
-    updateCurrentTime() {
-      const totalSeconds = 135; // 2分15秒
-      const currentSeconds = Math.floor((this.videoProgress / 100) * totalSeconds);
-      const minutes = Math.floor(currentSeconds / 60);
-      const seconds = currentSeconds % 60;
-      this.currentTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    },
-    
-    // 拖拽进度条
-    seekVideo(value) {
-      this.videoProgress = value;
-      this.updateCurrentTime();
-    },
+          // 视频加载完成
+      onVideoLoaded() {
+        const video = this.$refs.videoPlayer;
+        if (video && video.duration) {
+          this.totalTime = this.formatVideoTime(video.duration);
+          console.log('视频加载完成，时长:', this.totalTime);
+        }
+      },
+      
+      // 视频时间更新
+      onVideoTimeUpdate() {
+        const video = this.$refs.videoPlayer;
+        if (video && video.duration) {
+          this.currentTime = this.formatVideoTime(video.currentTime);
+          this.videoProgress = (video.currentTime / video.duration) * 100;
+        }
+      },
+      
+      // 视频播放结束
+      onVideoEnded() {
+        this.isVideoPlaying = false;
+        this.videoProgress = 100;
+      },
+      
+      // 切换播放/暂停
+      toggleVideoPlay() {
+        const video = this.$refs.videoPlayer;
+        if (!video) {
+          this.$message.warning('视频加载中，请稍候');
+          return;
+        }
+        
+        if (this.isVideoPlaying) {
+          video.pause();
+          this.isVideoPlaying = false;
+        } else {
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              this.isVideoPlaying = true;
+            }).catch((error) => {
+              console.error('视频播放失败:', error);
+              this.$message.error('视频播放失败，请检查视频文件或网络连接');
+              this.isVideoPlaying = false;
+            });
+          }
+        }
+      },
+      
+      // 拖拽进度条
+      seekVideo(value) {
+        const video = this.$refs.videoPlayer;
+        if (video && video.duration) {
+          const newTime = (value / 100) * video.duration;
+          video.currentTime = newTime;
+          this.videoProgress = value;
+        }
+      },
+      
+      // 格式化时间 (秒转为 MM:SS 格式)
+      formatVideoTime(seconds) {
+        if (isNaN(seconds) || seconds < 0) return '00:00';
+        
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      },
     
     // 切换静音
     toggleMute() {
@@ -2605,6 +2916,21 @@ export default {
   height: 100%;
   object-fit: cover;
   filter: brightness(0.8);
+}
+
+.video-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.no-media-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* 播放覆盖层样式已移除 - 按需求去掉视频中央播放键 */
