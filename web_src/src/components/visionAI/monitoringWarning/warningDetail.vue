@@ -367,17 +367,17 @@
         <div class="simple-video-player">
           <!-- 视频预览区域 -->
           <div class="video-preview">
-            <video 
-              v-if="internalWarning && (internalWarning.minio_video_url || internalWarning.videoUrl)"
-              ref="videoPlayer"
-              :src="internalWarning.minio_video_url || internalWarning.videoUrl"
-              @loadedmetadata="onVideoLoaded"
-              @timeupdate="onVideoTimeUpdate"
-              @ended="onVideoEnded"
-              style="width: 100%; height: 100%; object-fit: contain;"
-              preload="metadata"
-              controls="false"
-            ></video>
+                          <video 
+               v-if="internalWarning && (internalWarning.minio_video_url || internalWarning.videoUrl)"
+               ref="videoPlayer"
+               :src="internalWarning.minio_video_url || internalWarning.videoUrl"
+               @loadedmetadata="onVideoLoaded"
+               @timeupdate="onVideoTimeUpdate"
+               @ended="onVideoEnded"
+               :style="`width: 100%; height: 100%; object-fit: ${videoFitMode}; border-radius: 12px;`"
+               preload="metadata"
+               controls
+             ></video>
             <img 
               v-else-if="internalWarning && (internalWarning.minio_frame_url || internalWarning.imageUrl)"
               :src="internalWarning.minio_frame_url || internalWarning.imageUrl" 
@@ -389,32 +389,21 @@
             </div>
           </div>
           
-          <!-- 简化的视频控制条 - 只保留必要按钮 -->
+          <!-- 简化的视频控制条 - 关闭按钮和显示模式切换 -->
           <div class="simple-video-controls">
             <el-button 
               size="mini" 
-              :icon="isVideoPlaying ? 'el-icon-video-pause' : 'el-icon-video-play'"
+              :icon="videoFitMode === 'cover' ? 'el-icon-full-screen' : 'el-icon-crop'"
               circle
-              @click="toggleVideoPlay">
+              @click="toggleVideoFitMode"
+              :title="videoFitMode === 'cover' ? '切换到完整显示' : '切换到填满显示'">
             </el-button>
-            
-            <div class="progress-container">
-              <span class="time-display">{{ currentTime }} / {{ totalTime }}</span>
-              <div class="progress-bar">
-                <el-slider 
-                  v-model="videoProgress"
-                  :max="100"
-                  :show-tooltip="false"
-                  @change="seekVideo">
-                </el-slider>
-              </div>
-            </div>
-            
             <el-button 
               size="mini" 
               icon="el-icon-close"
               circle
-              @click="closeVideoViewer">
+              @click="closeVideoViewer"
+              style="margin-left: 8px;">
             </el-button>
           </div>
         </div>
@@ -476,12 +465,7 @@ export default {
       
       // 视频播放器相关
       videoViewerVisible: false,
-      isVideoPlaying: false,
-      videoProgress: 0,
-      currentTime: '00:00',
-      totalTime: '02:15',
-      volume: 80,
-      isMuted: false
+      videoFitMode: 'cover' // 'cover' 无黑边但可能裁剪, 'contain' 完整显示但可能有黑边
     }
   },
   watch: {
@@ -1532,6 +1516,8 @@ export default {
         console.log('视频URL:', this.internalWarning ? this.internalWarning.minio_video_url || this.internalWarning.videoUrl : 'null');
         
         this.resetVideoPlayer();
+        // 重置视频显示模式为默认的cover模式（无黑边）
+        this.videoFitMode = 'cover';
         this.videoViewerVisible = true;
         // 延迟一下确保DOM已渲染
         this.$nextTick(() => {
@@ -1557,84 +1543,42 @@ export default {
       
       // 重置视频播放器状态
       resetVideoPlayer() {
-        this.isVideoPlaying = false;
-        this.videoProgress = 0;
-        this.currentTime = '00:00';
-        this.totalTime = '00:00';
-        this.volume = 80;
-        this.isMuted = false;
+        // 使用浏览器自带控制条，不需要手动管理播放状态
       },
       
-      // 初始化视频
-      initializeVideo() {
-        const video = this.$refs.videoPlayer;
-        if (video) {
-          video.volume = this.volume / 100;
-          video.muted = this.isMuted;
-          
-          // 尝试加载视频
-          video.load();
-        }
-      },
+              // 初始化视频
+        initializeVideo() {
+          const video = this.$refs.videoPlayer;
+          if (video) {
+            // 尝试加载视频
+            video.load();
+          }
+        },
     
           // 视频加载完成
       onVideoLoaded() {
         const video = this.$refs.videoPlayer;
         if (video && video.duration) {
-          this.totalTime = this.formatVideoTime(video.duration);
-          console.log('视频加载完成，时长:', this.totalTime);
+          console.log('视频加载完成，时长:', this.formatVideoTime(video.duration));
         }
       },
       
-      // 视频时间更新
+      // 视频时间更新（保留用于调试）
       onVideoTimeUpdate() {
-        const video = this.$refs.videoPlayer;
-        if (video && video.duration) {
-          this.currentTime = this.formatVideoTime(video.currentTime);
-          this.videoProgress = (video.currentTime / video.duration) * 100;
-        }
+        // 使用浏览器自带控制条，不需要手动同步进度
       },
       
-      // 视频播放结束
-      onVideoEnded() {
-        this.isVideoPlaying = false;
-        this.videoProgress = 100;
-      },
-      
-      // 切换播放/暂停
-      toggleVideoPlay() {
-        const video = this.$refs.videoPlayer;
-        if (!video) {
-          this.$message.warning('视频加载中，请稍候');
-          return;
-        }
+              // 视频播放结束
+        onVideoEnded() {
+          console.log('视频播放结束');
+        },
         
-        if (this.isVideoPlaying) {
-          video.pause();
-          this.isVideoPlaying = false;
-        } else {
-          const playPromise = video.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              this.isVideoPlaying = true;
-            }).catch((error) => {
-              console.error('视频播放失败:', error);
-              this.$message.error('视频播放失败，请检查视频文件或网络连接');
-              this.isVideoPlaying = false;
-            });
-          }
-        }
-      },
-      
-      // 拖拽进度条
-      seekVideo(value) {
-        const video = this.$refs.videoPlayer;
-        if (video && video.duration) {
-          const newTime = (value / 100) * video.duration;
-          video.currentTime = newTime;
-          this.videoProgress = value;
-        }
-      },
+        // 切换视频显示模式
+        toggleVideoFitMode() {
+          this.videoFitMode = this.videoFitMode === 'cover' ? 'contain' : 'cover';
+          const modeName = this.videoFitMode === 'cover' ? '填满显示(无黑边)' : '完整显示(可能有黑边)';
+          this.$message.success(`已切换到${modeName}模式`);
+        },
       
       // 格式化时间 (秒转为 MM:SS 格式)
       formatVideoTime(seconds) {
@@ -1645,18 +1589,14 @@ export default {
         return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
       },
     
-    // 切换静音
-    toggleMute() {
-      this.isMuted = !this.isMuted;
-    },
-    
-    // 切换全屏
-    toggleFullscreen() {
-    },
-    
          // 下载视频
      downloadVideo() {
        // 实际项目中这里应该提供真实的视频下载链接
+       if (this.internalWarning && this.internalWarning.minio_video_url) {
+         window.open(this.internalWarning.minio_video_url, '_blank');
+       } else {
+         this.$message.warning('暂无视频下载链接');
+       }
      }
    },
    
@@ -2879,8 +2819,8 @@ export default {
 }
 
 .simple-video-container {
-  max-width: 70vw;
-  max-height: 70vh;
+  max-width: 80vw;
+  max-height: 80vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2889,26 +2829,31 @@ export default {
 }
 
 .simple-video-player {
-  width: 900px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 1000px;
   background: #000;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
   animation: zoomIn 0.3s ease-out;
   cursor: default;
+  position: relative;
 }
 
 /* 通用视频播放相关样式 */
 
 .video-preview {
   position: relative;
-  height: 450px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 300px;
+  max-height: 600px;
   background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px 8px 0 0;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .video-preview img {
@@ -2921,7 +2866,9 @@ export default {
 .video-preview video {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  /* object-fit 通过内联样式动态设置 */
+  border-radius: 12px;
+  transition: object-fit 0.3s ease;
 }
 
 .no-media-placeholder {
@@ -2935,77 +2882,15 @@ export default {
 
 /* 播放覆盖层样式已移除 - 按需求去掉视频中央播放键 */
 
-/* 简化的视频控制条 - 毛玻璃效果 */
+/* 简化的视频控制条 - 包含显示模式切换和关闭按钮 */
 .simple-video-controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
   display: flex;
+  gap: 8px;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 20px;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
-}
-
-.progress-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 16px;
-}
-
-.time-display {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  font-family: 'Monaco', 'Consolas', monospace;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.progress-bar {
-  flex: 1;
-}
-
-.progress-bar .el-slider__runway {
-  background-color: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  height: 4px;
-  border-radius: 2px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.progress-bar .el-slider__bar {
-  background: linear-gradient(90deg, #409EFF 0%, #66b3ff 100%);
-  border-radius: 2px;
-  box-shadow: 0 1px 6px rgba(64, 158, 255, 0.3);
-}
-
-.progress-bar .el-slider__button {
-  width: 14px;
-  height: 14px;
-  border: 2px solid #409EFF;
-  background: radial-gradient(circle, white 0%, #f0f8ff 100%);
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.4);
-  transition: all 0.3s ease;
-}
-
-.progress-bar .el-slider__button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 3px 12px rgba(64, 158, 255, 0.6);
 }
 
 .simple-video-controls .el-button {
@@ -3047,8 +2932,8 @@ export default {
   }
   
   .simple-video-container {
-    max-width: 90vw;
-    max-height: 80vh;
+    max-width: 95vw;
+    max-height: 85vh;
   }
   
   .simple-video-player {
@@ -3056,32 +2941,14 @@ export default {
   }
   
   .simple-video-controls {
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-  }
-  
-  .progress-container {
-    order: 1;
-    margin: 0;
-    width: 100%;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .progress-bar {
-    width: 100%;
-  }
-  
-  .simple-video-controls .el-button {
-    order: 2;
+    top: 10px;
+    right: 10px;
+    gap: 6px;
   }
   
   .video-preview {
-    height: 300px;
+    min-height: 250px;
+    max-height: 400px;
   }
 }
 
