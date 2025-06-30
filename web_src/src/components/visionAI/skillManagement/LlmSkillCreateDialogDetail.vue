@@ -387,13 +387,16 @@
                               <el-option label="小于等于" value="lte"></el-option>
                               <el-option label="包含" value="contains"></el-option>
                               <el-option label="不包含" value="not_contains"></el-option>
+                              <el-option label="为空" value="is_empty"></el-option>
+                              <el-option label="不为空" value="is_not_empty"></el-option>
                             </el-select>
                           </div>
                           <div class="condition-field">
                             <el-input 
                               v-model="condition.value" 
-                              placeholder="请输入" 
-                              size="small">
+                              :placeholder="getValuePlaceholder(condition.operator)" 
+                              size="small"
+                              :disabled="condition.operator === 'is_empty' || condition.operator === 'is_not_empty'">
                             </el-input>
                           </div>
                           <div class="condition-field">
@@ -1340,6 +1343,30 @@
           this.adjustInputWidth(event.target)
           this.updatePromptTemplate()
         }, 10)
+      },
+      
+      // 获取条件值输入框的提示文本
+      getValuePlaceholder(operator) {
+        switch(operator) {
+          case 'is_empty':
+            return '无需输入值'
+          case 'is_not_empty':
+            return '无需输入值'
+          case 'eq':
+          case 'ne':
+            return '请输入比较值'
+          case 'gt':
+          case 'gte':
+            return '请输入数值'
+          case 'lt':
+          case 'lte':
+            return '请输入数值'
+          case 'contains':
+          case 'not_contains':
+            return '请输入包含的内容'
+          default:
+            return '请输入'
+        }
       }
     }
   }
