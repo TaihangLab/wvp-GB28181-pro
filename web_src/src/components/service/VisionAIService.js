@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 创建专用于visionAI模块的axios实例
 const visionAIAxios = axios.create({
-  baseURL: 'http://192.168.1.118:8000',
+  baseURL: 'http://192.168.1.106:8000',
   timeout: 15000,
   withCredentials: false,  // 将withCredentials设置为false，避免CORS错误
 });
@@ -49,7 +49,8 @@ visionAIAxios.interceptors.response.use(
     // 检查是否是特殊API，需要保留原始数据结构
     const isSpecialApi =  /\/api\/v1\/cameras\/\d+$/.test(response.config.url) || // 匹配摄像头详情接口
                          /\/api\/v1\/ai-tasks\/camera\/id\/\d+$/.test(response.config.url) || // 匹配摄像头关联任务接口
-                         /\/api\/v1\/ai-tasks\/\d+$/.test(response.config.url); // 匹配AI任务详情接口
+                         /\/api\/v1\/ai-tasks\/\d+$/.test(response.config.url) || // 匹配AI任务详情接口
+                         /\/api\/v1\/alerts\/\d+$/.test(response.config.url); // 匹配预警详情接口
 
 
 
@@ -192,6 +193,19 @@ visionAIAxios.interceptors.response.use(
       if (originalData.page) transformedData.page = originalData.page;
       if (originalData.limit) transformedData.limit = originalData.limit;
       if (originalData.pages) transformedData.pages = originalData.pages;
+    }
+    // 检查是否包含预警列表数据（实时预警接口）
+    else if (originalData && originalData.alerts) {
+      transformedData.data = originalData.alerts;
+      transformedData.total = originalData.total || transformedData.data.length;
+
+      // 添加分页信息
+      if (originalData.page) transformedData.page = originalData.page;
+      if (originalData.limit) transformedData.limit = originalData.limit;
+      if (originalData.pages) transformedData.pages = originalData.pages;
+      if (originalData.pagination) {
+        transformedData.pagination = originalData.pagination;
+      }
     }
     // 检查是否为单个模型详情（获取模型详情接口）
     else if (originalData && originalData.model) {
@@ -615,8 +629,199 @@ export const cameraAPI = {
   }
 };
 
+// 预警管理API
+export const alertAPI = {
+  /**
+   * 获取实时预警列表
+   * @param {Object} params - 查询参数
+   * @param {number} [params.page=1] - 当前页码，从1开始
+   * @param {number} [params.limit=10] - 每页记录数
+   * @param {number} [params.camera_id] - 摄像头ID过滤
+   * @param {string} [params.camera_name] - 摄像头名称过滤（模糊匹配）
+   * @param {string} [params.alert_type] - 预警类型过滤
+   * @param {number} [params.alert_level] - 预警等级过滤（1-4）
+   * @param {string} [params.alert_name] - 预警名称过滤（模糊匹配）
+   * @param {number} [params.task_id] - 任务ID过滤
+   * @param {string} [params.location] - 位置过滤（模糊匹配）
+   * @param {number} [params.status] - 状态过滤（1-待处理, 2-处理中, 3-已处理）
+   * @param {string} [params.start_date] - 开始日期（YYYY-MM-DD）
+   * @param {string} [params.end_date] - 结束日期（YYYY-MM-DD）
+   * @param {string} [params.start_time] - 开始时间（HH:MM:SS）
+   * @param {string} [params.end_time] - 结束时间（HH:MM:SS）
+   * @returns {Promise} 包含预警列表的Promise对象
+   */
+  getRealTimeAlerts(params = {}) {
+    // 处理查询和分页参数
+    const apiParams = { ...params };
+
+    // 处理分页参数
+    if (!apiParams.page) {
+      apiParams.page = 1; // 默认第1页
+    }
+
+    if (!apiParams.limit) {
+      apiParams.limit = 10; // 默认每页10条
+    }
+
+    // 处理日期时间参数
+    if (apiParams.startDate) {
+      apiParams.start_date = apiParams.startDate;
+      delete apiParams.startDate;
+    }
+    
+    if (apiParams.endDate) {
+      apiParams.end_date = apiParams.endDate;
+      delete apiParams.endDate;
+    }
+
+    // 处理预警等级映射
+    if (apiParams.warningLevel) {
+      const levelMap = {
+        'level1': 1,
+        'level2': 2,
+        'level3': 3,
+        'level4': 4
+      };
+      apiParams.alert_level = levelMap[apiParams.warningLevel];
+      delete apiParams.warningLevel;
+    }
+
+    // 处理预警类型映射
+    if (apiParams.warningType) {
+      const typeMap = {
+        'safety_helmet': 'safety_helmet_detection',
+        'safety_belt': 'safety_belt_detection',
+        'protective_clothing': 'protective_clothing_detection',
+        'unauthorized_personnel': 'personnel_intrusion_detection',
+        'smoking': 'smoke_fire_detection',
+        'high_altitude': 'high_altitude_work_detection'
+      };
+      apiParams.alert_type = typeMap[apiParams.warningType];
+      delete apiParams.warningType;
+    }
+
+    // 处理技能类型映射
+    if (apiParams.warningSkill) {
+      apiParams.alert_type = apiParams.warningSkill;
+      delete apiParams.warningSkill;
+    }
+
+    // 处理预警名称
+    if (apiParams.warningName) {
+      apiParams.alert_name = apiParams.warningName;
+      delete apiParams.warningName;
+    }
+
+    // 处理状态映射
+    if (apiParams.statusFilter) {
+      const statusMap = {
+        'pending': 1,
+        'processing': 2,
+        'completed': 3
+      };
+      apiParams.status = statusMap[apiParams.statusFilter];
+      delete apiParams.statusFilter;
+    }
+
+    console.log('获取实时预警列表 - API调用参数:', apiParams);
+
+    return visionAIAxios.get('/api/v1/alerts/real-time', { params: apiParams });
+  },
+
+  /**
+   * 更新预警状态
+   * @param {number} alertId - 预警ID
+   * @param {Object} updateData - 更新数据
+   * @param {number} [updateData.status] - 状态（1-待处理, 2-处理中, 3-已处理）
+   * @param {string} [updateData.processing_notes] - 处理备注
+   * @param {string} [updateData.processed_by] - 处理人
+   * @returns {Promise} 包含更新结果的Promise对象
+   */
+  updateAlertStatus(alertId, updateData) {
+    if (!alertId) {
+      console.error('更新预警状态失败: 缺少预警ID');
+      return Promise.reject(new Error('缺少预警ID'));
+    }
+
+    console.log('更新预警状态:', alertId, updateData);
+
+    return visionAIAxios.put(`/api/v1/alerts/${alertId}/status`, updateData);
+  },
+
+  /**
+   * 批量更新预警状态
+   * @param {Array} alertIds - 预警ID数组
+   * @param {Object} updateData - 更新数据
+   * @returns {Promise} 包含批量更新结果的Promise对象
+   */
+  batchUpdateAlertStatus(alertIds, updateData) {
+    if (!alertIds || alertIds.length === 0) {
+      console.error('批量更新预警状态失败: 缺少预警ID');
+      return Promise.reject(new Error('缺少预警ID'));
+    }
+
+    console.log('批量更新预警状态:', alertIds, updateData);
+
+    return visionAIAxios.put('/api/v1/alerts/batch-update', {
+      alert_ids: alertIds,
+      ...updateData
+    });
+  },
+
+  /**
+   * 删除预警
+   * @param {number} alertId - 预警ID
+   * @returns {Promise} 包含删除结果的Promise对象
+   */
+  deleteAlert(alertId) {
+    if (!alertId) {
+      console.error('删除预警失败: 缺少预警ID');
+      return Promise.reject(new Error('缺少预警ID'));
+    }
+
+    console.log('删除预警:', alertId);
+
+    return visionAIAxios.delete(`/api/v1/alerts/${alertId}`);
+  },
+
+  /**
+   * 批量删除预警
+   * @param {Array} alertIds - 预警ID数组
+   * @returns {Promise} 包含批量删除结果的Promise对象
+   */
+  batchDeleteAlerts(alertIds) {
+    if (!alertIds || alertIds.length === 0) {
+      console.error('批量删除预警失败: 缺少预警ID');
+      return Promise.reject(new Error('缺少预警ID'));
+    }
+
+    console.log('批量删除预警:', alertIds);
+
+    return visionAIAxios.delete('/api/v1/alerts/batch-delete', {
+      data: { alert_ids: alertIds }
+    });
+  },
+
+  /**
+   * 根据ID获取单个预警详情
+   * @param {number|string} alertId - 预警ID
+   * @returns {Promise} 包含完整的预警详情和处理流程信息的Promise对象
+   */
+  getAlertDetail(alertId) {
+    if (!alertId) {
+      console.error('获取预警详情失败: 缺少预警ID');
+      return Promise.reject(new Error('缺少预警ID'));
+    }
+
+    console.log('获取预警详情:', alertId);
+
+    return visionAIAxios.get(`/api/v1/alerts/${alertId}`);
+  }
+};
+
 export default {
   modelAPI,
   skillAPI,
-  cameraAPI
+  cameraAPI,
+  alertAPI
 };
