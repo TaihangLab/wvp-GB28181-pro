@@ -6,16 +6,20 @@
     <el-main style="padding: 0; width: 100%;">
       <router-view></router-view>
     </el-main>
+    <!-- 太行智能助手 -->
+    <intelligent-assistant />
   </el-container>
 </template>
 
 <script>
 import uiHeader from "./UiHeader.vue";
+import IntelligentAssistant from "../components/common/IntelligentAssistant.vue";
 
 export default {
   name: "index",
   components: {
-    uiHeader
+    uiHeader,
+    IntelligentAssistant
   },
 }
 </script>
