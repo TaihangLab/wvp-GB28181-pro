@@ -1460,15 +1460,37 @@ export default {
     // 格式化时间
     formatTime(timeString) {
       try {
-        // 如果是完整的时间字符串，格式化为更友好的显示
-        if (timeString && timeString.includes(' ')) {
-          const [date, time] = timeString.split(' ');
-          const [year, month, day] = date.split('-');
-          return `${year}年${month}月${day}日 ${time}`;
+        if (!timeString) {
+          return '时间未知';
         }
+        
+        // 如果是完整的时间字符串，格式化为更友好的显示
+        if (timeString.includes(' ')) {
+          const [date, time] = timeString.split(' ');
+          let year, month, day;
+          
+          // 处理不同的日期分隔符
+          if (date.includes('-')) {
+            // YYYY-MM-DD 格式
+            [year, month, day] = date.split('-');
+          } else if (date.includes('/')) {
+            // YYYY/MM/DD 格式
+            [year, month, day] = date.split('/');
+          } else {
+            return timeString;
+          }
+          
+          // 确保年月日都有值
+          if (year && month && day) {
+            return `${year}年${month}月${day}日 ${time}`;
+          } else {
+            return timeString;
+          }
+        }
+        
         return timeString;
       } catch (error) {
-        return timeString;
+        return timeString || '时间解析失败';
       }
     },
     // 获取复判分类文字
@@ -2066,8 +2088,9 @@ export default {
   border: 1px solid #ebeef5;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  /* 高度自适应，与左侧内容区域保持一致 */
-  height: 100%;
+  /* 固定高度，与左侧内容区域高度保持一致 */
+  height: 580px;
+  max-height: 580px;
   display: flex;
   flex-direction: column;
 }
@@ -2085,6 +2108,8 @@ export default {
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   /* 固定标题高度，不参与滚动 */
   flex-shrink: 0;
+  height: 55px;
+  box-sizing: border-box;
 }
 
 .timeline-title i {
@@ -2098,6 +2123,8 @@ export default {
   /* 设置滚动容器，占用剩余空间 */
   flex: 1;
   overflow-y: auto;
+  /* 限制最大高度，确保滚动正常工作 */
+  max-height: 525px;
   /* 美化滚动条 */
   scrollbar-width: thin;
   scrollbar-color: #c0c4cc #f5f7fa;
