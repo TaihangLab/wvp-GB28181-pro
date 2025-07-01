@@ -220,7 +220,14 @@
                 </div>
                 <div class="output-params">
                   <div class="param-header">
-                    <span class="header-item">参数名称</span>
+                    <span class="header-item">
+                      参数名称
+                      <el-tooltip 
+                        content="支持输入1～30字中英文、数字或下划线；必须以中英文开头" 
+                        placement="top">
+                        <i class="el-icon-question param-help-icon"></i>
+                      </el-tooltip>
+                    </span>
                     <span class="header-item">数据类型</span>
                     <span class="header-item">参数描述</span>
                     <span class="header-item">是否必填</span>
@@ -244,21 +251,21 @@
                       v-model="param.type" 
                           placeholder="选择类型" 
                       size="small">
-                          <el-option label="布尔值 (bool)" value="bool">
-                            <span style="float: left">bool</span>
-                            <span style="float: right; color: #8492a6; font-size: 13px">true/false</span>
-                          </el-option>
                           <el-option label="字符串 (string)" value="string">
                             <span style="float: left">string</span>
                             <span style="float: right; color: #8492a6; font-size: 13px">文本内容</span>
                           </el-option>
-                          <el-option label="数字 (number)" value="number">
-                            <span style="float: left">number</span>
-                            <span style="float: right; color: #8492a6; font-size: 13px">数值</span>
+                          <el-option label="整数 (int)" value="int">
+                            <span style="float: left">int</span>
+                            <span style="float: right; color: #8492a6; font-size: 13px">整数值</span>
                           </el-option>
-                          <el-option label="数组 (array)" value="array">
-                            <span style="float: left">array</span>
-                            <span style="float: right; color: #8492a6; font-size: 13px">列表数据</span>
+                          <el-option label="浮点数 (float)" value="float">
+                            <span style="float: left">float</span>
+                            <span style="float: right; color: #8492a6; font-size: 13px">小数值</span>
+                          </el-option>
+                          <el-option label="布尔值 (boolean)" value="boolean">
+                            <span style="float: left">boolean</span>
+                            <span style="float: right; color: #8492a6; font-size: 13px">true/false</span>
                           </el-option>
                     </el-select>
                       </div>
@@ -301,62 +308,132 @@
               <!-- 预警条件 -->
               <div class="config-group">
                 <h4 class="group-title">预警条件</h4>
-                <div class="warning-conditions">
-                  <div class="condition-tip">
-                    如果多个模块不满足下面的条件，且条件优先级立即生效的预警
+                <div class="warning-conditions-new">
+                  <div class="condition-description">
+                    <span>如果多模态大模型的输出参数满足下列条件，且条件组关系为</span>
+                    <el-select 
+                      v-model="globalRelation" 
+                      size="small" 
+                      class="relation-select">
+                      <el-option label="且（全部满足）" value="and"></el-option>
+                      <el-option label="或（任意满足）" value="or"></el-option>
+                      <el-option label="非（全不满足）" value="not"></el-option>
+                    </el-select>
+                    <span>，则条件成立并产生预警</span>
                   </div>
                   
-                  <div class="condition-row">
-                    <span class="condition-label">渲染</span>
-                    <span class="condition-operator">条件</span>
-                    <span class="condition-value">条件起值</span>
-                    <span class="condition-actions">操作</span>
+                  <div class="condition-groups">
+                    <div 
+                      v-for="(group, groupIndex) in conditionGroups" 
+                      :key="groupIndex"
+                      class="condition-group">
+                      <div class="group-header">
+                        <span class="group-label">满足</span>
+                                                 <el-select 
+                           v-model="group.relation" 
+                           size="small" 
+                           class="group-relation-select">
+                           <el-option label="且（全部满足）" value="all"></el-option>
+                           <el-option label="或（任意满足）" value="any"></el-option>
+                           <el-option label="非（全不满足）" value="not"></el-option>
+                         </el-select>
+                        <span>条件时，条件组成立</span>
+                        <el-button 
+                          v-if="conditionGroups.length > 1"
+                          type="danger" 
+                          icon="el-icon-delete" 
+                          size="mini" 
+                          circle
+                          @click="removeConditionGroup(groupIndex)"
+                          class="delete-group-btn">
+                        </el-button>
+                      </div>
+                      
+                      <div class="conditions-list">
+                        <div class="condition-row-header">
+                          <span class="header-item">引用参数</span>
+                          <span class="header-item">选择条件</span>
+                          <span class="header-item">条件值</span>
+                          <span class="header-item">操作</span>
+                        </div>
+                        
+                        <div 
+                          v-for="(condition, conditionIndex) in group.conditions" 
+                          :key="conditionIndex"
+                          class="condition-row">
+                          <div class="condition-field">
+                            <el-select 
+                              v-model="condition.field" 
+                              placeholder="请选择参数" 
+                              size="small">
+                              <el-option 
+                                v-for="param in outputParams.filter(p => p.name.trim())" 
+                                :key="param.name" 
+                                :label="param.name" 
+                                :value="param.name">
+                              </el-option>
+                            </el-select>
+                          </div>
+                          <div class="condition-field">
+                            <el-select 
+                              v-model="condition.operator" 
+                              placeholder="请选择" 
+                              size="small">
+                              <el-option label="等于" value="eq"></el-option>
+                              <el-option label="不等于" value="ne"></el-option>
+                              <el-option label="大于" value="gt"></el-option>
+                              <el-option label="小于" value="lt"></el-option>
+                              <el-option label="大于等于" value="gte"></el-option>
+                              <el-option label="小于等于" value="lte"></el-option>
+                              <el-option label="包含" value="contains"></el-option>
+                              <el-option label="不包含" value="not_contains"></el-option>
+                              <el-option label="为空" value="is_empty"></el-option>
+                              <el-option label="不为空" value="is_not_empty"></el-option>
+                            </el-select>
+                          </div>
+                          <div class="condition-field">
+                            <el-input 
+                              v-model="condition.value" 
+                              :placeholder="getValuePlaceholder(condition.operator)" 
+                              size="small"
+                              :disabled="condition.operator === 'is_empty' || condition.operator === 'is_not_empty'">
+                            </el-input>
+                          </div>
+                          <div class="condition-field">
+                            <el-button 
+                              type="danger" 
+                              icon="el-icon-delete" 
+                              size="mini" 
+                              circle
+                              @click="removeCondition(groupIndex, conditionIndex)"
+                              :disabled="group.conditions.length <= 1">
+                            </el-button>
+                          </div>
+                        </div>
+                        
+                        <div class="add-condition-container">
+                          <el-button 
+                            type="text" 
+                            icon="el-icon-plus" 
+                            @click="addCondition(groupIndex)" 
+                            class="add-condition-btn">
+                            添加条件
+                          </el-button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div 
-                    v-for="(condition, index) in warningConditions" 
-                    :key="index" 
-                    class="condition-row condition-item">
-                    <el-select 
-                      v-model="condition.field" 
-                      placeholder="请选择条件" 
-                      size="small">
-                      <el-option 
-                        v-for="param in outputParams" 
-                        :key="param.name" 
-                        :label="param.name" 
-                        :value="param.name">
-                      </el-option>
-                    </el-select>
-                    <el-select 
-                      v-model="condition.operator" 
-                      placeholder="请选择条件" 
-                      size="small">
-                      <el-option label="等于" value="eq"></el-option>
-                      <el-option label="不等于" value="ne"></el-option>
-                      <el-option label="大于" value="gt"></el-option>
-                      <el-option label="小于" value="lt"></el-option>
-                    </el-select>
-                    <el-input 
-                      v-model="condition.value" 
-                      placeholder="请输入" 
-                      size="small">
-                    </el-input>
+                  <div class="add-group-container">
                     <el-button 
-                      type="danger" 
-                      icon="el-icon-delete" 
-                      size="mini" 
-                      @click="removeCondition(index)">
+                      type="primary" 
+                      plain
+                      icon="el-icon-plus" 
+                      @click="addConditionGroup" 
+                      class="add-group-btn">
+                      添加条件组
                     </el-button>
                   </div>
-                  
-                  <el-button 
-                    type="text" 
-                    icon="el-icon-plus" 
-                    @click="addCondition" 
-                    class="add-condition-btn">
-                    添加条件
-                  </el-button>
                 </div>
               </div>
             </div>
@@ -379,11 +456,23 @@
         
         // 输出参数
         outputParams: [
-          { name: '', type: 'bool', description: '', required: true }
+          { name: '', type: 'boolean', description: '', required: true }
         ],
         
         // 预警条件
-        warningConditions: [],
+        globalRelation: 'and', // 条件组之间的关系
+        conditionGroups: [
+          {
+            relation: 'all', // 组内条件关系：all(所有) 或 any(任一)
+            conditions: [
+              {
+                field: '',
+                operator: 'eq',
+                value: ''
+              }
+            ]
+          }
+        ],
         
         // 提示词模板
         promptTemplate: '',
@@ -441,7 +530,7 @@
       addParam() {
         this.outputParams.push({
           name: '',
-          type: 'bool',
+          type: 'boolean',
           description: '',
           required: false
         })
@@ -455,8 +544,8 @@
       },
       
       // 添加预警条件
-      addCondition() {
-        this.warningConditions.push({
+      addCondition(groupIndex) {
+        this.conditionGroups[groupIndex].conditions.push({
           field: '',
           operator: 'eq',
           value: ''
@@ -464,8 +553,31 @@
       },
       
       // 删除预警条件
-      removeCondition(index) {
-        this.warningConditions.splice(index, 1)
+      removeCondition(groupIndex, conditionIndex) {
+        if (this.conditionGroups[groupIndex].conditions.length > 1) {
+          this.conditionGroups[groupIndex].conditions.splice(conditionIndex, 1)
+        }
+      },
+      
+      // 添加条件组
+      addConditionGroup() {
+        this.conditionGroups.push({
+          relation: 'all',
+          conditions: [
+            {
+              field: '',
+              operator: 'eq',
+              value: ''
+            }
+          ]
+        })
+      },
+      
+      // 删除条件组
+      removeConditionGroup(groupIndex) {
+        if (this.conditionGroups.length > 1) {
+          this.conditionGroups.splice(groupIndex, 1)
+        }
       },
       
       // 使用模板
@@ -1231,6 +1343,30 @@
           this.adjustInputWidth(event.target)
           this.updatePromptTemplate()
         }, 10)
+      },
+      
+      // 获取条件值输入框的提示文本
+      getValuePlaceholder(operator) {
+        switch(operator) {
+          case 'is_empty':
+            return '无需输入值'
+          case 'is_not_empty':
+            return '无需输入值'
+          case 'eq':
+          case 'ne':
+            return '请输入比较值'
+          case 'gt':
+          case 'gte':
+            return '请输入数值'
+          case 'lt':
+          case 'lte':
+            return '请输入数值'
+          case 'contains':
+          case 'not_contains':
+            return '请输入包含的内容'
+          default:
+            return '请输入'
+        }
       }
     }
   }
@@ -2062,45 +2198,171 @@
     border-radius: 6px;
     transition: all 0.3s ease;
   }
-  
-  /* 预警条件 */
-  .warning-conditions {
-    border: 1px solid #e4e7ed;
-    border-radius: 4px;
-  }
-  
-  .condition-tip {
-    padding: 10px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #f0f0f0;
+
+  /* 参数帮助图标样式 */
+  .param-help-icon {
+    margin-left: 4px;
+    color: #909399;
     font-size: 12px;
-    color: #606266;
+    cursor: help;
+    transition: color 0.3s ease;
+  }
+
+  .param-help-icon:hover {
+    color: #409eff;
   }
   
-  .condition-row {
-    display: grid;
-    grid-template-columns: 1fr 100px 1fr 60px;
-    gap: 10px;
+  /* 新预警条件样式 */
+  .warning-conditions-new {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    overflow: hidden;
+  }
+
+  .condition-description {
+    display: flex;
     align-items: center;
-    padding: 10px;
+    gap: 8px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+    color: #374151;
+    font-weight: 500;
+    flex-wrap: wrap;
   }
-  
-  .condition-row:first-child {
-    background: #f5f7fa;
+
+  .relation-select {
+    min-width: 140px;
+  }
+
+  .condition-groups {
+    padding: 20px;
+  }
+
+  .condition-group {
+    background: #fafbfc;
+    border: 1px solid #f0f2f5;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .condition-group:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .condition-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 13px;
+    color: #4b5563;
+    font-weight: 500;
+  }
+
+  .group-label {
+    color: #6b7280;
+  }
+
+  .group-relation-select {
+    min-width: 140px;
+  }
+
+  .delete-group-btn {
+    margin-left: auto;
+  }
+
+  .conditions-list {
+    background: white;
+  }
+
+  .condition-row-header {
+    display: grid;
+    grid-template-columns: 1fr 140px 1fr 60px;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
     font-weight: 600;
     font-size: 12px;
-    color: #606266;
-    border-bottom: 1px solid #f0f0f0;
+    color: #6b7280;
   }
-  
-  .condition-item:not(:last-child) {
-    border-bottom: 1px solid #f0f0f0;
+
+  .condition-row {
+    display: grid;
+    grid-template-columns: 1fr 140px 1fr 60px;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s ease;
   }
-  
+
+  .condition-row:hover {
+    background: #f9fafb;
+  }
+
+  .condition-row:last-child {
+    border-bottom: none;
+  }
+
+  .condition-field {
+    display: flex;
+    align-items: center;
+  }
+
+  .condition-field:last-child {
+    justify-content: center;
+  }
+
+  .add-condition-container {
+    padding: 12px 16px;
+    text-align: center;
+    border-top: 1px solid #f3f4f6;
+    background: #fafbfc;
+  }
+
   .add-condition-btn {
-    padding: 8px 15px;
-    margin: 10px;
+    padding: 6px 16px;
+    font-size: 13px;
     color: #409eff;
+    border: none;
+    background: transparent;
+    transition: all 0.3s ease;
+  }
+
+  .add-condition-btn:hover {
+    background: rgba(64, 158, 255, 0.1);
+    color: #296ed8;
+  }
+
+  .add-group-container {
+    padding: 16px 20px;
+    text-align: center;
+    border-top: 1px solid #e5e7eb;
+    background: #f9fafb;
+  }
+
+  .add-group-btn {
+    padding: 8px 20px;
+    font-size: 13px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+  }
+
+  .add-group-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
   }
   
   /* 响应式设计 */
@@ -2125,6 +2387,30 @@
 
     .header-item {
       display: none;
+    }
+
+    .condition-row-header,
+    .condition-row {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .condition-row-header {
+      display: none;
+    }
+
+    .condition-field {
+      margin-bottom: 8px;
+    }
+
+    .condition-description {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .relation-select {
+      min-width: 100%;
     }
   }
 
