@@ -1235,6 +1235,37 @@ export default {
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     },
     
+    // 给时间添加指定秒数
+    addSecondsToTime(timeString, seconds) {
+      try {
+        let date;
+        if (timeString.includes('T')) {
+          date = new Date(timeString);
+        } else if (timeString.includes(' ')) {
+          date = new Date(timeString);
+        } else {
+          date = new Date();
+        }
+        
+        if (isNaN(date.getTime())) {
+          return timeString;
+        }
+        
+        date.setSeconds(date.getSeconds() + seconds);
+        
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const secs = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${secs}`;
+      } catch (error) {
+        return timeString;
+      }
+    },
+    
     // 获取当前用户昵称
     getCurrentUserName() {
       // 实际项目中应该从用户登录信息或Vuex store中获取
@@ -1457,7 +1488,7 @@ export default {
           status: this.convertAlertStatus(apiWarning.status, apiWarning.status_display) || 'pending',
           imageUrl: this.getWarningImageUrl(apiWarning) || null,
           description: apiWarning.alert_description || '无描述信息',
-          operationHistory: this.convertProcessHistory(apiWarning.process, apiWarning.status) || [],
+          operationHistory: this.convertProcessHistory(apiWarning.process, apiWarning.status, this.formatAPITime(apiWarning.alert_time)) || [],
           // 添加额外的API数据字段
           taskId: apiWarning.task_id || null,
           electronicFence: apiWarning.electronic_fence || null,
@@ -1711,8 +1742,8 @@ export default {
             operationType: 'pending',
             status: 'active',
             statusText: '待处理',
-            time: this.getCurrentTime(),
-            description: '系统自动生成的报警信息',
+            time: this.formatAlarmTime(alarmData.alarmTime),
+            description: `系统检测到${alarmData.alarmTypeDescription || '异常情况'}，等待处理人员确认`,
             operator: '系统'
           }]
         };
@@ -1870,60 +1901,37 @@ export default {
     },
     
     // 转换处理历史 - 确保与状态判断逻辑一致
-    convertProcessHistory(processData, apiStatus) {
+    convertProcessHistory(processData, apiStatus, alertTime) {
       try {
         const operationHistory = []
-        
-        // 首先添加预警产生记录（始终存在）
-        operationHistory.push({
-          id: Date.now() + Math.random(),
-          status: 'completed',
-          statusText: '预警产生',
-          time: this.getCurrentTime(),
-          description: '系统检测到异常情况',
-          operationType: 'create',
-          operator: '系统'
-        })
         
         // 处理API返回的步骤（如果存在）
         if (processData && processData.steps && Array.isArray(processData.steps)) {
           processData.steps.forEach((step, index) => {
-            // 跳过"预警产生"步骤，因为已经添加了
-            if (step.step === '预警产生') {
-              return;
-            }
-            
             operationHistory.push({
               id: step.id || (Date.now() + index + 100),
               status: 'completed',
               statusText: step.step || '处理中',
               time: this.formatAPITime(step.time),
               description: step.desc || step.description || '',
-              operationType: 'processing', // 使用processing而不是process，与状态判断一致
+              operationType: step.step === '预警产生' ? 'pending' : 'processing', // 预警产生直接标记为pending状态
               operator: step.operator || '系统'
             })
           })
         }
         
         // 为新预警（待处理状态）添加待处理记录
-        // 只有当API状态为待处理时才添加pending记录
-        if (apiStatus === 1 || apiStatus === undefined || apiStatus === null) {
-          // 检查是否已经有待处理的记录，如果没有则添加
-          const hasPendingRecord = operationHistory.some(record => 
-            record.operationType === 'pending'
-          )
-          
-          if (!hasPendingRecord) {
-            operationHistory.push({
-              id: Date.now() + Math.random() + 1,
-              status: 'active',
-              statusText: '待处理',
-              time: this.getCurrentTime(),
-              description: '预警已产生，等待处理人员确认并开始处理',
-              operationType: 'pending',
-              operator: ''
-            })
-          }
+        // 只有当API状态为待处理且没有现有记录时才添加
+        if ((apiStatus === 1 || apiStatus === undefined || apiStatus === null) && operationHistory.length === 0) {
+          operationHistory.push({
+            id: Date.now() + Math.random(),
+            status: 'active',
+            statusText: '待处理',
+            time: alertTime || this.getCurrentTime(),
+            description: '系统检测到异常情况，等待处理人员确认并开始处理',
+            operationType: 'pending',
+            operator: '系统'
+          })
         }
         
         return operationHistory
@@ -1931,20 +1939,12 @@ export default {
         // 即使出错也要返回基本的历史记录
         return [{
           id: Date.now() + Math.random(),
-          status: 'completed',
-          statusText: '预警产生',
-          time: this.getCurrentTime(),
-          description: '系统检测到异常情况',
-          operationType: 'create',
-          operator: '系统'
-        }, {
-          id: Date.now() + Math.random() + 1,
           status: 'active',
           statusText: '待处理',
-          time: this.getCurrentTime(),
-          description: '预警已产生，等待处理人员确认并开始处理',
+          time: alertTime || this.getCurrentTime(),
+          description: '系统检测到异常情况，等待处理人员确认并开始处理',
           operationType: 'pending',
-          operator: ''
+          operator: '系统'
         }];
       }
     },
