@@ -182,9 +182,7 @@
                     class="analysis-btn">
                     {{ analyzing ? '分析中...' : '开始分析' }}
                   </el-button>
-                  <div class="analysis-tips">
-                    使用多模式大模型服务全程协助，计费时间计费 <el-button type="text">查看工时</el-button>
-                  </div>
+
                 </div>
               </div>
             </div>
@@ -1527,16 +1525,7 @@ export default {
   box-shadow: 0 4px 15px rgba(160, 160, 160, 0.4);
 }
 
-.analysis-tips {
-  font-size: 12px;
-  color: #909399;
-}
 
-.analysis-tips .el-button {
-  padding: 0;
-  font-size: 12px;
-  color: #3b82f6;
-}
 
 .result-content {
   flex: 1;
