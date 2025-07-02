@@ -482,8 +482,8 @@ export default {
       const newStatus = this.skillData.status === 'online' ? 'offline' : 'online'
       const updatedSkill = { ...this.skillData, status: newStatus }
       
-      // 使用数据管理器更新技能状态
-      if (skillDataManager.updateSkill(updatedSkill)) {
+      // 更新技能状态
+      if (this.updateSkillToStorage(updatedSkill)) {
         this.skillData.status = newStatus
         this.$message.success(`技能已${newStatus === 'online' ? '上线' : '下线'}`)
       } else {
@@ -553,7 +553,7 @@ export default {
       
       // 确保 ID 存在
       if (!updatedSkill.id) {
-        updatedSkill.id = skillDataManager.generateSkillId()
+        updatedSkill.id = this.generateSkillId()
         this.currentSkillId = updatedSkill.id
       }
       
@@ -561,7 +561,7 @@ export default {
       
       if (this.isCreateMode || !this.currentSkillId) {
         // 创建新技能
-        const newSkill = skillDataManager.addSkill(updatedSkill)
+        const newSkill = this.addSkillToStorage(updatedSkill)
         if (newSkill) {
           this.skillData = { ...newSkill }
           this.currentSkillId = newSkill.id
@@ -569,7 +569,7 @@ export default {
         }
       } else {
         // 更新现有技能
-        success = skillDataManager.updateSkill(updatedSkill)
+        success = this.updateSkillToStorage(updatedSkill)
         if (success) {
           this.skillData = { ...updatedSkill }
         }

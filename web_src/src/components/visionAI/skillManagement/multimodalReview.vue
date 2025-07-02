@@ -467,6 +467,8 @@ export default {
   created() {
     // 初始化数据
     this.loadSkillsData()
+    // 立即同步到 localStorage
+    this.syncToLocalStorage()
   },
   
   mounted() {
