@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    title="创建技能（多模态大模型生成）"
+    :title="isEditMode ? '编辑技能（多模态大模型生成）' : '创建技能（多模态大模型生成）'"
     :visible.sync="dialogVisible"
     width="55%"
     @close="handleClose"
@@ -36,7 +36,7 @@
                   placeholder="请输入技能名称"
                   maxlength="30"
                   show-word-limit
-                  @input="generateSkillId">
+                  @input="!isEditMode && generateSkillId()">
                 </el-input>
                 <div class="form-tip">
                   仅支持数字、中文、大小写英文字母、非特殊符号，不允许空格，不可重复
@@ -48,12 +48,13 @@
               <el-form-item label="技能ID" prop="skillId">
                 <el-input 
                   v-model="form.skillId" 
-                  placeholder="系统自动生成或手动输入"
+                  :placeholder="isEditMode ? '编辑模式下不可修改' : '系统自动生成或手动输入'"
+                  :disabled="isEditMode"
                   maxlength="40"
                   show-word-limit>
                 </el-input>
                 <div class="form-tip">
-                  支持大小写字母、数字、下划线和中划线，必须以英文或数字开头
+                  {{ isEditMode ? '编辑模式下技能ID不可修改' : '支持大小写字母、数字、下划线和中划线，必须以英文或数字开头' }}
                 </div>
               </el-form-item>
             </el-col>
@@ -201,7 +202,7 @@
     <span slot="footer" class="dialog-footer">
       <el-button @click="handleClose" size="medium">取消</el-button>
       <el-button type="primary" @click="handleConfirm" :loading="loading" size="medium">
-        下一步：详细配置
+        {{ isEditMode ? '下一步：更新配置' : '下一步：详细配置' }}
         <i class="el-icon-arrow-right"></i>
       </el-button>
     </span>
@@ -209,6 +210,8 @@
 </template>
 
 <script>
+import { skillAPI } from '@/components/service/VisionAIService.js'
+
 export default {
   name: 'LlmSkillCreateDialog',
   data() {
@@ -234,13 +237,16 @@ export default {
     return {
       dialogVisible: false,
       loading: false,
+      isEditMode: false, // 是否为编辑模式
+      editData: null, // 编辑时的原始数据
       form: {
         name: '',
         skillId: generateRandomSkillId(),
         scenario: '',
         tags: '',
         description: '',
-        iconUrl: ''
+        iconUrl: '',
+        iconFile: null // 保存原始图标文件
       },
       rules: {
         name: [
@@ -269,7 +275,27 @@ export default {
   methods: {
     show() {
       this.dialogVisible = true
+      this.isEditMode = false
+      this.editData = null
       this.resetForm()
+    },
+
+    // 显示编辑对话框
+    showEdit(editData) {
+      this.dialogVisible = true
+      this.isEditMode = true
+      this.editData = editData
+      
+      // 填充表单数据
+      this.form = {
+        name: editData.name || '',
+        skillId: editData.skillId || '',
+        scenario: editData.scenario || '',
+        tags: editData.tags || '',
+        description: editData.description || '',
+        iconUrl: editData.iconUrl || '',
+        iconFile: null
+      }
     },
     
     hide() {
@@ -278,17 +304,23 @@ export default {
     
     handleClose() {
       this.dialogVisible = false
+      // 清理编辑状态
+      this.isEditMode = false
+      this.editData = null
       // 关闭时不重置表单，保留用户输入的数据
     },
     
     resetForm() {
+      this.isEditMode = false
+      this.editData = null
       this.form = {
         name: '',
         skillId: this.generateRandomSkillId(),
         scenario: '',
         tags: '',
         description: '',
-        iconUrl: ''
+        iconUrl: '',
+        iconFile: null
       }
       this.loading = false
       if (this.$refs.createForm) {
@@ -358,24 +390,100 @@ export default {
       }
 
       if (file.raw) {
+        // 保存原始文件用于上传
+        this.form.iconFile = file.raw
+        // 创建预览URL
         this.form.iconUrl = URL.createObjectURL(file.raw)
       }
     },
     
-    handleConfirm() {
-      this.$refs.createForm.validate((valid) => {
+    async handleConfirm() {
+      this.$refs.createForm.validate(async (valid) => {
         if (valid) {
           this.loading = true
           
-          // 模拟数据验证
-          setTimeout(() => {
+          try {
+            let skillIcon = null
+            
+            // 如果有图标文件，先上传图标
+            if (this.form.iconFile) {
+              console.log('正在上传技能图标...')
+              const uploadResponse = await skillAPI.uploadLlmSkillIcon(this.form.iconFile, this.form.skillId)
+              
+              console.log('图标上传响应:', uploadResponse.data)
+              
+              if (uploadResponse.data && uploadResponse.data.success && uploadResponse.data.data) {
+                skillIcon = uploadResponse.data.data.object_name
+                console.log('图标上传成功:', skillIcon)
+              } else {
+                throw new Error('图标上传失败')
+              }
+            }
+            
+            if (this.isEditMode) {
+              // 编辑模式：合并基础信息和详细配置数据
+              const skillInfo = {
+                ...this.editData, // 保留原有的详细配置数据
+                // 更新基础信息
+                name: this.form.name,
+                skillId: this.form.skillId,
+                scenario: this.form.scenario,
+                tags: this.form.tags,
+                description: this.form.description,
+                iconUrl: this.form.iconUrl,
+                skillIcon: skillIcon || this.editData.skillIcon // 如果有新图标则使用新的，否则保留原有的
+              }
+              
+              // 将更新后的技能信息存储到本地存储
+              localStorage.setItem('editSkillInfo', JSON.stringify(skillInfo))
+              
+              this.loading = false
+              this.$message.success('基础信息更新成功！')
+              this.$emit('confirm', skillInfo)
+              this.hide()
+              
+              // 跳转到详细配置页面
+              this.$router.push({
+                name: 'multimodalCreateDetail',
+                query: { mode: 'edit' }
+              })
+            } else {
+              // 创建模式：准备传递给详细配置页面的数据
+              const skillInfo = {
+                name: this.form.name,
+                skillId: this.form.skillId,
+                scenario: this.form.scenario,
+                tags: this.form.tags,
+                description: this.form.description,
+                iconUrl: this.form.iconUrl,
+                skillIcon: skillIcon // MinIO对象名称
+              }
+              
+              // 将技能信息存储到本地存储，供详细配置页面使用
+              localStorage.setItem('tempSkillInfo', JSON.stringify(skillInfo))
+              
+              this.loading = false
+              this.$message.success('基础信息保存成功！')
+              this.$emit('confirm', skillInfo)
+              this.hide()
+              
+              // 成功提交后重置表单
+              this.resetForm()
+            }
+            
+          } catch (error) {
+            console.error('保存基础信息失败:', error)
             this.loading = false
-            this.$message.success('基础信息保存成功！')
-            this.$emit('confirm', this.form)
-            this.hide()
-            // 成功提交后重置表单
-            this.resetForm()
-          }, 1000)
+            
+            // 根据错误类型显示不同的错误信息
+            if (error.message.includes('图标上传失败')) {
+              this.$message.error('图标上传失败，请重试')
+            } else if (error.response && error.response.data && error.response.data.detail) {
+              this.$message.error(`保存失败: ${error.response.data.detail}`)
+            } else {
+              this.$message.error('保存基础信息失败，请检查网络连接')
+            }
+          }
         } else {
           this.$message.warning('请完善必填信息')
           return false
@@ -765,6 +873,18 @@ export default {
   border-color: #e5e7eb;
   color: #6b7280;
   font-weight: 500;
+}
+
+/* 编辑模式下的禁用样式 */
+.create-form >>> .el-input.is-disabled .el-input__inner {
+  background-color: #f5f7fa;
+  border-color: #e4e7ed;
+  color: #c0c4cc;
+  cursor: not-allowed;
+}
+
+.create-form >>> .el-input.is-disabled .el-input__inner::placeholder {
+  color: #c0c4cc;
 }
 
 /* 响应式设计 */

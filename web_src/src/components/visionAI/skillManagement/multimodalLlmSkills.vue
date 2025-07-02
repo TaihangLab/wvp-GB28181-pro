@@ -11,11 +11,9 @@
             <el-button 
               icon="el-icon-delete" 
               :disabled="selectedSkills.length === 0"
+              :loading="batchDeleting"
               @click="batchDelete">
-              批量删除
-            </el-button>
-            <el-button icon="el-icon-upload2" @click="importSkill">
-              导入技能
+              {{ batchDeleting ? '删除中...' : '批量删除' }}
             </el-button>
           </div>
 
@@ -31,28 +29,22 @@
             </el-select>
             
             <el-select 
-              v-model="filterModel" 
-              placeholder="模型类型" 
-              class="select-model" 
+              v-model="filterType" 
+              placeholder="技能类型" 
+              class="select-type" 
               clearable 
               @change="handleFilter">
-              <el-option label="GPT-4V" value="gpt-4v"></el-option>
-              <el-option label="Claude-3" value="claude-3"></el-option>
-              <el-option label="Gemini Pro Vision" value="gemini-pro-vision"></el-option>
-              <el-option label="自定义模型" value="custom"></el-option>
-            </el-select>
-            
-            <el-select
-              v-model="filterTag"
-              placeholder="技能标签"
-              class="select-tag"
-              clearable
-              @change="handleFilter">
-              <el-option
-                v-for="tag in availableTags"
-                :key="tag"
-                :label="tag"
-                :value="tag">
+              <el-option label="多模态检测" value="multimodal_detection">
+                <span style="float: left">多模态检测</span>
+                <span style="float: right; color: #8492a6; font-size: 13px">检测分析</span>
+              </el-option>
+              <el-option label="多模态分析" value="multimodal_analysis">
+                <span style="float: left">多模态分析</span>
+                <span style="float: right; color: #8492a6; font-size: 13px">综合分析</span>
+              </el-option>
+              <el-option label="多模态复判" value="multimodal_review">
+                <span style="float: left">多模态复判</span>
+                <span style="float: right; color: #8492a6; font-size: 13px">二次复判</span>
               </el-option>
             </el-select>
 
@@ -98,7 +90,33 @@
 
         <!-- 技能卡片网格 -->
         <div class="skills-container">
-          <div class="skills-grid">
+          <!-- 加载状态 -->
+          <div v-if="loading" class="loading-container">
+            <el-loading 
+              :loading="loading"
+              text="正在加载技能列表..."
+              spinner="el-icon-loading"
+              background="rgba(255, 255, 255, 0.8)">
+            </el-loading>
+          </div>
+          
+          <!-- 空状态 -->
+          <div v-else-if="!loading && skills.length === 0" class="empty-container">
+            <div class="empty-content">
+              <i class="el-icon-document-remove empty-icon"></i>
+              <div class="empty-text">暂无技能数据</div>
+              <div class="empty-tips">
+                {{ searchKeyword ? '请尝试调整搜索条件' : '点击"创建技能"开始创建您的第一个多模态技能' }}
+              </div>
+              <el-button v-if="!searchKeyword" type="primary" @click="createSkill" class="empty-action">
+                <i class="el-icon-plus"></i>
+                创建技能
+              </el-button>
+            </div>
+          </div>
+          
+          <!-- 技能卡片列表 -->
+          <div v-else class="skills-grid">
             <div 
               v-for="skill in paginatedSkills" 
               :key="skill.id" 
@@ -150,9 +168,9 @@
                 </div>
                 <div class="model-row">
                   <i class="el-icon-cpu model-icon"></i>
-                  <span class="model-label">模型类型</span>
-                  <el-tag size="mini" :type="getModelTagType(skill.model)">
-                    {{ getModelDisplayName(skill.model) }}
+                  <span class="model-label">技能类型</span>
+                  <el-tag size="mini" :type="getSkillTypeTagType(skill.type)">
+                    {{ getSkillTypeDisplayName(skill.type) }}
                   </el-tag>
                 </div>
                 <div class="tag-row" v-if="skill.tags">
@@ -168,10 +186,11 @@
                 <el-button size="small" @click="editSkill(skill)">编辑</el-button>
                 <el-button 
                   size="small" 
+                  :loading="skillStatusLoading[skill.id]"
+                  :type="skill.status === 'enabled' ? 'warning' : 'success'"
                   @click="toggleSkillStatus(skill)">
                   {{ skill.status === 'enabled' ? '下架' : '发布' }}
                 </el-button>
-                <el-button size="small" @click="testSkill(skill)">测试</el-button>
                 <el-button size="small" @click="deleteSkill(skill)">删除</el-button>
               </div>
             </div>
@@ -309,51 +328,7 @@
       </span>
     </el-dialog>
 
-    <!-- 技能测试对话框 -->
-    <el-dialog 
-      title="技能测试"
-      :visible.sync="testDialogVisible"
-      width="70%">
-      <div class="test-container">
-        <div class="test-input">
-          <h4>输入测试内容</h4>
-          <el-upload
-            class="upload-demo"
-            drag
-            action="#"
-            :auto-upload="false"
-            :on-change="handleTestFileChange"
-            :limit="1"
-            accept="image/*">
-            <i class="el-icon-upload"></i>
-            <div class="el-upload__text">将图片拖拽到此处，或<em>点击上传</em></div>
-            <div class="el-upload__tip" slot="tip">支持jpg、png格式图片</div>
-          </el-upload>
-          
-          <el-input 
-            v-model="testQuery"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入测试问题">
-          </el-input>
-          
-          <el-button 
-            type="primary" 
-            @click="runTest" 
-            :loading="testing"
-            style="margin-top: 10px;">
-            开始测试
-          </el-button>
-        </div>
 
-        <div class="test-result" v-if="testResult">
-          <h4>测试结果</h4>
-          <div class="result-content">
-            {{ testResult }}
-          </div>
-        </div>
-      </div>
-    </el-dialog>
 
     <!-- 设备列表弹窗 -->
     <el-dialog
@@ -417,83 +392,196 @@
     <el-dialog
       title="技能详情"
       :visible.sync="detailDialogVisible"
-      width="720px"
+      width="900px"
       :close-on-click-modal="false">
-      <div class="detail-content">
-        <!-- 头部信息 -->
-        <div class="detail-header">
-          <div class="header-content">
-            <div class="detail-image">
-              <img :src="detailSkill.image_url || '/static/logo.png'" alt="技能图片" />
-            </div>
-            <div class="header-info">
-              <div class="title-row">
-                <h3 class="detail-title">{{ detailSkill.name }}</h3>
-                <div class="skill-type-tag">多模态大模型</div>
+      <div class="detail-content" v-loading="detailLoading" element-loading-text="正在加载技能详情...">
+        <div v-if="!detailLoading">
+          <!-- 头部信息 -->
+          <div class="detail-header">
+            <div class="header-content">
+              <div class="detail-image">
+                <img :src="detailSkill.iconUrl || '/static/logo.png'" alt="技能图标" />
               </div>
-              <div class="meta-row">
-                <div class="id-badge">
-                  <i class="el-icon-postcard"></i>
-                  <span>{{ detailSkill.id }}</span>
+              <div class="header-info">
+                <div class="title-row">
+                  <h3 class="detail-title">{{ detailSkill.name }}</h3>
+                  <div class="skill-type-tag">多模态大模型</div>
                 </div>
-                <div class="status-badge" :class="detailSkill.status === 'enabled' ? 'published' : 'unpublished'">
-                  <i class="el-icon-circle-check"></i>
-                  <span>{{ detailSkill.status === 'enabled' ? '已发布' : '未发布' }}</span>
+                <div class="meta-row">
+                  <div class="id-badge">
+                    <i class="el-icon-postcard"></i>
+                    <span>{{ detailSkill.skillId }}</span>
+                  </div>
+                  <div class="status-badge" :class="detailSkill.status === 'enabled' ? 'published' : 'unpublished'">
+                    <i class="el-icon-circle-check"></i>
+                    <span>{{ detailSkill.status === 'enabled' ? '已发布' : '未发布' }}</span>
+                  </div>
+                  <div class="version-badge">
+                    <i class="el-icon-medal"></i>
+                    <span>v{{ detailSkill.version }}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- 信息详情 -->
-        <div class="detail-info-section">
-          <div class="info-group">
-            <h4 class="group-title">
-              <i class="el-icon-info"></i>
-              基本信息
-            </h4>
-            <div class="info-grid">
-              <div class="info-item">
-                <i class="el-icon-star-on item-icon"></i>
-                <span class="item-label">技能类型</span>
-                <span class="item-value skill-type-highlight">多模态大模型</span>
-              </div>
-              <div class="info-item">
-                <i class="el-icon-cpu item-icon"></i>
-                <span class="item-label">模型类型</span>
-                <span class="item-value">{{ getModelDisplayName(detailSkill.model) }}</span>
-              </div>
-              <div class="info-item" v-if="detailSkill.tags">
-                <i class="el-icon-price-tag item-icon"></i>
-                <span class="item-label">技能标签</span>
-                <span class="item-value">{{ detailSkill.tags }}</span>
-              </div>
-              <div class="info-item clickable-item" @click="showDeviceList(detailSkill)">
-                <i class="el-icon-link item-icon"></i>
-                <span class="item-label">关联设备</span>
-                <span class="item-value">{{ detailSkill.deviceCount || 0 }} 台</span>
-                <i class="el-icon-arrow-right item-arrow"></i>
-              </div>
-              <div class="info-item">
-                <i class="el-icon-date item-icon"></i>
-                <span class="item-label">创建时间</span>
-                <span class="item-value">{{ detailSkill.createdAt }}</span>
-              </div>
-              <div class="info-item">
-                <i class="el-icon-refresh item-icon"></i>
-                <span class="item-label">最后更新</span>
-                <span class="item-value">{{ detailSkill.updatedAt }}</span>
+          <!-- 详细信息 -->
+          <div class="detail-info-section">
+            <!-- 基本信息 -->
+            <div class="info-group">
+              <h4 class="group-title">
+                <i class="el-icon-info"></i>
+                基本信息
+              </h4>
+              <div class="info-grid">
+                <div class="info-item">
+                  <i class="el-icon-cpu item-icon"></i>
+                  <span class="item-label">技能类型</span>
+                  <el-tag size="small" :type="getSkillTypeTagType(detailSkill.type)">
+                    {{ getSkillTypeDisplayName(detailSkill.type) }}
+                  </el-tag>
+                </div>
+                <div class="info-item" v-if="detailSkill.scenario">
+                  <i class="el-icon-view item-icon"></i>
+                  <span class="item-label">应用场景</span>
+                  <span class="item-value">{{ getScenarioDisplayName(detailSkill.scenario) }}</span>
+                </div>
+                <div class="info-item" v-if="detailSkill.tags">
+                  <i class="el-icon-price-tag item-icon"></i>
+                  <span class="item-label">技能标签</span>
+                  <span class="item-value">{{ detailSkill.tags }}</span>
+                </div>
+                <div class="info-item clickable-item" @click="showDeviceList(detailSkill)">
+                  <i class="el-icon-link item-icon"></i>
+                  <span class="item-label">关联设备</span>
+                  <span class="item-value">{{ detailSkill.deviceCount || 0 }} 台</span>
+                  <i class="el-icon-arrow-right item-arrow"></i>
+                </div>
+                <div class="info-item">
+                  <i class="el-icon-date item-icon"></i>
+                  <span class="item-label">创建时间</span>
+                  <span class="item-value">{{ detailSkill.createdAt }}</span>
+                </div>
+                <div class="info-item">
+                  <i class="el-icon-refresh item-icon"></i>
+                  <span class="item-label">最后更新</span>
+                  <span class="item-value">{{ detailSkill.updatedAt }}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="info-group">
-            <h4 class="group-title">
-              <i class="el-icon-document"></i>
-              技能描述
-            </h4>
-            <div class="description-content">
-              {{ detailSkill.description }}
+            <!-- 技能描述 -->
+            <div class="info-group">
+              <h4 class="group-title">
+                <i class="el-icon-document"></i>
+                技能描述
+              </h4>
+              <div class="description-content">
+                {{ detailSkill.description }}
+              </div>
+            </div>
+
+            <!-- 提示词模板 -->
+            <div class="info-group" v-if="detailSkill.promptTemplate">
+              <h4 class="group-title">
+                <i class="el-icon-chat-line-square"></i>
+                提示词模板
+              </h4>
+              <div class="prompt-template-content">
+                <pre class="prompt-template">{{ detailSkill.promptTemplate }}</pre>
+              </div>
+            </div>
+
+            <!-- 输出参数 -->
+            <div class="info-group" v-if="detailSkill.outputParameters && detailSkill.outputParameters.length > 0">
+              <h4 class="group-title">
+                <i class="el-icon-data-line"></i>
+                输出参数
+              </h4>
+              <div class="output-params-content">
+                <el-table :data="detailSkill.outputParameters" style="width: 100%" size="small">
+                  <el-table-column prop="name" label="参数名称" width="150">
+                    <template slot-scope="scope">
+                      <el-tag size="mini" type="info">{{ scope.row.name }}</el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="type" label="数据类型" width="100">
+                    <template slot-scope="scope">
+                      <span class="param-type">{{ scope.row.type }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="description" label="参数描述">
+                    <template slot-scope="scope">
+                      <span>{{ scope.row.description || '暂无描述' }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="required" label="是否必填" width="80">
+                    <template slot-scope="scope">
+                      <el-tag size="mini" :type="scope.row.required ? 'warning' : 'info'">
+                        {{ scope.row.required ? '必填' : '可选' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+
+            <!-- 预警条件 -->
+            <div class="info-group" v-if="detailSkill.alertConditions">
+              <h4 class="group-title">
+                <i class="el-icon-warning"></i>
+                预警条件
+              </h4>
+              <div class="alert-conditions-content">
+                <div class="condition-summary">
+                  <span>当满足</span>
+                  <el-tag size="small" type="primary">
+                    {{ getRelationDisplayName(detailSkill.alertConditions.global_relation) }}
+                  </el-tag>
+                  <span>条件组时触发预警</span>
+                </div>
+                <div class="condition-groups" v-if="detailSkill.alertConditions.condition_groups">
+                  <div 
+                    v-for="(group, index) in detailSkill.alertConditions.condition_groups" 
+                    :key="index"
+                    class="condition-group">
+                    <div class="group-header">
+                      <span>条件组 {{ index + 1 }} ({{ getRelationDisplayName(group.relation) }})</span>
+                    </div>
+                    <div class="conditions-list">
+                      <div 
+                        v-for="(condition, condIndex) in group.conditions" 
+                        :key="condIndex"
+                        class="condition-item">
+                        <span class="condition-field">{{ condition.field }}</span>
+                        <span class="condition-operator">{{ getOperatorDisplayName(condition.operator) }}</span>
+                        <span class="condition-value" v-if="condition.value !== undefined && condition.value !== ''">{{ condition.value }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 关联任务 -->
+            <div class="info-group" v-if="detailSkill.tasks && detailSkill.tasks.length > 0">
+              <h4 class="group-title">
+                <i class="el-icon-s-operation"></i>
+                关联任务
+              </h4>
+              <div class="related-tasks-content">
+                <el-table :data="detailSkill.tasks" style="width: 100%" size="small">
+                  <el-table-column prop="id" label="任务ID" width="80"></el-table-column>
+                  <el-table-column prop="name" label="任务名称" width="200"></el-table-column>
+                  <el-table-column prop="status" label="状态" width="100">
+                    <template slot-scope="scope">
+                      <el-tag size="mini" :type="scope.row.status ? 'success' : 'info'">
+                        {{ scope.row.status ? '运行中' : '已停止' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
             </div>
           </div>
         </div>
@@ -508,6 +596,7 @@
 
 <script>
 import LlmSkillCreateDialog from './LlmSkillCreateDialog.vue'
+import { skillAPI } from '@/components/service/VisionAIService.js'
 
 export default {
   name: 'MultimodalLlmSkills',
@@ -520,13 +609,9 @@ export default {
       searchInput: '',
       searchKeyword: '',
       filterStatus: '',
-      filterModel: '',
-      filterTag: '',
+      filterType: '',
       sortType: 'time', // 'time' 或 'name'
       sortOrder: 'desc', // 'asc' 或 'desc'
-      
-      // 可用标签列表
-      availableTags: ['事件检测', '安全监控', '质量检测', '行为识别', '场景分析'],
 
       // 分页
       currentPage: 1,
@@ -550,10 +635,8 @@ export default {
 
       // 对话框
       skillDialogVisible: false,
-      testDialogVisible: false,
       editingSkill: null,
       saving: false,
-      testing: false,
 
       // 表单数据
       skillForm: {
@@ -583,218 +666,15 @@ export default {
         ]
       },
 
-      // 测试相关
-      testQuery: '',
-      testResult: '',
-      testFile: null,
+
+
+      // 数据加载状态
+      loading: false,
+      skillStatusLoading: {}, // 跟踪每个技能的发布/下架loading状态
+      batchDeleting: false, // 批量删除loading状态
 
       // 技能数据
-      skills: [
-        {
-          id: 'skill_001',
-          name: '煤矿井下人员安全帽佩戴检测',
-          description: '基于GPT-4V的煤矿井下作业人员安全帽佩戴状态智能识别技能，能够实时检测作业人员是否正确佩戴安全帽，识别安全帽颜色、型号是否符合规范，检测安全帽破损、松动等异常情况，并能区分不同工种人员的安全帽标准要求',
-          model: 'gpt-4v',
-          status: 'enabled',
-          tags: '安全监控',
-          accuracy: 97.8,
-          callCount: 15234,
-          deviceCount: 128,
-          systemPrompt: '你是一个煤矿安全监控专家，专门负责检测井下作业人员的安全帽佩戴情况。你需要识别：1）安全帽是否正确佩戴；2）安全帽颜色是否符合工种要求（白色-管理人员，黄色-普通工人，红色-安全员）；3）安全帽是否有破损、变形；4）帽带是否系紧；5）是否存在多人未佩戴的群体性违规。',
-          userPromptTemplate: '请仔细分析这张煤矿井下监控画面：{image}。检测画面中所有人员的安全帽佩戴情况，包括：佩戴状态、颜色规范性、破损情况、帽带系紧状态。如发现违规，请详细描述违规人员位置、违规类型和风险等级。',
-          maxTokens: 1200,
-          temperature: 0.2,
-          createdAt: '2024-01-15 14:32:18',
-          updatedAt: '2024-01-20 09:45:33'
-        },
-        {
-          id: 'skill_002',
-          name: '城市道路机动车违停抓拍识别',
-          description: '基于Claude-3的城市道路机动车违法停车智能抓拍识别技能，能够精确识别禁停区域违停、消防通道占用、人行横道违停、公交站台违停等多种违停行为，自动提取车牌号码、车辆类型、违停时长，并生成标准化违法证据链',
-          model: 'claude-3',
-          status: 'enabled',
-          tags: '事件检测',
-          accuracy: 94.3,
-          callCount: 28756,
-          deviceCount: 186,
-          systemPrompt: '你是一个交通违法识别专家，专门负责识别机动车违法停车行为。你需要准确判断：1）车辆是否在禁停区域停车；2）是否占用消防通道、盲道、人行横道；3）是否在公交站台、学校门口等特殊区域违停；4）车牌号码识别；5）车辆类型分类；6）违停持续时间评估。',
-          userPromptTemplate: '分析这张城市道路监控画面：{image}。识别画面中是否存在机动车违法停车行为，包括：违停位置、车牌号码、车辆类型、违停性质（临时停车/长时间停放）、是否影响交通通行。请提供详细的违法事实描述。',
-          maxTokens: 1500,
-          temperature: 0.3,
-          createdAt: '2024-01-10 16:28:45',
-          updatedAt: '2024-01-18 11:22:17'
-        },
-        {
-          id: 'skill_003',
-          name: '电子制造业PCB板焊点质量检测',
-          description: '基于Gemini Pro Vision的电子制造业PCB电路板焊点质量智能检测技能，能够识别虚焊、漏焊、桥接、焊点偏移、焊料过多/过少等缺陷，检测元器件贴装位置偏差、极性错误，并能对焊点光泽度、形状规整度进行评估',
-          model: 'gemini-pro-vision',
-          status: 'enabled',
-          tags: '质量检测',
-          accuracy: 96.7,
-          callCount: 45892,
-          deviceCount: 89,
-          systemPrompt: '你是一个电子制造业质量检测专家，专门负责PCB板焊点质量检测。你需要识别：1）焊点缺陷（虚焊、漏焊、桥接、冷焊）；2）焊料问题（过多、过少、形状不规整）；3）元器件贴装问题（位置偏移、极性错误、缺件）；4）焊点光泽度和表面质量；5）整体焊接工艺水平评估。',
-          userPromptTemplate: '请检测这张PCB电路板的焊接质量：{image}。重点检查所有可见焊点的质量状况，包括：焊点完整性、焊料分布、元器件贴装精度、是否存在桥接或虚焊。对发现的缺陷进行分类标注，并评估整体质量等级。',
-          maxTokens: 1800,
-          temperature: 0.4,
-          createdAt: '2024-01-12 10:15:22',
-          updatedAt: '2024-01-19 15:38:41'
-        },
-        {
-          id: 'skill_004',
-          name: '中小学校园学生打架斗殴行为识别',
-          description: '专用于中小学校园安全的学生打架斗殴行为智能识别技能，能够识别学生间的推搡、拳打脚踢、群体冲突等暴力行为，区分正常嬉戏与真实冲突，检测围观起哄、教师介入等相关情况，并能评估冲突激烈程度和紧急程度',
-          model: 'gpt-4v',
-          status: 'disabled',
-          tags: '行为识别',
-          accuracy: 89.4,
-          callCount: 3456,
-          deviceCount: 67,
-          systemPrompt: '你是一个校园安全监控专家，专门识别学生打架斗殴行为。你需要准确区分：1）真实的暴力冲突与正常的体育活动、游戏嬉戏；2）冲突的激烈程度（轻微推搡、拳脚相向、使用器械）；3）参与人数（单打独斗、群体冲突）；4）是否有围观起哄；5）教师或保安是否在场介入；6）冲突发生的具体位置。',
-          userPromptTemplate: '分析这张校园监控画面：{image}。判断是否存在学生打架斗殴行为，区分正常活动与暴力冲突。如发现冲突，请描述：参与学生数量、冲突激烈程度、发生位置、是否需要紧急介入，并评估事件的严重等级。',
-          maxTokens: 1000,
-          temperature: 0.5,
-          createdAt: '2024-01-08 13:47:56',
-          updatedAt: '2024-01-16 08:12:29'
-        },
-        {
-          id: 'skill_005',
-          name: '科技园区外来访客身份验证与行为监控',
-          description: '基于自定义模型的科技园区外来访客身份验证与行为监控技能，能够识别访客证件佩戴情况、陪同人员身份、访问区域权限匹配，检测可疑拍照录像行为、长时间逗留、偏离预定路线等异常行为，并能识别携带物品的安全性',
-          model: 'custom',
-          status: 'enabled',
-          tags: '场景分析',
-          accuracy: 93.6,
-          callCount: 18934,
-          deviceCount: 156,
-          systemPrompt: '你是一个科技园区安全管理专家，专门负责外来访客的身份验证和行为监控。你需要识别：1）访客是否佩戴访客证/临时证件；2）是否有园区员工陪同；3）访客行为是否异常（拍照、录像、长时间逗留）；4）是否进入非授权区域；5）携带物品是否可疑；6）访客着装和行为是否符合商务访问规范。',
-          userPromptTemplate: '分析这张科技园区监控画面：{image}。检查画面中的访客身份验证情况和行为表现，包括：证件佩戴、陪同情况、行为是否异常、所在区域是否合规、携带物品情况。如发现异常，请详细描述异常类型和建议处理措施。',
-          maxTokens: 1300,
-          temperature: 0.3,
-          createdAt: '2024-01-05 09:23:14',
-          updatedAt: '2024-01-21 16:55:42'
-        },
-                 {
-           id: 'skill_006',
-           name: '高速公路货车超载违法检测',
-           description: '基于GPT-4V的高速公路货车超载违法智能检测技能，能够通过车辆外观特征判断货车装载状态，识别车厢超高、超宽、货物遗撒、车辆倾斜等超载征象，检测货车轮胎变形程度，并能区分不同货车类型的载重标准',
-           model: 'gpt-4v',
-           status: 'enabled',
-           tags: '事件检测',
-           accuracy: 91.2,
-           callCount: 12567,
-           deviceCount: 78,
-           systemPrompt: '你是一个高速公路货车超载检测专家，专门通过视觉特征判断货车是否超载。你需要识别：1）货车车厢是否超高超宽；2）车辆是否明显倾斜或下沉；3）轮胎是否严重变形；4）货物是否有遗撒风险；5）车辆类型和对应的载重标准；6）超载的严重程度评估。',
-           userPromptTemplate: '分析这张高速公路监控画面：{image}。检测画面中的货车是否存在超载违法行为，重点观察：车辆外观变化、货厢装载状态、轮胎变形情况、车辆行驶姿态。如发现超载征象，请描述具体表现和超载程度评估。',
-           maxTokens: 1100,
-           temperature: 0.3,
-           createdAt: '2024-01-14 11:45:23',
-           updatedAt: '2024-01-22 14:28:56'
-         },
-         {
-           id: 'skill_007',
-           name: '医院手术室无菌操作规范检测',
-           description: '基于Claude-3的医院手术室无菌操作规范智能监控技能，能够识别医护人员手术服穿戴规范、口罩佩戴、手套更换、器械消毒、无菌区域维护等关键操作，检测交叉感染风险行为，确保手术室无菌环境标准',
-           model: 'claude-3',
-           status: 'enabled',
-           tags: '质量检测',
-           accuracy: 98.1,
-           callCount: 8934,
-           deviceCount: 45,
-           systemPrompt: '你是一个医院感染控制专家，专门监控手术室无菌操作规范。你需要识别：1）医护人员手术服、帽子、口罩、手套穿戴是否规范；2）是否正确执行手部消毒程序；3）器械和设备消毒是否到位；4）无菌区域是否被污染；5）人员流动是否符合无菌原则；6）废物处理是否规范。',
-           userPromptTemplate: '分析这张手术室监控画面：{image}。检查医护人员的无菌操作规范，包括：防护用品穿戴、消毒程序执行、无菌区域维护、器械处理规范。如发现违规操作，请详细描述违规行为和感染风险等级。',
-           maxTokens: 1400,
-           temperature: 0.2,
-           createdAt: '2024-01-16 08:15:34',
-           updatedAt: '2024-01-23 10:42:18'
-         },
-         {
-           id: 'skill_008',
-           name: '化工厂危险品泄漏预警检测',
-           description: '基于Gemini Pro Vision的化工厂危险品泄漏预警智能检测技能，能够识别管道破损、阀门泄漏、储罐异常、气体扩散、液体渗漏等危险情况，检测防护设备状态、人员撤离情况，并能评估泄漏规模和危险等级',
-           model: 'gemini-pro-vision',
-           status: 'enabled',
-           tags: '安全监控',
-           accuracy: 96.4,
-           callCount: 6789,
-           deviceCount: 156,
-           systemPrompt: '你是一个化工安全监控专家，专门识别危险品泄漏和安全隐患。你需要识别：1）管道、阀门、储罐是否有泄漏迹象；2）是否有异常气体或液体扩散；3）安全防护设备是否正常工作；4）现场人员是否采取正确防护措施；5）泄漏规模和扩散范围；6）紧急处置设备是否启动。',
-           userPromptTemplate: '分析这张化工厂监控画面：{image}。检测是否存在危险品泄漏或安全隐患，包括：设备状态、泄漏迹象、气体扩散、人员防护、应急响应。如发现异常，请立即描述危险类型、影响范围和紧急程度。',
-           maxTokens: 1600,
-           temperature: 0.1,
-           createdAt: '2024-01-11 15:28:47',
-           updatedAt: '2024-01-24 09:33:25'
-         },
-         {
-           id: 'skill_009',
-           name: '银行ATM机异常行为识别',
-           description: '基于GPT-4V的银行ATM机周边异常行为智能识别技能，能够检测可疑人员长时间逗留、多人聚集、安装可疑设备、遮挡摄像头、暴力破坏等异常行为，识别ATM机设备异常状态和周边环境安全风险',
-           model: 'gpt-4v',
-           status: 'enabled',
-           tags: '行为识别',
-           accuracy: 94.7,
-           callCount: 23456,
-           deviceCount: 234,
-           systemPrompt: '你是一个银行安全监控专家，专门识别ATM机周边的异常行为和安全风险。你需要识别：1）可疑人员是否长时间逗留或多次返回；2）是否有人安装可疑设备或遮挡设备；3）是否存在暴力破坏或异常操作；4）ATM机设备状态是否正常；5）周边环境是否存在安全隐患；6）客户操作是否受到干扰或威胁。',
-           userPromptTemplate: '分析这张银行ATM机监控画面：{image}。检测ATM机周边是否存在异常行为或安全风险，包括：可疑人员行为、设备异常状态、环境安全隐患、客户安全威胁。如发现异常，请描述具体行为和风险等级。',
-           maxTokens: 1200,
-           temperature: 0.3,
-           createdAt: '2024-01-09 12:56:12',
-           updatedAt: '2024-01-25 16:18:39'
-         },
-         {
-           id: 'skill_010',
-           name: '食品加工厂卫生标准合规检测',
-           description: '基于自定义模型的食品加工厂卫生标准合规智能检测技能，能够识别工作人员卫生防护用品穿戴、食品接触面清洁度、生熟分离执行、温度控制设备状态、虫害防控措施等关键卫生指标',
-           model: 'custom',
-           status: 'disabled',
-           tags: '质量检测',
-           accuracy: 92.3,
-           callCount: 5678,
-           deviceCount: 89,
-           systemPrompt: '你是一个食品安全监管专家，专门检查食品加工厂的卫生标准合规情况。你需要识别：1）工作人员是否正确穿戴工作服、帽子、口罩、手套；2）食品接触面和设备清洁度是否达标；3）生熟食品是否严格分离；4）温度控制设备是否正常运行；5）是否存在虫害或污染源；6）废料处理是否规范。',
-           userPromptTemplate: '分析这张食品加工厂监控画面：{image}。检查卫生标准合规情况，包括：人员防护、设备清洁、食品安全、环境卫生、温控管理。如发现不合规情况，请详细描述问题和整改建议。',
-           maxTokens: 1500,
-           temperature: 0.4,
-           createdAt: '2024-01-07 14:33:28',
-           updatedAt: '2024-01-26 11:47:15'
-         },
-         {
-           id: 'skill_011',
-           name: '建筑工地高空作业安全带检测',
-           description: '基于Claude-3的建筑工地高空作业安全带佩戴智能检测技能，能够识别高空作业人员安全带、安全帽、防护服穿戴情况，检测安全绳固定点、作业平台护栏、安全网设置等防护措施完整性',
-           model: 'claude-3',
-           status: 'enabled',
-           tags: '安全监控',
-           accuracy: 95.8,
-           callCount: 18765,
-           deviceCount: 167,
-           systemPrompt: '你是一个建筑安全监督专家，专门检查高空作业安全防护措施。你需要识别：1）作业人员是否正确佩戴安全带、安全帽；2）安全绳是否正确连接到可靠固定点；3）作业平台护栏是否完整；4）安全网是否正确设置；5）作业人员是否在安全区域内；6）是否存在违规作业行为。',
-           userPromptTemplate: '分析这张建筑工地高空作业监控画面：{image}。检查高空作业安全防护措施，包括：安全带佩戴、安全绳连接、护栏设置、安全网布置、作业规范性。如发现安全隐患，请详细描述风险点和紧急程度。',
-           maxTokens: 1300,
-           temperature: 0.2,
-           createdAt: '2024-01-13 09:41:56',
-           updatedAt: '2024-01-27 13:22:44'
-         },
-         {
-           id: 'skill_012',
-           name: '机场跑道异物入侵检测',
-           description: '基于Gemini Pro Vision的机场跑道异物入侵智能检测技能，能够识别跑道上的鸟类、小动物、垃圾、设备残留、人员误入等异物，检测跑道表面损坏、积水、结冰等影响飞行安全的情况',
-           model: 'gemini-pro-vision',
-           status: 'enabled',
-           tags: '事件检测',
-           accuracy: 97.9,
-           callCount: 34567,
-           deviceCount: 78,
-           systemPrompt: '你是一个机场跑道安全监控专家，专门识别跑道异物和安全隐患。你需要识别：1）跑道上是否有鸟类、动物或人员误入；2）是否有垃圾、设备残留或其他异物；3）跑道表面是否有损坏、裂缝；4）是否存在积水、结冰或其他气象影响；5）跑道标识和灯光设备是否正常；6）异物的大小和危险程度评估。',
-           userPromptTemplate: '分析这张机场跑道监控画面：{image}。检测跑道是否存在异物入侵或安全隐患，包括：生物入侵、异物残留、表面损坏、气象影响、设备状态。如发现异常，请立即描述异物类型、位置和飞行安全影响程度。',
-           maxTokens: 1400,
-           temperature: 0.1,
-           createdAt: '2024-01-18 16:25:33',
-           updatedAt: '2024-01-28 08:14:27'
-                   }
-        ],
+      skills: [],
 
       detailDialogVisible: false,
       detailSkill: {},
@@ -802,46 +682,15 @@ export default {
       // 设备列表相关
       deviceListVisible: false,
       currentSkill: {},
-      deviceList: []
+      deviceList: [],
+
+      detailLoading: false
     }
   },
   computed: {
-    // 过滤后的技能列表
-    filteredSkills() {
-      let filtered = this.skills.filter(skill => {
-        const matchSearch = !this.searchKeyword || 
-          skill.name.toLowerCase().includes(this.searchKeyword.toLowerCase()) ||
-          skill.description.toLowerCase().includes(this.searchKeyword.toLowerCase())
-        
-        const matchStatus = !this.filterStatus || skill.status === this.filterStatus
-        const matchModel = !this.filterModel || skill.model === this.filterModel
-        const matchTag = !this.filterTag || skill.tags === this.filterTag
-        
-        return matchSearch && matchStatus && matchModel && matchTag
-      })
-
-      // 排序
-      if (this.sortType === 'name') {
-        filtered.sort((a, b) => {
-          const result = a.name.localeCompare(b.name)
-          return this.sortOrder === 'asc' ? result : -result
-        })
-      } else {
-        filtered.sort((a, b) => {
-          const result = new Date(a.updatedAt) - new Date(b.updatedAt)
-          return this.sortOrder === 'asc' ? result : -result
-        })
-      }
-
-      this.totalCount = filtered.length
-      return filtered
-    },
-
-    // 分页后的技能列表
+    // 分页后的技能列表（现在直接使用从API获取的数据）
     paginatedSkills() {
-      const start = (this.currentPage - 1) * this.pageSize
-      const end = start + this.pageSize
-      return this.filteredSkills.slice(start, end)
+      return this.skills
     },
 
     // 排序类型文本
@@ -851,7 +700,7 @@ export default {
 
     // 是否全选
     isAllSelected() {
-      return this.selectedSkills.length === this.filteredSkills.length && this.filteredSkills.length > 0
+      return this.selectedSkills.length === this.skills.length && this.skills.length > 0
     },
 
     // 是否选择当前页
@@ -864,17 +713,152 @@ export default {
     handleSearch() {
       this.searchKeyword = this.searchInput
       this.currentPage = 1
+      this.loadSkillList()
     },
 
     // 过滤
     handleFilter() {
       this.currentPage = 1
+      this.loadSkillList()
     },
 
     // 刷新数据
     refreshData() {
-      // 模拟数据刷新
-      this.$message.success('数据刷新成功')
+      this.loadSkillList()
+    },
+
+    // 加载技能列表
+    async loadSkillList() {
+      this.loading = true
+      try {
+        // 构建查询参数
+        const params = {
+          page: this.currentPage,
+          limit: this.pageSize
+        }
+
+        // 添加搜索条件
+        if (this.searchKeyword && this.searchKeyword.trim()) {
+          params.name = this.searchKeyword.trim()
+        }
+
+        // 添加状态过滤
+        if (this.filterStatus) {
+          params.status = this.filterStatus === 'enabled'
+        }
+
+        // 添加技能类型过滤
+        if (this.filterType) {
+          params.type_filter = this.filterType
+        }
+
+        console.log('加载多模态技能列表，参数:', params)
+
+        const response = await skillAPI.getLlmSkillList(params)
+        
+        if (response.data && response.data.success) {
+          // 修复数据解析：技能数组直接在 response.data.data 中
+          const skillList = response.data.data || []
+          
+          // 处理技能列表数据
+          this.skills = skillList.map(skill => ({
+            id: skill.id,
+            skillId: skill.skill_id,
+            name: skill.skill_name,
+            description: skill.skill_description || '暂无描述',
+            model: this.mapModelType(skill.llm_provider || 'custom'),
+            status: skill.status ? 'enabled' : 'disabled',
+            type: skill.type || 'multimodal_analysis', // 技能类型
+            tags: (skill.skill_tags || []).join(', ') || '未分类',
+            scenario: skill.application_scenario,
+            accuracy: 0, // 暂时设为0，后续可能从统计接口获取
+            callCount: 0, // 暂时设为0，后续可能从统计接口获取
+            deviceCount: 0, // 暂时设为0，后续可能从统计接口获取
+            systemPrompt: skill.system_prompt || '',
+            userPromptTemplate: skill.prompt_template || '',
+            maxTokens: skill.max_tokens || 1000,
+            temperature: skill.temperature || 0.7,
+            createdAt: this.formatDateTime(skill.created_at),
+            updatedAt: this.formatDateTime(skill.updated_at),
+            image_url: skill.skill_icon_url || '/static/logo.png' // 直接使用后端返回的临时访问URL
+          }))
+
+          // 更新总数和分页信息
+          this.totalCount = response.data.total || 0
+          
+          console.log('技能列表加载成功:', this.skills.length, '条记录')
+          this.$message.success(`加载成功，共 ${this.totalCount} 条记录`)
+          
+        } else {
+          throw new Error('获取技能列表失败')
+        }
+
+      } catch (error) {
+        console.error('加载技能列表失败:', error)
+        
+        // 根据错误类型显示不同的错误信息
+        if (error.response && error.response.status === 404) {
+          this.$message.error('技能列表接口不存在，请检查后端服务')
+        } else if (error.response && error.response.status >= 500) {
+          this.$message.error('服务器内部错误，请稍后重试')
+        } else if (error.message.includes('网络')) {
+          this.$message.error('网络连接失败，请检查网络设置')
+        } else {
+          this.$message.error('加载技能列表失败，请重试')
+        }
+        
+        // 失败时显示空列表
+        this.skills = []
+        this.totalCount = 0
+        
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // 映射模型类型
+    mapModelType(llmProvider) {
+      const typeMap = {
+        'openai': 'gpt-4v',
+        'claude': 'claude-3', 
+        'gemini': 'gemini-pro-vision',
+        'custom': 'custom'
+      }
+      return typeMap[llmProvider] || 'custom'
+    },
+
+    // 格式化日期时间
+    formatDateTime(dateString) {
+      if (!dateString) return '未知'
+      
+      try {
+        const date = new Date(dateString)
+        return date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        }).replace(/\//g, '-')
+      } catch (error) {
+        console.warn('日期格式化失败:', dateString, error)
+        return dateString
+      }
+    },
+
+    // 获取技能图标URL
+    getSkillIconUrl(skillIcon) {
+      if (!skillIcon) return '/static/logo.png'
+      
+      // 如果是完整URL，直接返回
+      if (skillIcon.startsWith('http')) {
+        return skillIcon
+      }
+      
+      // 否则拼接MinIO URL
+      return `/api/v1/llm-skills/skill-icon/${skillIcon}`
     },
 
     // 排序切换
@@ -887,7 +871,7 @@ export default {
       if (this.isAllSelected) {
         this.selectedSkills = []
       } else {
-        this.selectedSkills = [...this.filteredSkills.map(skill => skill.id)]
+        this.selectedSkills = [...this.skills.map(skill => skill.id)]
       }
     },
 
@@ -966,10 +950,12 @@ export default {
     handleSizeChange(val) {
       this.pageSize = val
       this.currentPage = 1
+      this.loadSkillList()
     },
 
     handleCurrentChange(val) {
       this.currentPage = val
+      this.loadSkillList()
     },
 
     // 获取状态类
@@ -1012,6 +998,66 @@ export default {
       return nameMap[model] || model
     },
 
+    // 获取技能类型标签类型
+    getSkillTypeTagType(type) {
+      const typeMap = {
+        'multimodal_detection': 'success',
+        'multimodal_analysis': 'primary', 
+        'multimodal_review': 'warning'
+      }
+      return typeMap[type] || 'primary'
+    },
+
+    // 获取技能类型显示名称
+    getSkillTypeDisplayName(type) {
+      const nameMap = {
+        'multimodal_detection': '多模态检测',
+        'multimodal_analysis': '多模态分析',
+        'multimodal_review': '多模态复判'
+      }
+      return nameMap[type] || type
+    },
+
+    // 获取应用场景显示名称
+    getScenarioDisplayName(scenario) {
+      const nameMap = {
+        'video_analysis': '视频分析',
+        'image_processing': '图片处理',
+        'real_time_monitoring': '实时监控',
+        'batch_processing': '批量处理'
+      }
+      return nameMap[scenario] || scenario
+    },
+
+    // 获取关系类型显示名称
+    getRelationDisplayName(relation) {
+      const nameMap = {
+        'and': '且（全部满足）',
+        'or': '或（任意满足）',
+        'not': '非（全不满足）',
+        'all': '且（全部满足）',
+        'any': '或（任意满足）'
+      }
+      return nameMap[relation] || relation
+    },
+
+    // 获取操作符显示名称
+    getOperatorDisplayName(operator) {
+      const nameMap = {
+        'eq': '等于',
+        'ne': '不等于',
+        'gt': '大于',
+        'lt': '小于',
+        'gte': '大于等于',
+        'lte': '小于等于',
+        'contains': '包含',
+        'not_contains': '不包含',
+        'is_empty': '为空',
+        'is_not_empty': '不为空'
+      }
+      return nameMap[operator] || operator
+    },
+
     // 创建技能
     createSkill() {
       this.$refs.createSkillDialog.show()
@@ -1029,11 +1075,59 @@ export default {
       })
     },
 
+    // 当从详细页面返回时，刷新列表数据
+    onRouteBack() {
+      // 清除临时数据
+      localStorage.removeItem('tempSkillInfo')
+      // 刷新技能列表
+      this.loadSkillList()
+    },
+
     // 编辑技能
     editSkill(skill) {
-      this.editingSkill = skill
-      this.skillForm = { ...skill }
-      this.skillDialogVisible = true
+      // 获取技能详情数据并跳转到编辑页面
+      this.detailLoading = true
+      
+      skillAPI.getLlmSkillDetail(skill.id)
+        .then(response => {
+          if (response.data && response.data.success) {
+            const skillDetail = response.data.data
+            
+            // 构造编辑数据，包含基础信息和详细配置
+            const editData = {
+              // 基础信息
+              id: skillDetail.id,
+              name: skillDetail.skill_name,
+              skillId: skillDetail.skill_id,
+              scenario: skillDetail.application_scenario === 'video_analysis' ? 'vision' : 'image',
+              tags: (skillDetail.skill_tags || []).join(', ') || '',
+              description: skillDetail.skill_description || '',
+              iconUrl: skillDetail.skill_icon_url || '/static/logo.png',
+              skillIcon: skillDetail.skill_icon || null,
+              // 详细配置
+              promptTemplate: skillDetail.prompt_template || '',
+              outputParameters: skillDetail.output_parameters || [],
+              alertConditions: skillDetail.alert_conditions || null,
+              globalRelation: skillDetail.alert_conditions && skillDetail.alert_conditions.global_relation || 'and',
+              conditionGroups: skillDetail.alert_conditions && skillDetail.alert_conditions.condition_groups || []
+            }
+            
+            // 存储到localStorage供编辑页面使用
+            localStorage.setItem('editSkillInfo', JSON.stringify(editData))
+            
+            // 打开编辑对话框（基础信息）
+            this.$refs.createSkillDialog.showEdit(editData)
+          } else {
+            this.$message.error('获取技能详情失败')
+          }
+        })
+        .catch(error => {
+          console.error('获取技能详情失败:', error)
+          this.$message.error('获取技能详情失败')
+        })
+        .finally(() => {
+          this.detailLoading = false
+        })
     },
 
     // 重置表单
@@ -1109,28 +1203,76 @@ export default {
     },
 
     // 切换技能状态
-    toggleSkillStatus(skill) {
-      const newStatus = skill.status === 'enabled' ? 'disabled' : 'enabled'
-      skill.status = newStatus
-      skill.updatedAt = new Date().toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).replace(/\//g, '-')
-      this.$message.success(`技能已${newStatus === 'enabled' ? '发布' : '下架'}`)
+    async toggleSkillStatus(skill) {
+      const action = skill.status === 'enabled' ? '下架' : '发布'
+      const actionVerb = skill.status === 'enabled' ? 'unpublish' : 'publish'
+      
+      try {
+        // 确认操作
+        await this.$confirm(`确定要${action}这个技能吗？`, '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+        
+        // 设置loading状态
+        this.$set(this.skillStatusLoading, skill.id, true)
+        
+        console.log(`正在${action}技能:`, skill.name, '(ID:', skill.id, ')')
+        
+        // 调用相应的API
+        let response
+        if (actionVerb === 'publish') {
+          response = await skillAPI.publishLlmSkill(skill.id)
+        } else {
+          response = await skillAPI.unpublishLlmSkill(skill.id)
+        }
+        
+        if (response.data && response.data.success) {
+          // 更新本地状态
+          const newStatus = skill.status === 'enabled' ? 'disabled' : 'enabled'
+          skill.status = newStatus
+          skill.updatedAt = new Date().toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          }).replace(/\//g, '-')
+          
+          this.$message.success(`技能已${action}成功`)
+        } else {
+          throw new Error(`${action}失败`)
+        }
+        
+      } catch (error) {
+        if (error === 'cancel') {
+          // 用户取消操作
+          this.$message.info(`已取消${action}`)
+          return
+        }
+        
+        console.error(`${action}技能失败:`, error)
+        
+        // 根据错误类型显示不同的错误信息
+        if (error.response && error.response.data && error.response.data.detail) {
+          this.$message.error(`${action}失败: ${error.response.data.detail}`)
+        } else if (error.response && error.response.status === 404) {
+          this.$message.error('技能不存在或已被删除')
+        } else if (error.response && error.response.status >= 500) {
+          this.$message.error('服务器内部错误，请稍后重试')
+        } else {
+          this.$message.error(`${action}技能失败，请重试`)
+        }
+      } finally {
+        // 清除loading状态
+        this.$set(this.skillStatusLoading, skill.id, false)
+      }
     },
 
-    // 测试技能
-    testSkill(skill) {
-      this.testDialogVisible = true
-      this.testQuery = ''
-      this.testResult = ''
-      this.testFile = null
-    },
+
 
     // 删除技能
     deleteSkill(skill) {
@@ -1150,54 +1292,170 @@ export default {
     },
 
     // 批量删除
-    batchDelete() {
+    async batchDelete() {
       if (this.selectedSkills.length === 0) {
         this.$message.warning('请先选择要删除的技能')
         return
       }
 
-      this.$confirm(`确定要删除选中的 ${this.selectedSkills.length} 个技能吗？`, '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        this.skills = this.skills.filter(skill => !this.selectedSkills.includes(skill.id))
-        this.selectedSkills = []
-        this.$message.success('批量删除成功')
-      }).catch(() => {
-        this.$message.info('已取消删除')
-      })
+      try {
+        // 确认删除操作
+        await this.$confirm(`确定要删除选中的 ${this.selectedSkills.length} 个技能吗？`, '批量删除确认', {
+          confirmButtonText: '确定删除',
+          cancelButtonText: '取消',
+          type: 'warning',
+          dangerouslyUseHTMLString: true,
+          message: `
+            <div style="color: #606266; line-height: 1.6;">
+              <p style="margin: 0 0 10px 0;">即将删除 <strong style="color: #f56c6c;">${this.selectedSkills.length}</strong> 个技能</p>
+              <p style="margin: 0; color: #909399; font-size: 13px;">此操作不可逆，请确认是否继续？</p>
+            </div>
+          `
+        })
+
+        // 设置loading状态
+        this.batchDeleting = true
+
+        console.log('正在批量删除技能:', this.selectedSkills)
+
+        // 调用批量删除API
+        const response = await skillAPI.batchDeleteLlmSkills(this.selectedSkills)
+
+        if (response.data && response.data.success) {
+          // 获取删除结果
+          const deleteResult = response.data.data || {}
+          const successCount = deleteResult.deleted_count || 0
+          const failedCount = deleteResult.failed_count || 0
+          const failedSkills = deleteResult.failed_skills || []
+
+          // 从本地列表中移除成功删除的技能
+          this.skills = this.skills.filter(skill => !this.selectedSkills.includes(skill.id))
+          
+          // 清空选中状态
+          this.selectedSkills = []
+
+          // 显示删除结果
+          if (failedCount === 0) {
+            this.$message.success(`批量删除成功，共删除 ${successCount} 个技能`)
+          } else {
+            // 有部分失败的情况
+            let message = `删除完成：成功 ${successCount} 个`
+            if (failedCount > 0) {
+              message += `，失败 ${failedCount} 个`
+              if (failedSkills.length > 0) {
+                const failedNames = failedSkills.map(skill => skill.skill_name || skill.name).join('、')
+                message += `\n失败的技能：${failedNames}`
+              }
+            }
+            this.$message.warning(message)
+          }
+
+          // 刷新技能列表
+          this.loadSkillList()
+
+        } else {
+          throw new Error('批量删除响应格式异常')
+        }
+
+      } catch (error) {
+        if (error === 'cancel') {
+          // 用户取消操作
+          this.$message.info('已取消删除')
+          return
+        }
+
+        console.error('批量删除技能失败:', error)
+
+        // 根据错误类型显示不同的错误信息
+        if (error.response && error.response.data && error.response.data.detail) {
+          this.$message.error(`批量删除失败: ${error.response.data.detail}`)
+        } else if (error.response && error.response.status === 404) {
+          this.$message.error('部分技能不存在或已被删除')
+        } else if (error.response && error.response.status >= 500) {
+          this.$message.error('服务器内部错误，请稍后重试')
+        } else {
+          this.$message.error('批量删除失败，请重试')
+        }
+      } finally {
+        // 清除loading状态
+        this.batchDeleting = false
+      }
     },
 
-    // 导入技能
-    importSkill() {
-      this.$message.info('导入功能开发中...')
-    },
 
-    // 处理测试文件上传
-    handleTestFileChange(file) {
-      this.testFile = file
-    },
 
-    // 运行测试
-    runTest() {
-      if (!this.testQuery && !this.testFile) {
-        this.$message.warning('请上传图片或输入测试问题')
+
+
+    showSkillDetail(skill) {
+      if (!skill.id) {
+        this.$message.warning('无效的技能ID')
         return
       }
 
-      this.testing = true
+      this.detailLoading = true
+      this.detailDialogVisible = true
       
-      // 模拟测试
-      setTimeout(() => {
-        this.testResult = '测试结果：检测到图片中包含一个人和一辆车，场景为城市街道，天气晴朗。人物正在过马路，车辆处于静止状态。未发现安全隐患。'
-        this.testing = false
-      }, 2000)
+      // 调用API获取技能详情
+      skillAPI.getLlmSkillDetail(skill.id)
+        .then(response => {
+          if (response.data && response.data.success) {
+            const skillDetail = response.data.data
+            
+            // 格式化技能详情数据
+            this.detailSkill = {
+              id: skillDetail.id,
+              skillId: skillDetail.skill_id,
+              name: skillDetail.skill_name,
+              description: skillDetail.skill_description || '暂无描述',
+              status: skillDetail.status ? 'enabled' : 'disabled',
+              type: this.mapScenarioToType(skillDetail.application_scenario), // 根据应用场景推断技能类型
+              tags: (skillDetail.skill_tags || []).join(', ') || '未分类',
+              scenario: skillDetail.application_scenario,
+              iconUrl: skillDetail.skill_icon_url || '/static/logo.png',
+              promptTemplate: skillDetail.prompt_template || '',
+              outputParameters: skillDetail.output_parameters || [],
+              alertConditions: skillDetail.alert_conditions || null,
+              version: skillDetail.version || '1.0.0',
+              createdAt: this.formatDateTime(skillDetail.created_at),
+              updatedAt: this.formatDateTime(skillDetail.updated_at),
+              tasks: skillDetail.tasks || [],
+              // 兼容原有字段
+              deviceCount: skill.deviceCount || 0,
+              accuracy: skill.accuracy || 0,
+              callCount: skill.callCount || 0
+            }
+            
+            console.log('技能详情加载成功:', this.detailSkill)
+          } else {
+            throw new Error('获取技能详情失败')
+          }
+        })
+        .catch(error => {
+          console.error('获取技能详情失败:', error)
+          this.$message.error('获取技能详情失败，请重试')
+          this.detailDialogVisible = false
+        })
+        .finally(() => {
+          this.detailLoading = false
+        })
     },
 
-    showSkillDetail(skill) {
-      this.detailSkill = skill
-      this.detailDialogVisible = true
+    // 格式化日期时间
+    formatDateTime(dateTimeStr) {
+      if (!dateTimeStr) return '未知'
+      try {
+        const date = new Date(dateTimeStr)
+        return date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })
+      } catch (error) {
+        return dateTimeStr
+      }
     },
 
     // 显示设备列表
@@ -1458,24 +1716,35 @@ export default {
     // 跳转到指定页面
     goToPage() {
       // 跳转到指定页面逻辑（可以根据需要实现）
+    },
+
+    // 根据应用场景映射技能类型
+    mapScenarioToType(scenario) {
+      const scenarioTypeMap = {
+        'video_analysis': 'multimodal_detection',
+        'image_processing': 'multimodal_analysis',
+        'real_time_monitoring': 'multimodal_detection',
+        'batch_processing': 'multimodal_review'
+      }
+      return scenarioTypeMap[scenario] || 'multimodal_analysis'
+    }
+  },
+
+  watch: {
+    // 监听路由变化，当从创建详情页返回时刷新数据
+    '$route'(to, from) {
+      if (from.path === '/skillManage/multimodalCreateDetail' && to.path === '/skillManage/multimodalLlmSkills') {
+        this.onRouteBack()
+      }
     }
   },
 
   mounted() {
-    // 简单直接：每次进入页面自动刷新一次（避免状态污染）
-    if (!sessionStorage.getItem('multimodalSkillsLoaded')) {
-      sessionStorage.setItem('multimodalSkillsLoaded', 'true')
-      window.location.reload()
-      return
-    }
-    
     // 初始化数据
     this.searchKeyword = this.searchInput
-  },
   
-  beforeDestroy() {
-    // 页面销毁时清除标志
-    sessionStorage.removeItem('multimodalSkillsLoaded')
+    // 加载技能列表
+    this.loadSkillList()
   }
 }
 </script>
@@ -1629,14 +1898,12 @@ export default {
 }
 
 .select-status,
-.select-model,
-.select-tag {
+.select-type {
   width: 180px;
 }
 
 .select-status .el-input__inner,
-.select-model .el-input__inner,
-.select-tag .el-input__inner {
+.select-type .el-input__inner {
   height: 25px;
   line-height: 25px;
   border-radius: 4px;
@@ -1739,6 +2006,82 @@ export default {
   overflow-y: auto;
   padding: 20px 24px 24px 24px;
   background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+  position: relative;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  width: 100%;
+}
+
+/* 空状态 */
+.empty-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  width: 100%;
+}
+
+.empty-content {
+  text-align: center;
+  padding: 40px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 2px dashed #e5e7eb;
+  max-width: 400px;
+  transition: all 0.3s ease;
+}
+
+.empty-content:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15);
+}
+
+.empty-icon {
+  font-size: 64px;
+  color: #d1d5db;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.empty-content:hover .empty-icon {
+  color: #3b82f6;
+  transform: scale(1.1);
+}
+
+.empty-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.empty-tips {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.empty-action {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border: none;
+  padding: 10px 24px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.empty-action:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
 }
 
 .skills-grid {
@@ -2349,35 +2692,7 @@ export default {
   }
 }
 
-/* 测试对话框 */
-.test-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
 
-.test-input,
-.test-result {
-  padding: 15px;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-}
-
-.test-result {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-.result-content {
-  padding: 12px;
-  background: white;
-  border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.5;
-  border: 1px solid rgba(59, 130, 246, 0.1);
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
-}
 
 /* 详情弹窗优化 */
 .detail-content {
@@ -2542,10 +2857,6 @@ export default {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-}
-
-.info-grid .info-item:first-child {
-  grid-column: 1 / -1;
 }
 
 .info-item {
@@ -2873,6 +3184,203 @@ export default {
   
   .page-container {
     padding: 0 10px;
+  }
+}
+
+/* 详情页面新增样式 */
+.version-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  color: #166534;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #bbf7d0;
+}
+
+.version-badge i {
+  color: #22c55e;
+}
+
+.prompt-template-content {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.prompt-template {
+  margin: 0;
+  padding: 16px;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border-radius: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.output-params-content .el-table {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.output-params-content .el-table th {
+  background: #f8fafc !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  border-bottom: 2px solid #e5e7eb !important;
+}
+
+.output-params-content .el-table td {
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.param-type {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #6b7280;
+}
+
+.alert-conditions-content {
+  background: #fefdf6;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.condition-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #78350f;
+  font-weight: 500;
+}
+
+.condition-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.condition-group {
+  background: white;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.group-header {
+  background: #fef3c7;
+  padding: 8px 12px;
+  border-bottom: 1px solid #fed7aa;
+  font-size: 13px;
+  font-weight: 600;
+  color: #78350f;
+}
+
+.conditions-list {
+  padding: 12px;
+}
+
+.condition-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.condition-item:last-child {
+  margin-bottom: 0;
+}
+
+.condition-field {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.condition-operator {
+  background: #f3e8ff;
+  color: #7c3aed;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.condition-value {
+  background: #ecfdf5;
+  color: #166534;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.related-tasks-content .el-table {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.related-tasks-content .el-table th {
+  background: #f8fafc !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  border-bottom: 2px solid #e5e7eb !important;
+}
+
+.related-tasks-content .el-table td {
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+/* 详情对话框响应式 */
+@media (max-width: 768px) {
+  .detail-content .el-dialog {
+    width: 95% !important;
+    margin: 10px auto !important;
+  }
+  
+  .detail-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  
+  .condition-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .prompt-template {
+    font-size: 12px;
+    padding: 12px;
   }
 }
 </style>
