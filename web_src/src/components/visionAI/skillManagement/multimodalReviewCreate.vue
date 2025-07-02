@@ -247,8 +247,6 @@
 </template>
 
 <script>
-import skillDataManager from '@/utils/skillDataManager'
-
 export default {
   name: 'MultimodalReviewCreate',
   data() {
@@ -355,10 +353,51 @@ export default {
       }
     },
 
+    // 从 localStorage 获取所有技能数据
+    getSkillsFromStorage() {
+      const skillsData = localStorage.getItem('skillData')
+      return skillsData ? JSON.parse(skillsData) : []
+    },
+
+    // 根据ID获取技能
+    getSkillById(id) {
+      const skills = this.getSkillsFromStorage()
+      return skills.find(skill => skill.id === id)
+    },
+
+    // 更新技能到localStorage
+    updateSkillToStorage(skillData) {
+      const skills = this.getSkillsFromStorage()
+      const index = skills.findIndex(skill => skill.id === skillData.id)
+      if (index !== -1) {
+        skills[index] = { ...skillData }
+        localStorage.setItem('skillData', JSON.stringify(skills))
+        return true
+      }
+      return false
+    },
+
+    // 添加技能到localStorage
+    addSkillToStorage(skillData) {
+      const skills = this.getSkillsFromStorage()
+      // 确保有ID
+      if (!skillData.id) {
+        skillData.id = this.generateSkillId()
+      }
+      skills.unshift(skillData)
+      localStorage.setItem('skillData', JSON.stringify(skills))
+      return skillData
+    },
+
+    // 生成技能ID
+    generateSkillId() {
+      return 'skill_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    },
+
     // 加载技能数据
     loadSkillData(skillId) {
-      // 使用数据管理器加载技能数据
-      const skill = skillDataManager.getSkillById(skillId)
+      // 从 localStorage 加载技能数据
+      const skill = this.getSkillById(skillId)
       
       if (skill) {
         this.skillData = { ...skill }
