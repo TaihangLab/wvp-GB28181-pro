@@ -1116,6 +1116,87 @@ export default {
       }
     },
     
+    // 获取当前时间
+    getCurrentTime() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    },
+    
+    // 给时间添加指定秒数
+    addSecondsToTime(timeString, seconds) {
+      try {
+        let date;
+        if (timeString.includes('T')) {
+          date = new Date(timeString);
+        } else if (timeString.includes(' ')) {
+          date = new Date(timeString);
+        } else {
+          date = new Date();
+        }
+        
+        if (isNaN(date.getTime())) {
+          return timeString;
+        }
+        
+        date.setSeconds(date.getSeconds() + seconds);
+        
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const secs = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${secs}`;
+      } catch (error) {
+        return timeString;
+      }
+    },
+    
+    // 格式化API时间
+    formatApiTime(timeString) {
+      try {
+        if (!timeString) {
+          return this.getCurrentTime();
+        }
+        
+        // 处理不同的时间格式
+        let date;
+        if (timeString.includes('T')) {
+          // ISO格式: "2025-06-30T17:05:35"
+          date = new Date(timeString);
+        } else if (timeString.includes(' ')) {
+          // 标准格式 YYYY-MM-DD HH:mm:ss
+          date = new Date(timeString);
+        } else {
+          // 其他格式
+          date = new Date(timeString);
+        }
+        
+        if (isNaN(date.getTime())) {
+          return timeString; // 如果解析失败，返回原字符串
+        }
+        
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      } catch (error) {
+        return timeString || this.getCurrentTime();
+      }
+    },
+    
     // 处理误报事件 - 与预警管理页面保持完全一致
     async handleFalseAlarmArchive() {
       try {
@@ -1331,24 +1412,14 @@ export default {
       }
       
       // 如果没有操作历史，则创建默认的初始记录
-      // 添加预警产生记录（始终存在的初始记录）
-      this.addOperationRecord({
-        status: 'completed',
-        statusText: '预警产生',
-        time: this.internalWarning.time || this.getCurrentTime(),
-        description: `${this.internalWarning.type || '系统检测'}：${this.internalWarning.description || '检测到异常情况，请及时处理'}`,
-        operationType: 'create',
-        operator: '系统'
-      });
-      
-      // 添加待处理记录（始终显示）
+      // 预警产生时状态就是"待处理"，不需要单独的待处理记录
       this.addOperationRecord({
         status: 'active',
         statusText: '待处理',
-        time: this.internalWarning.createTime || this.getCurrentTime(),
-        description: '预警已产生，等待处理人员确认并开始处理',
+        time: this.internalWarning.time || this.getCurrentTime(),
+        description: `${this.internalWarning.type || '系统检测'}：${this.internalWarning.description || '检测到异常情况，等待处理人员确认'}`,
         operationType: 'pending',
-        operator: ''
+        operator: '系统'
       });
     },
 
@@ -1356,52 +1427,82 @@ export default {
     processApiOperationHistory() {
       const processData = this.internalWarning._apiData.process;
       
+      // 收集所有记录
+      const allRecords = [];
+      
+      // 处理API步骤
       if (processData.steps && Array.isArray(processData.steps)) {
         processData.steps.forEach(step => {
-          this.addOperationRecord({
+          const record = {
+            id: Date.now() + Math.random(),
             status: 'completed',
             statusText: step.step || '处理步骤',
             time: this.formatApiTime(step.time),
             description: step.desc || '处理描述',
             operationType: step.step === '预警产生' ? 'create' : 'process',
             operator: step.operator || '系统'
-          });
+          };
+          allRecords.push(record);
         });
       }
 
       // 根据预警状态添加当前状态记录
       const status = this.internalWarning.status;
       if (status === 'pending') {
-        this.addOperationRecord({
+        const pendingRecord = {
+          id: Date.now() + Math.random(),
           status: 'active',
           statusText: '待处理',
           time: this.internalWarning.createdAt || this.getCurrentTime(),
           description: '预警已产生，等待处理人员确认并开始处理',
           operationType: 'pending',
           operator: ''
-        });
+        };
+        allRecords.push(pendingRecord);
       } else if (status === 'processing') {
-        this.addOperationRecord({
+        const processingRecord = {
+          id: Date.now() + Math.random(),
           status: 'active',
           statusText: '处理中',
           time: this.internalWarning.updatedAt || this.getCurrentTime(),
           description: '预警正在处理中，处理人员：' + (this.internalWarning.processedBy || '未知'),
           operationType: 'processing',
           operator: this.internalWarning.processedBy || '处理人员'
-        });
+        };
+        allRecords.push(processingRecord);
       } else if (status === 'completed') {
-        this.addOperationRecord({
+        const completedRecord = {
+          id: Date.now() + Math.random(),
           status: 'completed',
           statusText: '已处理',
           time: this.internalWarning.processedAt || this.getCurrentTime(),
           description: '预警处理已完成。' + (this.internalWarning.remark || ''),
           operationType: 'completed',
           operator: this.internalWarning.processedBy || '处理人员'
-        });
+        };
+        allRecords.push(completedRecord);
+      }
+
+      // 按时间排序（时间早的在后面，晚的在前面，因为时间轴显示是最新的在上面）
+      allRecords.sort((a, b) => {
+        const timeA = new Date(a.time).getTime();
+        const timeB = new Date(b.time).getTime();
+        return timeB - timeA; // 降序排列，最新的在前面
+      });
+
+      // 添加到操作历史
+      this.operationHistory = allRecords;
+      
+      // 更新预警对象的操作历史
+      if (this.internalWarning) {
+        if (!this.internalWarning.operationHistory) {
+          this.$set(this.internalWarning, 'operationHistory', []);
+        }
+        this.internalWarning.operationHistory = [...allRecords];
       }
 
       // 如果有备注信息，添加到描述中
-      if (processData.remark) {
+      if (processData.remark && this.operationHistory.length > 0) {
         const lastRecord = this.operationHistory[0];
         if (lastRecord) {
           lastRecord.description += ' 备注：' + processData.remark;
@@ -1460,15 +1561,37 @@ export default {
     // 格式化时间
     formatTime(timeString) {
       try {
-        // 如果是完整的时间字符串，格式化为更友好的显示
-        if (timeString && timeString.includes(' ')) {
-          const [date, time] = timeString.split(' ');
-          const [year, month, day] = date.split('-');
-          return `${year}年${month}月${day}日 ${time}`;
+        if (!timeString) {
+          return '时间未知';
         }
+        
+        // 如果是完整的时间字符串，格式化为更友好的显示
+        if (timeString.includes(' ')) {
+          const [date, time] = timeString.split(' ');
+          let year, month, day;
+          
+          // 处理不同的日期分隔符
+          if (date.includes('-')) {
+            // YYYY-MM-DD 格式
+            [year, month, day] = date.split('-');
+          } else if (date.includes('/')) {
+            // YYYY/MM/DD 格式
+            [year, month, day] = date.split('/');
+          } else {
+            return timeString;
+          }
+          
+          // 确保年月日都有值
+          if (year && month && day) {
+            return `${year}年${month}月${day}日 ${time}`;
+          } else {
+            return timeString;
+          }
+        }
+        
         return timeString;
       } catch (error) {
-        return timeString;
+        return timeString || '时间解析失败';
       }
     },
     // 获取复判分类文字
@@ -2066,8 +2189,9 @@ export default {
   border: 1px solid #ebeef5;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  /* 高度自适应，与左侧内容区域保持一致 */
-  height: 100%;
+  /* 固定高度，与左侧内容区域高度保持一致 */
+  height: 580px;
+  max-height: 580px;
   display: flex;
   flex-direction: column;
 }
@@ -2085,6 +2209,8 @@ export default {
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   /* 固定标题高度，不参与滚动 */
   flex-shrink: 0;
+  height: 55px;
+  box-sizing: border-box;
 }
 
 .timeline-title i {
@@ -2098,6 +2224,8 @@ export default {
   /* 设置滚动容器，占用剩余空间 */
   flex: 1;
   overflow-y: auto;
+  /* 限制最大高度，确保滚动正常工作 */
+  max-height: 525px;
   /* 美化滚动条 */
   scrollbar-width: thin;
   scrollbar-color: #c0c4cc #f5f7fa;

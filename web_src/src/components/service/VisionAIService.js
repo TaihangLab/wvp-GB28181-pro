@@ -1147,6 +1147,109 @@ export const alertAPI = {
     console.log('获取预警详情:', alertId);
 
     return visionAIAxios.get(`/api/v1/alerts/${alertId}`);
+  },
+
+  /**
+   * 创建SSE连接，监听实时预警推送
+   * @param {Function} onMessage - 接收到消息时的回调函数
+   * @param {Function} onError - 发生错误时的回调函数
+   * @param {Function} onClose - 连接关闭时的回调函数
+   * @returns {EventSource} SSE连接对象
+   */
+  createAlertSSEConnection(onMessage, onError, onClose) {
+    const sseUrl = `${visionAIAxios.defaults.baseURL}/api/v1/alerts/stream`;
+    console.log('创建SSE连接:', sseUrl);
+    
+    const eventSource = new EventSource(sseUrl);
+    
+    eventSource.onopen = function() {
+      console.log('SSE连接已建立');
+    };
+    
+    eventSource.onmessage = function(event) {
+      console.log('收到SSE消息:', event.data);
+      
+      if (!event.data || event.data.trim() === '') {
+        return;
+      }
+      
+      try {
+        let jsonData = event.data;
+        
+        // 如果消息包含 "data: " 前缀，去掉它
+        if (jsonData.startsWith('data: ')) {
+          jsonData = jsonData.substring(6);
+        }
+        
+        const data = JSON.parse(jsonData);
+        if (onMessage) {
+          onMessage(data);
+        }
+      } catch (error) {
+        console.error('解析SSE消息失败:', error);
+        if (onMessage) {
+          onMessage({ raw: event.data });
+        }
+      }
+    };
+    
+    eventSource.onerror = function(event) {
+      console.log('SSE连接错误:', event);
+      if (onError) {
+        onError(event);
+      }
+    };
+    
+    // 添加关闭方法
+    const originalClose = eventSource.close;
+    eventSource.close = function() {
+      console.log('关闭SSE连接');
+      originalClose.call(eventSource);
+      if (onClose) {
+        onClose();
+      }
+    };
+    
+    return eventSource;
+  },
+
+  /**
+   * 获取SSE连接状态
+   * @returns {Promise} 包含SSE状态信息的Promise对象
+   */
+  getSSEStatus() {
+    console.log('获取SSE连接状态');
+    return visionAIAxios.get('/api/v1/alerts/sse/status');
+  },
+
+  /**
+   * 获取当前连接的SSE客户端信息
+   * @returns {Promise} 包含连接客户端信息的Promise对象
+   */
+  getConnectedClients() {
+    console.log('获取连接客户端信息');
+    return visionAIAxios.get('/api/v1/alerts/connected');
+  },
+
+  /**
+   * 发送测试预警（仅供调试使用）
+   * @returns {Promise} 包含测试结果的Promise对象
+   */
+  sendTestAlert() {
+    console.log('发送测试预警');
+    return visionAIAxios.post('/api/v1/alerts/test');
+  },
+
+  /**
+   * 获取预警统计信息
+   * @param {number} [days=7] - 统计天数
+   * @returns {Promise} 包含统计信息的Promise对象
+   */
+  getAlertStatistics(days = 7) {
+    console.log('获取预警统计信息，天数:', days);
+    return visionAIAxios.get('/api/v1/alerts/statistics', { 
+      params: { days } 
+    });
   }
 };
 

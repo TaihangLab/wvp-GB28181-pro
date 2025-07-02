@@ -121,10 +121,30 @@
       <el-aside width="270px" class="warning-aside">
     <div class="warning-list">
       <div class="list-header">
-        <span>实时预警</span>
+        <div class="header-left">
+          <span>实时预警</span>
+          <div class="sse-status-indicator" :class="getSSSStatusClass()">
+            <span class="status-dot"></span>
+            <span class="status-text">{{ getSSEStatusText() }}</span>
+          </div>
+        </div>
         <el-button type="text" class="more-btn" @click="goToMoreWarnings">更多 <i class="el-icon-arrow-right"></i></el-button>
       </div>
       <div class="list-content">
+        <!-- 加载状态 -->
+        <div v-if="apiDataLoading && warningList.length === 0" class="loading-state">
+          <i class="el-icon-loading"></i>
+          <span>正在加载预警数据...</span>
+        </div>
+        
+        <!-- 空状态 -->
+        <div v-else-if="!apiDataLoading && warningList.length === 0" class="empty-state">
+          <i class="el-icon-warning-outline"></i>
+          <span>暂无预警数据</span>
+          <el-button type="text" @click="refreshWarningData">点击刷新</el-button>
+        </div>
+        
+        <!-- 预警列表 -->
         <div v-for="warning in warningList" 
              :key="warning.id" 
              class="warning-item">
@@ -222,6 +242,7 @@ import RegionTree from '../../common/RegionTree.vue'
 import GroupTree from '../../common/GroupTree.vue'
 import WarningDetail from './warningDetail.vue'
 import screenfull from "screenfull";
+import { alertAPI } from '../../service/VisionAIService.js';
 
 export default {
   name: "RealTimeMonitoring",
@@ -251,53 +272,8 @@ export default {
       // 显示行政区划或业务分组
       showRegion: true,
       
-      // 预警列表数据
-      warningList: [
-        { 
-          id: 1, 
-          time: '2024-12-18 10:30:25', 
-          device: '摄像头01', 
-          type: '未戴安全帽', 
-          level: 'level1', 
-          location: '工地东北角',
-          status: 'pending',
-          imageUrl: require('./images/5.jpg'),
-          description: '检测到工作人员未佩戴安全帽，存在严重安全隐患，请立即整改并加强安全教育'
-        },
-        { 
-          id: 2, 
-          time: '2024-12-18 10:28:15', 
-          device: '摄像头03', 
-          type: '未穿工作服', 
-          level: 'level2', 
-          location: '工地南侧',
-          status: 'pending',
-          imageUrl: require('./images/4.jpg'),
-          description: '发现工作人员未按规定穿着工作服，违反现场作业安全规范，需要立即纠正'
-        },
-        { 
-          id: 3, 
-          time: '10:15:42', 
-          device: '摄像头02', 
-          type: '闲杂人员', 
-          level: 'level3', 
-          location: '材料区',
-          status: 'pending',
-          imageUrl: require('./images/5.jpg'),
-          description: '检测到非工作人员进入施工区域，可能存在安全风险，请及时清理并加强管控'
-        },
-        { 
-          id: 4, 
-          time: '09:58:30', 
-          device: '摄像头05', 
-          type: '吸烟', 
-          level: 'level4', 
-          location: '休息区',
-          status: 'pending',
-          imageUrl: require('./images/6.jpg'),
-          description: '发现工作人员在禁烟区域吸烟，违反安全生产规定，请立即制止并进行安全教育'
-        },
-      ],
+      // 预警列表数据 - 从API获取
+      warningList: [],
       warningDetailVisible: false,
       currentWarning: null,
       
@@ -313,6 +289,18 @@ export default {
         remark: ''
       },
       currentProcessingWarningId: '',
+      
+            // SSE连接相关
+      sseConnection: null,
+      sseStatus: {
+        connected: false
+      },
+        
+      // API数据加载相关
+      apiDataLoading: false,
+      totalWarnings: 0,
+      currentPage: 1,
+      pageSize: 10, // 只显示最新的10条预警数据
     }
   },
   computed: {
@@ -388,6 +376,12 @@ export default {
     // 初始化档案列表
     this.initArchivesList();
     
+    // 加载真实预警数据
+    this.loadWarningData();
+    
+    // 初始化SSE连接
+    this.initSSEConnection();
+    
     // 初始化后延迟刷新布局
     this.$nextTick(() => {
       setTimeout(() => {
@@ -400,6 +394,9 @@ export default {
     this.exitFullscreen();
     document.body.classList.remove('camera-fullscreen-mode');
     clearInterval(this.timer);
+    
+    // 清理SSE连接
+    this.cleanupSSEConnection();
     
     // 移除事件监听器
     document.removeEventListener('keydown', this.handleKeyDown);
@@ -653,7 +650,6 @@ export default {
     // 设备树点击事件
     treeNodeClickEvent(data) {
       if (data.leaf) {
-        console.log("通道点击事件", data);
         this.sendDevicePush(data.id);
       }
     },
@@ -694,7 +690,7 @@ export default {
           this.$set(this.videoTip, idxTmp, "播放失败: " + res.data.msg);
         }
       }).catch(function (e) {
-        console.error(e);
+        // 静默处理网络错误
       }).finally(() => {
         this.loading = false;
       });
@@ -894,7 +890,6 @@ export default {
         this.$message.success('处理记录已添加');
         this.closeRemarkDialog();
       } catch (error) {
-        console.error('处理失败:', error);
         this.$message.error('处理失败');
       } finally {
         this.loading = false;
@@ -916,24 +911,23 @@ export default {
             this.$set(this.warningList[index], 'operationHistory', []);
           }
           
-          // 更新处理中记录为已完成
-          this.warningList[index].operationHistory = this.warningList[index].operationHistory.map(record => {
-            if (record.operationType === 'processing' && record.status === 'active') {
-              return {
-                ...record,
-                status: 'completed',
-                statusText: '已处理',
-                description: '预警处理已完成，可以进行后续操作'
-              };
-            }
-            return record;
-          });
+          // 添加已处理记录 - 这是状态判断的关键
+          const completedRecord = {
+            id: Date.now() + Math.random(),
+            status: 'completed',
+            statusText: '已处理',
+            time: this.getCurrentTime(),
+            description: this.remarkForm.remark ? `处理完成：${this.remarkForm.remark}` : '预警处理已完成',
+            operationType: 'completed',
+            operator: this.getCurrentUserName()
+          };
+          
+          this.warningList[index].operationHistory.unshift(completedRecord);
         }
         
         this.$message.success('处理已完成，现在可以进行归档等操作');
         this.closeRemarkDialog();
       } catch (error) {
-        console.error('结束处理失败:', error);
         this.$message.error('结束处理失败');
       } finally {
         this.loading = false;
@@ -1025,7 +1019,6 @@ export default {
           }
         }
       } catch (error) {
-        console.error('处理失败:', error);
         this.$message.error('处理预警失败');
       } finally {
         this.loading = false;
@@ -1095,7 +1088,6 @@ export default {
         this.$message.success('预警已成功归档');
         this.archiveWarningId = '';
       } catch (error) {
-        console.error('归档失败:', error);
         this.$message.error('归档失败');
       }
     },
@@ -1148,7 +1140,6 @@ export default {
         this.$message.success('误报事件已保存到智能复判');
         this.archiveWarningId = '';
       } catch (error) {
-        console.error('误报归档失败:', error);
         this.$message.error('误报归档失败');
       }
     },
@@ -1191,11 +1182,7 @@ export default {
         
         // 模拟API调用保存时间
         await new Promise(resolve => setTimeout(resolve, 200));
-        
-        console.log('误报记录已保存到智能复判:', reviewRecord);
-        
       } catch (error) {
-        console.error('保存到智能复判记录失败:', error);
         throw error;
       }
     },
@@ -1219,7 +1206,6 @@ export default {
         
         return newArchive.id;
       } catch (error) {
-        console.error('创建默认档案失败:', error);
         this.$message.error('创建默认档案失败');
         return null;
       }
@@ -1247,6 +1233,37 @@ export default {
       const seconds = String(now.getSeconds()).padStart(2, '0');
       
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    },
+    
+    // 给时间添加指定秒数
+    addSecondsToTime(timeString, seconds) {
+      try {
+        let date;
+        if (timeString.includes('T')) {
+          date = new Date(timeString);
+        } else if (timeString.includes(' ')) {
+          date = new Date(timeString);
+        } else {
+          date = new Date();
+        }
+        
+        if (isNaN(date.getTime())) {
+          return timeString;
+        }
+        
+        date.setSeconds(date.getSeconds() + seconds);
+        
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const secs = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${secs}`;
+      } catch (error) {
+        return timeString;
+      }
     },
     
     // 获取当前用户昵称
@@ -1283,7 +1300,7 @@ export default {
       return iconMap[level] || 'el-icon-warning';
     },
     
-    // 获取当前预警状态
+    // 获取当前预警状态 - 与预警管理页面保持完全一致
     getCurrentWarningStatus(warning) {
       if (!warning.operationHistory || warning.operationHistory.length === 0) {
         return {
@@ -1291,9 +1308,6 @@ export default {
           class: 'status-pending'
         };
       }
-      
-      // 查找最新的状态（第一个元素）
-      const latestOperation = warning.operationHistory[0];
       
       // 检查是否已归档
       const hasArchived = warning.operationHistory.some(record => 
@@ -1319,9 +1333,9 @@ export default {
         };
       }
       
-      // 检查是否有处理中状态
+      // 检查是否有处理中状态（包括processing和processing-action）
       const hasActiveProcessing = warning.operationHistory.some(record => 
-        record.operationType === 'processing'
+        record.operationType === 'processing' || record.operationType === 'processing-action'
       );
       
       if (hasActiveProcessing) {
@@ -1376,17 +1390,609 @@ export default {
     // 格式化时间显示
     formatTime(timeString) {
       try {
-        // 如果是完整的时间字符串，格式化为更友好的显示
-        if (timeString.includes(' ')) {
+        if (!timeString) {
+          return '时间未知';
+        }
+        
+        // 处理不同的时间格式
+        if (timeString.includes('/') && timeString.includes(' ')) {
+          // 本地化格式: "2025/06/30 17:05:35"  
+          const [date, time] = timeString.split(' ');
+          const [year, month, day] = date.split('/');
+          return `${month}-${day} ${time}`;
+        } else if (timeString.includes('-') && timeString.includes(' ')) {
+          // 标准格式: "2025-06-30 17:05:35"
           const [date, time] = timeString.split(' ');
           const [year, month, day] = date.split('-');
           return `${month}-${day} ${time}`;
+        } else if (timeString.includes('T')) {
+          // ISO格式，直接转换
+          const date = new Date(timeString);
+          if (!isNaN(date.getTime())) {
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${month}-${day} ${hours}:${minutes}:${seconds}`;
+          }
         }
+        
+        // 如果无法识别格式，直接返回
         return timeString;
       } catch (error) {
-        return timeString;
+        return timeString || '时间解析失败';
       }
     },
+    
+    // =================== API数据加载相关方法 ===================
+    
+    // 加载预警数据
+    async loadWarningData() {
+      try {
+        this.apiDataLoading = true;
+        
+        // 调用API获取预警列表
+        const params = {
+          page: this.currentPage,
+          limit: this.pageSize,
+          // 默认只获取最近的预警，按时间倒序
+        };
+        
+        const response = await alertAPI.getRealTimeAlerts(params);
+        
+        if (response.data && response.data.code === 0) {
+          // 修正数据结构 - 数据直接在data字段中（是一个数组）
+          let apiWarnings = [];
+          if (Array.isArray(response.data.data)) {
+            // 数据直接是数组
+            apiWarnings = response.data.data;
+          } else if (response.data.data && Array.isArray(response.data.data.alerts)) {
+            // 数据在data.alerts中
+            apiWarnings = response.data.data.alerts;
+          } else if (Array.isArray(response.data.alerts)) {
+            // 数据在alerts字段中
+            apiWarnings = response.data.alerts;
+          }
+          
+          const convertedWarnings = apiWarnings.map(warning => 
+            this.convertAPIWarningToFrontend(warning)
+          ).filter(warning => warning !== null);
+          
+          // 更新预警列表
+          this.warningList = convertedWarnings;
+          this.totalWarnings = response.data.total || apiWarnings.length;
+        } else {
+          this.$message.warning('获取预警数据失败，将显示空列表');
+          this.warningList = [];
+        }
+      } catch (error) {
+        this.$message.error('加载预警数据失败，请检查网络连接');
+        this.warningList = [];
+      } finally {
+        this.apiDataLoading = false;
+      }
+    },
+    
+    // 将API预警数据转换为前端格式
+    convertAPIWarningToFrontend(apiWarning) {
+      try {
+        // 根据你提供的API数据格式进行准确映射，确保所有字段都有默认值
+        const convertedWarning = {
+          id: apiWarning.alert_id || `temp_${Date.now()}`,
+          time: this.formatAPITime(apiWarning.alert_time) || '时间未知',
+          device: apiWarning.camera_name || `摄像头${apiWarning.camera_id || '未知'}`,
+          type: apiWarning.alert_name || this.convertAlertTypeToDisplayName(apiWarning.alert_type) || '未知预警类型',
+          level: this.convertAlertLevel(apiWarning.alert_level) || 'level4',
+          location: apiWarning.location || '未知位置',
+          status: this.convertAlertStatus(apiWarning.status, apiWarning.status_display) || 'pending',
+          imageUrl: this.getWarningImageUrl(apiWarning) || null,
+          description: apiWarning.alert_description || '无描述信息',
+          operationHistory: this.convertProcessHistory(apiWarning.process, apiWarning.status, this.formatAPITime(apiWarning.alert_time)) || [],
+          // 添加额外的API数据字段
+          taskId: apiWarning.task_id || null,
+          electronicFence: apiWarning.electronic_fence || null,
+          result: apiWarning.result || null
+        };
+        
+        return convertedWarning;
+      } catch (error) {
+        return null;
+      }
+    },
+    
+    // 转换预警类型到显示名称
+    convertAlertTypeToDisplayName(alertType) {
+      const typeMap = {
+        'product_area_detection': '商品区域检测报警',
+        'safety_helmet_detection': '未戴安全帽',
+        'safety_belt_detection': '未系安全带', 
+        'protective_clothing_detection': '未穿工作服',
+        'personnel_intrusion_detection': '闲杂人员入侵',
+        'smoke_fire_detection': '吸烟检测',
+        'high_altitude_work_detection': '高空作业检测',
+        'fall_detection': '跌倒检测',
+        'crowd_gathering_detection': '人群聚集检测',
+        'vehicle_detection': '车辆检测',
+        'abnormal_behavior_detection': '异常行为检测'
+      };
+      
+      return typeMap[alertType] || alertType || '未知预警类型';
+    },
+    
+    // 格式化API时间
+    formatAPITime(timeString) {
+      try {
+        if (!timeString) {
+          return new Date().toLocaleString();
+        }
+        
+        // 处理不同的时间格式
+        let date;
+        if (timeString.includes('T')) {
+          // ISO格式: "2025-06-30T17:05:35"
+          date = new Date(timeString);
+        } else if (timeString.includes(' ')) {
+          // 标准格式 YYYY-MM-DD HH:mm:ss
+          date = new Date(timeString);
+        } else {
+          // 其他格式
+          date = new Date(timeString);
+        }
+        
+        if (isNaN(date.getTime())) {
+          return timeString; // 如果解析失败，返回原字符串
+        }
+        
+        const formattedTime = date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        return formattedTime;
+      } catch (error) {
+        return timeString || new Date().toLocaleString();
+      }
+    },
+    
+    // 获取预警图片URL
+    getWarningImageUrl(apiWarning) {
+      try {
+        // 优先使用常见的图片字段
+        const imageFields = [
+          'minio_frame_url',
+          'alert_image_url', 
+          'image_url',
+          'frame_url',
+          'snapshot_url',
+          'picture_url'
+        ];
+        
+        for (const field of imageFields) {
+          if (apiWarning[field]) {
+            const imageUrl = apiWarning[field];
+            // 如果是相对路径，拼接基础URL
+            if (imageUrl.startsWith('/')) {
+              return `http://192.168.1.106:8000${imageUrl}`;
+            }
+            return imageUrl;
+          }
+        }
+        
+        // 如果没有直接的图片URL，但有result数据，可能可以生成预览图或使用占位符
+        if (apiWarning.result && apiWarning.result.length > 0) {
+          // 暂时返回null，后续可以考虑生成预览图
+        }
+        
+        // 如果没有图片，返回null
+        return null;
+      } catch (error) {
+        return null;
+      }
+    },
+    
+    // 刷新预警数据
+    async refreshWarningData() {
+      try {
+        this.$message.info('正在刷新预警数据...');
+        
+        // 重置分页状态
+        this.currentPage = 1;
+        
+        await this.loadWarningData();
+        
+        this.$message.success('预警数据刷新成功');
+      } catch (error) {
+        this.$message.error('刷新预警数据失败');
+      }
+    },
+    
+    // 加载更多预警数据（分页）
+    async loadMoreWarnings() {
+      try {
+        this.apiDataLoading = true;
+        this.currentPage++;
+        
+        const params = {
+          page: this.currentPage,
+          limit: this.pageSize,
+        };
+        
+        const response = await alertAPI.getRealTimeAlerts(params);
+        
+        if (response.data && response.data.code === 0) {
+          // 修正数据结构 - 数据直接在data字段中（是一个数组）
+          let apiWarnings = [];
+          if (Array.isArray(response.data.data)) {
+            // 数据直接是数组
+            apiWarnings = response.data.data;
+          } else if (response.data.data && Array.isArray(response.data.data.alerts)) {
+            // 数据在data.alerts中
+            apiWarnings = response.data.data.alerts;
+          } else if (Array.isArray(response.data.alerts)) {
+            // 数据在alerts字段中
+            apiWarnings = response.data.alerts;
+          }
+          
+          const convertedWarnings = apiWarnings.map(warning => 
+            this.convertAPIWarningToFrontend(warning)
+          ).filter(warning => warning !== null);
+          
+          // 追加到现有列表
+          this.warningList.push(...convertedWarnings);
+        }
+      } catch (error) {
+        this.currentPage--; // 回退页码
+        this.$message.error('加载更多预警失败');
+      } finally {
+        this.apiDataLoading = false;
+      }
+    },
+    
+    // =================== SSE连接相关方法 ===================
+    
+    // 初始化SSE连接
+    initSSEConnection() {
+      // 初始化SSE连接
+      
+      // 如果已有连接，先关闭
+      if (this.sseConnection) {
+        this.sseConnection.close();
+        this.sseConnection = null;
+      }
+      
+      // 创建新的SSE连接
+      this.sseConnection = alertAPI.createAlertSSEConnection(
+        this.handleSSEMessage.bind(this),   // 消息处理
+        this.handleSSEError.bind(this),     // 错误处理
+        this.handleSSEClose.bind(this)      // 连接关闭处理
+      );
+      
+      if (this.sseConnection) {
+        this.sseStatus.connected = true;
+      }
+    },
+    
+    // 处理SSE消息
+    handleSSEMessage(messageData) {
+      // 如果是AI预警消息
+      if (messageData.alert_id || messageData.id) {
+        this.handleNewAlert(messageData);
+      }
+    },
+    
+    // 判断是否是传统报警消息格式
+    isTraditionalAlarmMessage(messageData) {
+      return messageData.deviceName && messageData.deviceId && messageData.alarmTime;
+    },
+    
+    // 处理传统报警消息（参考UiHeader.vue的处理方式）
+    handleTraditionalAlarm(alarmData) {
+      try {
+        // 将传统报警数据转换为预警列表格式
+        const newWarning = this.convertTraditionalAlarmToWarning(alarmData);
+        
+        if (!newWarning) {
+          return;
+        }
+        
+        // 添加到预警列表顶部
+        this.warningList.unshift(newWarning);
+        
+        // 限制列表长度，只保留最新的10条预警
+        if (this.warningList.length > 10) {
+          this.warningList = this.warningList.slice(0, 10);
+        }
+        
+        // 显示新预警提示
+        this.$message({
+          message: `收到新报警：${newWarning.type} - ${newWarning.device}`,
+          type: 'warning',
+          duration: 3000
+        });
+      } catch (error) {
+        // 静默处理错误
+      }
+    },
+    
+    // 将传统报警数据转换为前端预警格式
+    convertTraditionalAlarmToWarning(alarmData) {
+      try {
+        // 生成唯一ID
+        const id = `alarm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // 根据报警级别映射预警等级
+        const level = this.mapAlarmPriorityToLevel(alarmData.alarmPriorityDescription);
+        
+        return {
+          id: id,
+          time: this.formatAlarmTime(alarmData.alarmTime),
+          device: alarmData.deviceName || `设备${alarmData.deviceId}`,
+          type: alarmData.alarmTypeDescription || '报警',
+          level: level,
+          location: `通道${alarmData.channelId}`,
+          status: 'pending',
+          imageUrl: null, // 传统报警可能没有图片
+          description: `${alarmData.alarmMethodDescription || ''}报警 - ${alarmData.alarmTypeDescription || ''}`,
+          operationHistory: [{
+            id: Date.now(),
+            operationType: 'pending',
+            status: 'active',
+            statusText: '待处理',
+            time: this.formatAlarmTime(alarmData.alarmTime),
+            description: `系统检测到${alarmData.alarmTypeDescription || '异常情况'}，等待处理人员确认`,
+            operator: '系统'
+          }]
+        };
+      } catch (error) {
+        return null;
+      }
+    },
+    
+    // 映射报警级别到预警等级
+    mapAlarmPriorityToLevel(priorityDescription) {
+      const priorityMap = {
+        '一级': 'level1',
+        '紧急': 'level1', 
+        '高': 'level1',
+        '二级': 'level2',
+        '重要': 'level2',
+        '中高': 'level2',
+        '三级': 'level3',
+        '中等': 'level3',
+        '中': 'level3',
+        '四级': 'level4',
+        '低': 'level4',
+        '一般': 'level4'
+      };
+      
+      // 查找匹配的级别
+      for (const [key, value] of Object.entries(priorityMap)) {
+        if (priorityDescription && priorityDescription.includes(key)) {
+          return value;
+        }
+      }
+      
+      // 默认返回四级
+      return 'level4';
+    },
+    
+    // 格式化报警时间
+    formatAlarmTime(alarmTime) {
+      try {
+        if (!alarmTime) return this.getCurrentTime();
+        
+        // 如果已经是标准格式，直接返回
+        if (alarmTime.includes('-') && alarmTime.includes(':')) {
+          return alarmTime;
+        }
+        
+        // 处理其他格式
+        const date = new Date(alarmTime);
+        if (isNaN(date.getTime())) {
+          return alarmTime; // 如果解析失败，返回原字符串
+        }
+        
+        return date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      } catch (error) {
+        return alarmTime || this.getCurrentTime();
+      }
+    },
+    
+    // 处理新预警
+    handleNewAlert(alertData) {
+      try {
+        // 将后端预警数据转换为前端格式 - 统一使用API转换方法
+        const newWarning = this.convertAPIWarningToFrontend(alertData);
+        
+        if (!newWarning) {
+          return;
+        }
+        
+        // 添加到预警列表顶部
+        this.warningList.unshift(newWarning);
+        
+        // 限制列表长度，只保留最新的10条预警
+        if (this.warningList.length > 10) {
+          this.warningList = this.warningList.slice(0, 10);
+        }
+        
+        // 新预警已添加到列表
+      } catch (error) {
+        // 静默处理错误
+      }
+    },
+    
+    // 处理预警更新
+    handleAlertUpdate(alertData) {
+      try {
+        // 查找现有预警并更新
+        const index = this.warningList.findIndex(warning => 
+          warning.id === alertData.alert_id || warning.id === alertData.id
+        );
+        
+        if (index !== -1) {
+          // 更新现有预警 - 统一使用API转换方法
+          const updatedWarning = this.convertAPIWarningToFrontend(alertData);
+          
+          if (!updatedWarning) {
+            return;
+          }
+          
+          this.$set(this.warningList, index, updatedWarning);
+        }
+      } catch (error) {
+        // 静默处理错误
+      }
+    },
+    
+
+
+    
+    // 转换预警等级
+    convertAlertLevel(backendLevel) {
+      const levelMap = {
+        1: 'level1',
+        2: 'level2', 
+        3: 'level3',
+        4: 'level4'
+      };
+      return levelMap[backendLevel] || 'level4';
+    },
+    
+    // 转换预警状态
+    convertAlertStatus(statusNumber, statusDisplay) {
+      // 如果有显示文本，优先使用显示文本进行映射
+      if (statusDisplay) {
+        const statusMap = {
+          '待处理': 'pending',
+          '处理中': 'processing', 
+          '已处理': 'completed',
+          '已忽略': 'ignored',
+          '已过期': 'expired'
+        };
+        return statusMap[statusDisplay] || 'pending';
+      }
+      
+      // 如果没有显示文本，根据数字状态映射
+      if (statusNumber !== undefined && statusNumber !== null) {
+        const numberStatusMap = {
+          1: 'pending',     // 待处理
+          2: 'processing',  // 处理中
+          3: 'completed',   // 已处理
+          4: 'ignored',     // 已忽略
+          5: 'expired'      // 已过期
+        };
+        return numberStatusMap[statusNumber] || 'pending';
+      }
+      
+      // 对于新的API数据，如果没有状态信息，默认为待处理
+      return 'pending';
+    },
+    
+    // 转换处理历史 - 确保与状态判断逻辑一致
+    convertProcessHistory(processData, apiStatus, alertTime) {
+      try {
+        const operationHistory = []
+        
+        // 处理API返回的步骤（如果存在）
+        if (processData && processData.steps && Array.isArray(processData.steps)) {
+          processData.steps.forEach((step, index) => {
+            operationHistory.push({
+              id: step.id || (Date.now() + index + 100),
+              status: 'completed',
+              statusText: step.step || '处理中',
+              time: this.formatAPITime(step.time),
+              description: step.desc || step.description || '',
+              operationType: step.step === '预警产生' ? 'pending' : 'processing', // 预警产生直接标记为pending状态
+              operator: step.operator || '系统'
+            })
+          })
+        }
+        
+        // 为新预警（待处理状态）添加待处理记录
+        // 只有当API状态为待处理且没有现有记录时才添加
+        if ((apiStatus === 1 || apiStatus === undefined || apiStatus === null) && operationHistory.length === 0) {
+          operationHistory.push({
+            id: Date.now() + Math.random(),
+            status: 'active',
+            statusText: '待处理',
+            time: alertTime || this.getCurrentTime(),
+            description: '系统检测到异常情况，等待处理人员确认并开始处理',
+            operationType: 'pending',
+            operator: '系统'
+          })
+        }
+        
+        return operationHistory
+      } catch (error) {
+        // 即使出错也要返回基本的历史记录
+        return [{
+          id: Date.now() + Math.random(),
+          status: 'active',
+          statusText: '待处理',
+          time: alertTime || this.getCurrentTime(),
+          description: '系统检测到异常情况，等待处理人员确认并开始处理',
+          operationType: 'pending',
+          operator: '系统'
+        }];
+      }
+    },
+    
+    // 处理SSE错误
+    handleSSEError(error) {
+      this.sseStatus.connected = false;
+    },
+    
+    // 处理SSE连接关闭
+    handleSSEClose() {
+      console.log('SSE连接已关闭');
+      this.sseStatus.connected = false;
+    },
+    
+    // 清理SSE连接
+    cleanupSSEConnection() {
+      console.log('清理SSE连接');
+      
+      if (this.sseConnection) {
+        this.sseConnection.close();
+        this.sseConnection = null;
+      }
+      
+      this.sseStatus.connected = false;
+    },
+    
+    // 手动重连SSE
+    reconnectSSE() {
+      console.log('手动重连SSE');
+      this.cleanupSSEConnection();
+      
+      setTimeout(() => {
+        this.initSSEConnection();
+      }, 1000);
+    },
+    
+    // 获取SSE状态样式类
+    getSSSStatusClass() {
+      return this.sseStatus.connected ? 'status-connected' : 'status-disconnected';
+    },
+    
+    // 获取SSE状态文本
+    getSSEStatusText() {
+      return this.sseStatus.connected ? '已连接' : '未连接';
+    },
+    
+
   }
 }
 </script>
@@ -1723,6 +2329,8 @@ export default {
   transform: translateY(-2px);
 }
 
+
+
 .btn.disabled {
   cursor: not-allowed;
   opacity: 0.6;
@@ -1974,6 +2582,68 @@ export default {
   flex-shrink: 0;
 }
 
+.warning-list .list-header .header-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* SSE连接状态指示器 */
+.sse-status-indicator {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.sse-status-indicator .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  display: inline-block;
+}
+
+/* 已连接状态 - 绿色 */
+.sse-status-indicator.status-connected {
+  background: rgba(16, 185, 129, 0.1);
+  color: #065f46;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.sse-status-indicator.status-connected .status-dot {
+  background-color: #10b981;
+  box-shadow: 0 0 4px #10b981;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* 重连中状态 - 橙色 */
+.sse-status-indicator.status-reconnecting {
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.sse-status-indicator.status-reconnecting .status-dot {
+  background-color: #f59e0b;
+  animation: pulse 1s infinite ease-in-out;
+}
+
+/* 未连接状态 - 红色 */
+.sse-status-indicator.status-disconnected {
+  background: rgba(239, 68, 68, 0.1);
+  color: #991b1b;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.sse-status-indicator.status-disconnected .status-dot {
+  background-color: #ef4444;
+}
+
 
 
 .warning-list .list-header .more-btn {
@@ -2000,6 +2670,66 @@ export default {
   overflow-y: auto;
   background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
   height: calc(100% - 60px);
+}
+
+/* 加载状态样式 */
+.warning-list .list-content .loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #909399;
+  font-size: 14px;
+}
+
+.warning-list .list-content .loading-state i {
+  font-size: 32px;
+  margin-bottom: 12px;
+  color: #3b82f6;
+  animation: spin 1s linear infinite;
+}
+
+.warning-list .list-content .loading-state span {
+  font-weight: 500;
+}
+
+/* 空状态样式 */
+.warning-list .list-content .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #909399;
+  font-size: 14px;
+}
+
+.warning-list .list-content .empty-state i {
+  font-size: 48px;
+  margin-bottom: 12px;
+  color: #c0c4cc;
+}
+
+.warning-list .list-content .empty-state span {
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.warning-list .list-content .empty-state .el-button {
+  color: #3b82f6;
+  font-size: 13px;
+}
+
+.warning-list .list-content .empty-state .el-button:hover {
+  color: #1e40af;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* 旋转动画 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* 预警项目 - 科技感设计，调整尺寸减少滚动条 */

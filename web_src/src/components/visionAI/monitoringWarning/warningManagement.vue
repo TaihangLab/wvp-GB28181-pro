@@ -24,162 +24,7 @@ export default {
       },
       
       // 预警列表数据
-      warningList: [
-        {
-          id: '1',
-          deviceName: '未戴安全帽',
-          imageUrl: require('./images/5.jpg'),
-          value: 1,
-          unit: '人',
-          level: '一级预警',
-          time: '2024-12-18 10:30:25',
-          status: 'pending',
-          cameraId: 'camera_1',
-          deviceInfo: {
-            name: '摄像头01',
-            position: '工地东北角'
-          },
-          remark: '',
-          device: '摄像头01',
-          type: '未戴安全帽',
-          location: '工地东北角',
-          locationId: 'northeast_corner',
-          description: '检测到工作人员未佩戴安全帽，存在严重安全隐患，请立即整改并加强安全教育',
-          skill: 'safety_helmet_detection'
-        },
-        {
-          id: '2',
-          deviceName: '未穿工作服',
-          imageUrl: require('./images/4.jpg'),
-          value: 1,
-          unit: '人',
-          level: '二级预警',
-          time: '2024-12-18 10:28:15',
-          status: 'pending',
-          cameraId: 'camera_3',
-          deviceInfo: {
-            name: '摄像头03',
-            position: '工地南侧'
-          },
-          remark: '',
-          device: '摄像头03',
-          type: '未穿工作服',
-          location: '工地南侧',
-          locationId: 'south_side',
-          description: '发现工作人员未按规定穿着工作服，违反现场作业安全规范，需要立即纠正',
-          skill: 'work_clothes_detection'
-        },
-        {
-          id: '3',
-          deviceName: '闲杂人员',
-          imageUrl: require('./images/5.jpg'),
-          value: 1,
-          unit: '人',
-          level: '三级预警',
-          time: '2024-12-18 10:15:42',
-          status: 'pending',
-          cameraId: 'camera_2',
-          deviceInfo: {
-            name: '摄像头02',
-            position: '材料区'
-          },
-          remark: '',
-          device: '摄像头02',
-          type: '闲杂人员',
-          location: '材料区',
-          locationId: 'material_area',
-          description: '检测到非工作人员进入施工区域，可能存在安全风险，请及时清理并加强管控',
-          skill: 'personnel_intrusion_detection'
-        },
-        {
-          id: '4',
-          deviceName: '违规吸烟',
-          imageUrl: require('./images/6.jpg'),
-          value: 1,
-          unit: '人',
-          level: '二级预警',
-          time: '2024-12-18 09:58:30',
-          status: 'completed',
-          cameraId: 'camera_5',
-          deviceInfo: {
-            name: '摄像头05',
-            position: '休息区'
-          },
-          remark: '已对违规人员进行安全教育，并要求现场管理员加强巡查',
-          device: '摄像头05',
-          type: '违规吸烟',
-          location: '休息区',
-          locationId: 'rest_area',
-          description: '发现工作人员在禁烟区域吸烟，违反安全生产规定，请立即制止并进行安全教育',
-          skill: 'smoke_fire_detection'
-        },
-        {
-          id: '5',
-          deviceName: '高空作业未系安全带',
-          imageUrl: require('./images/1.jpg'),
-          value: 1,
-          unit: '人',
-          level: '一级预警',
-          time: '2024-12-18 09:45:12',
-          status: 'pending',
-          cameraId: 'camera_4',
-          deviceInfo: {
-            name: '摄像头04',
-            position: '施工作业区'
-          },
-          remark: '',
-          device: '摄像头04',
-          type: '高空作业未系安全带',
-          location: '施工作业区',
-          locationId: 'construction_area',
-          description: '检测到高空作业人员未系安全带，存在坠落风险，请立即停止作业并整改',
-          skill: 'safety_belt_detection'
-        },
-        {
-          id: '6',
-          deviceName: '未穿反光背心',
-          imageUrl: require('./images/3.jpg'),
-          value: 2,
-          unit: '人',
-          level: '三级预警',
-          time: '2024-12-18 09:32:18',
-          status: 'pending',
-          cameraId: 'camera_6',
-          deviceInfo: {
-            name: '摄像头06',
-            position: '工地东北角'
-          },
-          remark: '',
-          device: '摄像头06',
-          type: '未穿反光背心',
-          location: '工地东北角',
-          locationId: 'northeast_corner',
-          description: '检测到作业人员未穿着反光背心，在低照度环境下存在安全隐患，请立即整改',
-          skill: 'reflective_vest_detection'
-        },
-        {
-          id: '7',
-          deviceName: '设备状态正常',
-          imageUrl: require('./images/2.jpg'),
-          value: 1,
-          unit: '设备',
-          level: '四级预警',
-          time: '2024-12-18 09:20:45',
-          status: 'completed',
-          cameraId: 'camera_7',
-          deviceInfo: {
-            name: '摄像头07',
-            position: '设备监控区'
-          },
-          remark: '设备运行正常，无需特殊处理',
-          device: '摄像头07',
-          type: '设备状态监控',
-          location: '设备监控区',
-          locationId: 'equipment_area',
-          description: '设备状态检查正常，所有参数在安全范围内，继续监控',
-          skill: 'equipment_monitoring'
-        }
-      ],
+      warningList: [],
       
       // 表格加载状态
       loading: false,
@@ -230,26 +75,9 @@ export default {
       },
       
       // 档案管理数据
-      archivesList: [
-        {
-          id: 'archive_1',
-          name: '建筑工地默认档案',
-          cameraId: 'camera_1',
-          cameraName: '摄像头01',
-          isDefault: true,
-          createTime: '2024-01-01 10:00:00'
-        },
-        {
-          id: 'archive_2', 
-          name: '工地南侧专项档案',
-          cameraId: 'camera_3',
-          cameraName: '摄像头03',
-          isDefault: false,
-          createTime: '2024-01-05 14:30:00'
-        }
-      ],
+      archivesList: [],
       selectedArchiveId: '',
-      currentCameraId: 'camera_1',
+      currentCameraId: '',
       
       // 预警详情对话框
       warningDetailVisible: false,
@@ -388,9 +216,9 @@ export default {
       } catch (error) {
         console.error('获取预警列表异常:', error)
         this.$message.error('获取预警列表失败：' + (error.message || '网络错误'))
-        // 发生错误时保持现有的模拟数据，避免页面为空
-        // this.warningList = []
-        // this.totalCount = 0
+        // 发生错误时清空数据
+        this.warningList = []
+        this.totalCount = 0
       } finally {
         this.loading = false
       }
@@ -549,16 +377,16 @@ export default {
           } else if (action === 'archive') {
             // 归档 - 需要选择档案
             this.archiveWarningId = id
-            // 获取当前预警的摄像头信息（实际项目中从预警数据获取）
-            this.currentCameraId = this.warningList[index].cameraId || 'camera_1'
+            // 获取当前预警的摄像头信息
+            this.currentCameraId = this.warningList[index].cameraId || ''
             this.initArchiveSelection()
             this.archiveDialogVisible = true
             return // 不关闭loading，等确认后再关闭
           } else if (action === 'falseAlarm') {
             // 误报 - 自动归档到默认档案
             this.archiveWarningId = id
-            // 获取当前预警的摄像头信息（实际项目中从预警数据获取）
-            this.currentCameraId = this.warningList[index].cameraId || 'camera_1'
+            // 获取当前预警的摄像头信息
+            this.currentCameraId = this.warningList[index].cameraId || ''
             await this.handleFalseAlarmArchive()
             return // 不关闭loading，等归档完成后再关闭
           }
@@ -685,17 +513,17 @@ export default {
     
     // 获取当前摄像头名称
     getCurrentCameraName() {
-      // 实际项目中应该从摄像头数据中获取
-      const cameraNames = {
-        'camera_1': '摄像头01',
-        'camera_2': '摄像头02',
-        'camera_3': '摄像头03',
-        'camera_4': '摄像头04',
-        'camera_5': '摄像头05',
-        'camera_6': '摄像头06',
-        'camera_7': '摄像头07'
+      // 从实际的预警数据中获取摄像头名称
+      if (this.currentCameraId) {
+        const warning = this.warningList.find(item => item.cameraId === this.currentCameraId)
+        if (warning && warning.deviceInfo && warning.deviceInfo.name) {
+          return warning.deviceInfo.name
+        }
+        if (warning && warning.device) {
+          return warning.device
+        }
       }
-      return cameraNames[this.currentCameraId] || '摄像头'
+      return '摄像头'
     },
     
     // 获取当前时间
@@ -713,18 +541,14 @@ export default {
     
     // 获取当前用户昵称
     getCurrentUserName() {
-      // 实际项目中应该从用户登录信息或Vuex store中获取
-      // 这里模拟一些用户昵称
-      const userNames = ['张工程师', '李主管', '王安全员', '赵技术员', '陈操作员']
+      // 从用户登录信息或Vuex store中获取，或从本地存储获取
       const savedUserName = localStorage.getItem('currentUserName')
       
       if (savedUserName) {
         return savedUserName
       } else {
-        // 如果没有保存的用户名，随机选择一个并保存
-        const randomName = userNames[Math.floor(Math.random() * userNames.length)]
-        localStorage.setItem('currentUserName', randomName)
-        return randomName
+        // 如果没有保存的用户名，返回默认值
+        return '系统用户'
       }
     },
     
