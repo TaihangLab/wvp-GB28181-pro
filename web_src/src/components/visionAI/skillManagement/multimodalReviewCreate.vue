@@ -20,7 +20,7 @@
             </div>
           </div>
           <div class="header-right" v-if="isCreateMode">
-            <el-button @click="saveDraft">完成</el-button>
+            <el-button @click="saveDraft">保存</el-button>
             <el-button type="primary" @click="saveAndPublish">保存并上线</el-button>
           </div>
           <div class="header-right" v-else-if="isEditMode">
@@ -79,25 +79,27 @@
                 </div>
               </div>
 
-              <!-- 技能分类 -->
+              <!-- 技能标签 -->
               <div class="form-item">
-                <label class="form-label">技能分类:</label>
+                <label class="form-label">技能标签:</label>
                 <el-select 
                   v-model="skillForm.categories" 
-                  placeholder="请选择分类"
+                  placeholder="请选择标签"
                   :disabled="isViewMode"
                   multiple
                   collapse-tags
                   class="form-input">
-                  <el-option label="事件检测" value="事件检测"></el-option>
-                  <el-option label="安全" value="安全"></el-option>
-                  <el-option label="质量总站测试-功能" value="质量总站测试-功能"></el-option>
+                  <el-option label="图像识别" value="图像识别"></el-option>
+                  <el-option label="安全监控" value="安全监控"></el-option>
+                  <el-option label="异常检测" value="异常检测"></el-option>
+                  <el-option label="行为分析" value="行为分析"></el-option>
+                  <el-option label="合规检测" value="合规检测"></el-option>
                 </el-select>
                 <div class="form-tips" v-if="!isViewMode">
-                  可添加三个分类，支持多选
+                  可添加五个标签，支持多选
                 </div>
                 <div class="form-tips" v-else>
-                  当前技能分类：{{ skillForm.categories && skillForm.categories.length > 0 ? skillForm.categories.join('、') : '无' }}
+                  当前技能标签：{{ skillForm.categories && skillForm.categories.length > 0 ? skillForm.categories.join('、') : '无' }}
                 </div>
               </div>
 
@@ -107,7 +109,7 @@
                 <el-input 
                   v-model="skillForm.description"
                   type="textarea"
-                  placeholder="请明确说明您期待的分析功能和业务场景，例如：【目标】对厂（井）区燃煤分析【输入】燃煤图片【输出】给出精确的燃煤成分含量【应用于】燃煤企业成分检测"
+                  placeholder="1.请将您的需求通过疑问句描述出来，问题应能够通过「是」或「否」进行回答，当大模型分析结果为「是」，将输出任务结果；&#10; 2.尽量使用「形容词+名词」形式描述目标，输出结果会更准确的"
                   :rows="6"
                   maxlength="1000"
                   show-word-limit
@@ -180,9 +182,7 @@
                     class="analysis-btn">
                     {{ analyzing ? '分析中...' : '开始分析' }}
                   </el-button>
-                  <div class="analysis-tips">
-                    使用多模式大模型服务全程协助，计费时间计费 <el-button type="text">查看工时</el-button>
-                  </div>
+
                 </div>
               </div>
             </div>
@@ -210,12 +210,43 @@
         </div>
       </div>
     </div>
+    
+    <!-- 技能描述示例滑出窗口 -->
+    <div v-show="showExamplePanel" class="example-panel-overlay" @click="closeExamplePanel">
+      <div class="example-panel" @click.stop>
+        <div class="example-header">
+          <h3 class="example-title">技能描述示例</h3>
+          <el-button icon="el-icon-close" type="text" @click="closeExamplePanel" class="close-btn"></el-button>
+        </div>
+        
+        <div class="example-subtitle">
+          您可以通过以下方式描述技能，或直接引用示例查看效果：
+        </div>
+        
+        <div class="example-content">
+          <div v-for="(example, index) in exampleList" :key="index" class="example-item">
+            <div class="example-image">
+              <img :src="example.imagePath" :alt="example.title" />
+            </div>
+            <div class="example-details">
+              <h4 class="example-item-title">{{ example.title }}</h4>
+              <p class="example-description">{{ example.description }}</p>
+              <el-button 
+                type="primary" 
+                size="small" 
+                @click="useExample(example)"
+                class="reference-btn">
+                引用
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import skillDataManager from '@/utils/skillDataManager'
-
 export default {
   name: 'MultimodalReviewCreate',
   data() {
@@ -233,6 +264,33 @@ export default {
       analysisResult: '',
       currentMode: 'create', // 'create', 'view', 'edit'
       currentSkillId: null,
+      showExamplePanel: false, // 控制示例窗口显示
+      exampleList: [ // 技能描述示例列表
+        {
+          title: '作业未穿工作服识别',
+          description: '图中是否有人在操作软管但没有穿连体裤？',
+          imagePath: require('@/components/visionAI/skillManagement/example/imgs/example01.jpeg'),
+          categories: ['安全监控', '行为分析']
+        },
+        {
+          title: '天气异常识别',
+          description: '图片是否是一个下雨天？',
+          imagePath: require('@/components/visionAI/skillManagement/example/imgs/example02.jpeg'),
+          categories: ['图像识别', '异常检测']
+        },
+        {
+          title: '人员驾驶识别',
+          description: '图中的人坐在车里吗？',
+          imagePath: require('@/components/visionAI/skillManagement/example/imgs/example03.jpeg'),
+          categories: ['图像识别', '行为分析']
+        },
+        {
+          title: '倚靠栏杆识别',
+          description: '图中的人是否靠在栏杆上？',
+          imagePath: require('@/components/visionAI/skillManagement/example/imgs/example04.jpeg'),
+          categories: ['安全监控', '合规检测']
+        }
+      ]
     }
   },
   created() {
@@ -295,16 +353,57 @@ export default {
       }
     },
 
+    // 从 localStorage 获取所有技能数据
+    getSkillsFromStorage() {
+      const skillsData = localStorage.getItem('skillData')
+      return skillsData ? JSON.parse(skillsData) : []
+    },
+
+    // 根据ID获取技能
+    getSkillById(id) {
+      const skills = this.getSkillsFromStorage()
+      return skills.find(skill => skill.id === id)
+    },
+
+    // 更新技能到localStorage
+    updateSkillToStorage(skillData) {
+      const skills = this.getSkillsFromStorage()
+      const index = skills.findIndex(skill => skill.id === skillData.id)
+      if (index !== -1) {
+        skills[index] = { ...skillData }
+        localStorage.setItem('skillData', JSON.stringify(skills))
+        return true
+      }
+      return false
+    },
+
+    // 添加技能到localStorage
+    addSkillToStorage(skillData) {
+      const skills = this.getSkillsFromStorage()
+      // 确保有ID
+      if (!skillData.id) {
+        skillData.id = this.generateSkillId()
+      }
+      skills.unshift(skillData)
+      localStorage.setItem('skillData', JSON.stringify(skills))
+      return skillData
+    },
+
+    // 生成技能ID
+    generateSkillId() {
+      return 'skill_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    },
+
     // 加载技能数据
     loadSkillData(skillId) {
-      // 使用数据管理器加载技能数据
-      const skill = skillDataManager.getSkillById(skillId)
+      // 从 localStorage 加载技能数据
+      const skill = this.getSkillById(skillId)
       
       if (skill) {
         this.skillData = { ...skill }
         this.skillForm = {
           name: skill.name,
-          categories: skill.categories || [], // 保持所有分类
+          categories: skill.categories || [], // 保持所有标签
           description: skill.description
         }
         
@@ -383,8 +482,8 @@ export default {
       const newStatus = this.skillData.status === 'online' ? 'offline' : 'online'
       const updatedSkill = { ...this.skillData, status: newStatus }
       
-      // 使用数据管理器更新技能状态
-      if (skillDataManager.updateSkill(updatedSkill)) {
+      // 更新技能状态
+      if (this.updateSkillToStorage(updatedSkill)) {
         this.skillData.status = newStatus
         this.$message.success(`技能已${newStatus === 'online' ? '上线' : '下线'}`)
       } else {
@@ -454,7 +553,7 @@ export default {
       
       // 确保 ID 存在
       if (!updatedSkill.id) {
-        updatedSkill.id = skillDataManager.generateSkillId()
+        updatedSkill.id = this.generateSkillId()
         this.currentSkillId = updatedSkill.id
       }
       
@@ -462,7 +561,7 @@ export default {
       
       if (this.isCreateMode || !this.currentSkillId) {
         // 创建新技能
-        const newSkill = skillDataManager.addSkill(updatedSkill)
+        const newSkill = this.addSkillToStorage(updatedSkill)
         if (newSkill) {
           this.skillData = { ...newSkill }
           this.currentSkillId = newSkill.id
@@ -470,7 +569,7 @@ export default {
         }
       } else {
         // 更新现有技能
-        success = skillDataManager.updateSkill(updatedSkill)
+        success = this.updateSkillToStorage(updatedSkill)
         if (success) {
           this.skillData = { ...updatedSkill }
         }
@@ -558,7 +657,7 @@ export default {
       this.$message.error('文件上传失败')
     },
 
-    clearUpload() {
+    clearUpload(silent = false) {
       // 释放之前创建的对象URL，避免内存泄漏
       this.fileList.forEach(file => {
         if (file.url && file.url.startsWith('blob:')) {
@@ -577,7 +676,9 @@ export default {
         }
       })
       
-      this.$message.success('已清空上传文件')
+      if (!silent) {
+        this.$message.success('已清空上传文件')
+      }
     },
 
     startAnalysis() {
@@ -597,15 +698,51 @@ export default {
     },
 
     showDescriptionExample() {
-      this.$alert(
-        '示例1：【目标】检测矿井是否出现明火【输入】矿井监控图片【输出】明火检测结果和位置【应用于】矿山安全监控\n\n' +
-        '示例2：【目标】识别工人是否佩戴安全帽【输入】作业现场图片【输出】安全帽佩戴情况【应用于】施工安全管理',
-        '技能描述示例',
-        {
-          confirmButtonText: '确定',
-          type: 'info'
+      this.showExamplePanel = true
+    },
+
+    // 关闭示例窗口
+    closeExamplePanel() {
+      this.showExamplePanel = false
+    },
+
+    // 使用示例
+    useExample(example) {
+      // 检查是否为查看模式
+      if (this.isViewMode) {
+        this.$message.warning('查看模式下不能修改技能信息')
+        return
+      }
+
+      this.$confirm(`确认引用"${example.title}"示例吗？这将替换当前的技能名称、描述和标签`, '引用示例', {
+        confirmButtonText: '确定引用',
+        cancelButtonText: '取消',
+        type: 'info'
+      }).then(() => {
+        // 填充技能名称和描述
+        this.skillForm.name = example.title
+        this.skillForm.description = example.description
+        this.skillForm.categories = [...example.categories]
+
+        // 清空之前的文件
+        this.clearUpload(true)
+
+        // 创建文件对象并添加到fileList
+        const fileName = example.imagePath.split('/').pop()
+        const fileObj = {
+          name: fileName,
+          url: example.imagePath,
+          raw: null // 示例图片不需要raw对象
         }
-      )
+        this.fileList = [fileObj]
+
+        // 关闭示例窗口
+        this.closeExamplePanel()
+
+        this.$message.success(`已成功引用"${example.title}"示例`)
+      }).catch(() => {
+        this.$message.info('已取消引用')
+      })
     },
 
     // 复制到剪贴板
@@ -1427,16 +1564,7 @@ export default {
   box-shadow: 0 4px 15px rgba(160, 160, 160, 0.4);
 }
 
-.analysis-tips {
-  font-size: 12px;
-  color: #909399;
-}
 
-.analysis-tips .el-button {
-  padding: 0;
-  font-size: 12px;
-  color: #3b82f6;
-}
 
 .result-content {
   flex: 1;
@@ -1475,6 +1603,196 @@ export default {
   line-height: 1.6;
 }
 
+/* 技能描述示例滑出窗口样式 */
+.example-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.example-panel {
+  width: 600px;
+  background: white;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  animation: slideInRight 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.example-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e4e7ed;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  flex-shrink: 0;
+}
+
+.example-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.close-btn {
+  padding: 8px;
+  color: #909399;
+  font-size: 16px;
+}
+
+.close-btn:hover {
+  color: #606266;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.example-subtitle {
+  padding: 16px 24px;
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.5;
+  background: #f8fafc;
+  border-bottom: 1px solid #e4e7ed;
+  flex-shrink: 0;
+}
+
+.example-content {
+  flex: 1;
+  padding: 20px 24px;
+  overflow-y: auto;
+  background: #fafafa;
+}
+
+.example-item {
+  display: flex;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  border: 1px solid #f0f2f5;
+  position: relative;
+  overflow: hidden;
+}
+
+.example-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg,
+      rgba(59, 130, 246, 0.05) 0%,
+      rgba(30, 64, 175, 0.03) 25%,
+      rgba(6, 182, 212, 0.04) 50%,
+      rgba(59, 130, 246, 0.05) 75%,
+      rgba(30, 64, 175, 0.03) 100%);
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.example-item > * {
+  position: relative;
+  z-index: 2;
+}
+
+.example-item:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.example-item:last-child {
+  margin-bottom: 0;
+}
+
+.example-image {
+  width: 160px;
+  height: 120px;
+  flex-shrink: 0;
+  margin-right: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.example-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.example-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.example-item-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.4;
+}
+
+.example-description {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.reference-btn {
+  align-self: flex-start;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s ease;
+}
+
+.reference-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.reference-btn:active {
+  transform: translateY(0);
+}
+
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .content-container {
@@ -1489,6 +1807,22 @@ export default {
   
   .right-panel {
     padding-left: 0;
+  }
+
+  .example-panel {
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .example-item {
+    flex-direction: column;
+  }
+
+  .example-image {
+    width: 100%;
+    height: 200px;
+    margin-right: 0;
+    margin-bottom: 16px;
   }
 }
 </style> 

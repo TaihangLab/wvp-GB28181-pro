@@ -50,7 +50,8 @@ visionAIAxios.interceptors.response.use(
     const isSpecialApi =  /\/api\/v1\/cameras\/\d+$/.test(response.config.url) || // 匹配摄像头详情接口
                          /\/api\/v1\/ai-tasks\/camera\/id\/\d+$/.test(response.config.url) || // 匹配摄像头关联任务接口
                          /\/api\/v1\/ai-tasks\/\d+$/.test(response.config.url) || // 匹配AI任务详情接口
-                         /\/api\/v1\/alerts\/\d+$/.test(response.config.url); // 匹配预警详情接口
+                         /\/api\/v1\/alerts\/\d+$/.test(response.config.url) || // 匹配预警详情接口
+                         /\/api\/v1\/llm-skills\//.test(response.config.url); // 匹配LLM技能相关接口
 
 
 
@@ -548,6 +549,336 @@ export const skillAPI = {
     }
     console.log('删除AI任务:', taskId);
     return visionAIAxios.delete(`/api/v1/ai-tasks/${taskId}`);
+  },
+
+  /**
+   * 创建多模态大模型技能
+   * @param {Object} skillData - 技能数据
+   * @param {string} skillData.skill_name - 技能名称
+   * @param {string} skillData.skill_id - 技能ID
+   * @param {string} skillData.application_scenario - 应用场景 (video_analysis/image_processing)
+   * @param {Array} skillData.skill_tags - 技能标签数组
+   * @param {string} [skillData.skill_icon] - 技能图标MinIO对象名称
+   * @param {string} skillData.skill_description - 技能描述
+   * @param {string} skillData.prompt_template - 提示词模板
+   * @param {Array} skillData.output_parameters - 输出参数配置
+   * @param {Object} [skillData.alert_conditions] - 预警条件配置
+   * @returns {Promise} 包含创建结果的Promise对象
+   */
+  createLlmSkill(skillData) {
+    // 验证必要参数
+    if (!skillData.skill_name || !skillData.skill_id) {
+      console.error('创建多模态技能失败: 缺少必要参数', {
+        skill_name: skillData.skill_name,
+        skill_id: skillData.skill_id
+      });
+      return Promise.reject(new Error('缺少必要参数: 技能名称和技能ID必须提供'));
+    }
+
+    // 数据格式处理
+    const data = {
+      skill_name: skillData.skill_name,
+      skill_id: skillData.skill_id,
+      application_scenario: skillData.application_scenario || 'video_analysis',
+      skill_tags: skillData.skill_tags || [],
+      skill_icon: skillData.skill_icon || null,
+      skill_description: skillData.skill_description || '',
+      prompt_template: skillData.prompt_template || '',
+      output_parameters: skillData.output_parameters || [],
+      alert_conditions: skillData.alert_conditions || null
+    };
+
+    console.log('创建多模态大模型技能请求数据:', data);
+
+    return visionAIAxios.post('/api/v1/llm-skills/skill-classes', data);
+  },
+
+  /**
+   * 上传技能图标
+   * @param {File} iconFile - 图标文件
+   * @param {string} [skillId] - 技能ID（用于文件命名）
+   * @returns {Promise} 包含上传结果的Promise对象
+   */
+  uploadLlmSkillIcon(iconFile, skillId = null) {
+    if (!iconFile) {
+      console.error('上传技能图标失败: 缺少图标文件');
+      return Promise.reject(new Error('缺少图标文件'));
+    }
+
+    console.log('准备上传技能图标:', iconFile.name, iconFile.type, iconFile.size);
+
+    // 创建FormData对象
+    const formData = new FormData();
+    formData.append('icon', iconFile);
+    if (skillId) {
+      formData.append('skill_id', skillId);
+    }
+
+    // 设置请求头
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      // 添加上传进度事件
+      onUploadProgress: progressEvent => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        console.log('上传进度:', percentCompleted + '%');
+      }
+    };
+
+    return visionAIAxios.post('/api/v1/llm-skills/upload/skill-icon', formData, config)
+      .then(response => {
+        console.log('技能图标上传成功:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('技能图标上传失败:', error);
+        throw error;
+      });
+  },
+
+  /**
+   * 预览测试多模态技能
+   * @param {File} testImage - 测试图片
+   * @param {string} promptTemplate - 提示词模板
+   * @param {string} [systemPrompt] - 系统提示词
+   * @param {Array} [outputParameters] - 输出参数配置
+   * @returns {Promise} 包含测试结果的Promise对象
+   */
+  previewTestLlmSkill(testImage, promptTemplate, systemPrompt = null, outputParameters = null) {
+    if (!testImage || !promptTemplate) {
+      console.error('预览测试技能失败: 缺少必要参数');
+      return Promise.reject(new Error('缺少测试图片或提示词模板'));
+    }
+
+    console.log('准备预览测试技能:', testImage.name, promptTemplate);
+
+    // 创建FormData对象
+    const formData = new FormData();
+    formData.append('test_image', testImage);
+    formData.append('prompt_template', promptTemplate);
+    
+    if (systemPrompt) {
+      formData.append('system_prompt', systemPrompt);
+    }
+    
+    if (outputParameters && outputParameters.length > 0) {
+      formData.append('output_parameters', JSON.stringify(outputParameters));
+    }
+
+    // 设置请求头
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    };
+
+    return visionAIAxios.post('/api/v1/llm-skills/skill-classes/preview-test', formData, config)
+      .then(response => {
+        console.log('技能预览测试成功:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('技能预览测试失败:', error);
+        throw error;
+      });
+  },
+
+  /**
+   * 测试LLM连接
+   * @param {string} [systemPrompt] - 系统提示词
+   * @param {string} [testPrompt] - 测试提示词
+   * @returns {Promise} 包含连接测试结果的Promise对象
+   */
+  testLlmConnection(systemPrompt = null, testPrompt = null) {
+    console.log('测试LLM连接');
+
+    // 创建FormData对象
+    const formData = new FormData();
+    
+    if (systemPrompt) {
+      formData.append('system_prompt', systemPrompt);
+    }
+    
+    if (testPrompt) {
+      formData.append('test_prompt', testPrompt);
+    }
+
+    // 设置请求头
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    };
+
+    return visionAIAxios.post('/api/v1/llm-skills/skill-classes/connection-test', formData, config)
+      .then(response => {
+        console.log('LLM连接测试成功:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('LLM连接测试失败:', error);
+        throw error;
+      });
+  },
+
+  /**
+   * 获取多模态LLM技能列表
+   * @param {Object} params - 查询参数
+   * @param {number} [params.page=1] - 当前页码，从1开始
+   * @param {number} [params.limit=10] - 每页记录数，最大100条
+   * @param {string} [params.type_filter] - 技能类型过滤（如：multimodal_llm等）
+   * @param {boolean} [params.status] - 状态过滤（true-启用，false-禁用）
+   * @param {string} [params.name] - 按技能名称搜索（模糊匹配）
+   * @returns {Promise} 包含技能列表的Promise对象
+   */
+  getLlmSkillList(params = {}) {
+    // 处理查询和分页参数
+    const apiParams = { ...params };
+
+    // 处理分页参数 - 确保page和limit被正确传递
+    if (!apiParams.page) {
+      apiParams.page = 1; // 默认第1页
+    }
+
+    if (!apiParams.limit) {
+      apiParams.limit = 10; // 默认每页10条
+    } else {
+      apiParams.limit = Math.min(params.limit, 100); // 限制最大为100条
+    }
+
+    console.log('获取多模态技能列表API调用参数:', apiParams);
+
+    return visionAIAxios.get('/api/v1/llm-skills/skill-classes', { params: apiParams })
+      .then(response => {
+        console.log('获取多模态技能列表成功:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('获取多模态技能列表失败:', error);
+        throw error;
+      });
+  },
+
+  /**
+   * 获取多模态LLM技能详情
+   * @param {number|string} skillClassId - 技能类ID
+   * @returns {Promise} 包含技能详细信息的Promise对象
+   */
+  getLlmSkillDetail(skillClassId) {
+    if (!skillClassId) {
+      console.error('获取技能详情失败: 缺少技能ID');
+      return Promise.reject(new Error('缺少技能ID'));
+    }
+
+    console.log('获取多模态技能详情, ID:', skillClassId);
+
+    return visionAIAxios.get(`/api/v1/llm-skills/skill-classes/${skillClassId}`)
+      .then(response => {
+        console.log('获取多模态技能详情成功:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('获取多模态技能详情失败:', error);
+        throw error;
+      });
+  },
+
+  /**
+   * 更新多模态技能
+   * @param {number} skillClassId - 技能类ID
+   * @param {Object} skillData - 技能数据
+   * @returns {Promise} 包含更新结果的Promise对象
+   */
+  updateLlmSkill(skillClassId, skillData) {
+    if (!skillClassId) {
+      console.error('更新多模态技能失败: 缺少技能ID');
+      return Promise.reject(new Error('缺少技能ID'));
+    }
+
+    console.log('更新多模态技能, ID:', skillClassId, '数据:', skillData);
+
+    return visionAIAxios.put(`/api/v1/llm-skills/skill-classes/${skillClassId}`, skillData)
+      .then(response => {
+        console.log('更新多模态技能成功:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('更新多模态技能失败:', error);
+        throw error;
+      });
+  },
+
+  /**
+   * 发布多模态技能
+   * @param {number} skillClassId - 技能类ID
+   * @returns {Promise} 包含发布结果的Promise对象
+   */
+  publishLlmSkill(skillClassId) {
+    if (!skillClassId) {
+      console.error('发布多模态技能失败: 缺少技能ID');
+      return Promise.reject(new Error('缺少技能ID'));
+    }
+
+    console.log('发布多模态技能, ID:', skillClassId);
+
+    return visionAIAxios.post(`/api/v1/llm-skills/skill-classes/${skillClassId}/publish`)
+      .then(response => {
+        console.log('发布多模态技能成功:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('发布多模态技能失败:', error);
+        throw error;
+      });
+  },
+
+  /**
+   * 下架多模态技能
+   * @param {number} skillClassId - 技能类ID
+   * @returns {Promise} 包含下架结果的Promise对象
+   */
+  unpublishLlmSkill(skillClassId) {
+    if (!skillClassId) {
+      console.error('下架多模态技能失败: 缺少技能ID');
+      return Promise.reject(new Error('缺少技能ID'));
+    }
+
+    console.log('下架多模态技能, ID:', skillClassId);
+
+    return visionAIAxios.post(`/api/v1/llm-skills/skill-classes/${skillClassId}/unpublish`)
+      .then(response => {
+        console.log('下架多模态技能成功:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('下架多模态技能失败:', error);
+        throw error;
+      });
+  },
+
+  /**
+   * 批量删除多模态技能
+   * @param {Array} skillIds - 技能类ID数组
+   * @returns {Promise} 包含删除结果的Promise对象
+   */
+  batchDeleteLlmSkills(skillIds) {
+    if (!skillIds || !Array.isArray(skillIds) || skillIds.length === 0) {
+      console.error('批量删除多模态技能失败: 缺少技能ID数组');
+      return Promise.reject(new Error('缺少技能ID数组'));
+    }
+
+    console.log('批量删除多模态技能, IDs:', skillIds);
+
+    return visionAIAxios.post('/api/v1/llm-skills/skill-classes/batch-delete', skillIds)
+      .then(response => {
+        console.log('批量删除多模态技能成功:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('批量删除多模态技能失败:', error);
+        throw error;
+      });
   }
 };
 
@@ -668,7 +999,7 @@ export const alertAPI = {
       apiParams.start_date = apiParams.startDate;
       delete apiParams.startDate;
     }
-    
+
     if (apiParams.endDate) {
       apiParams.end_date = apiParams.endDate;
       delete apiParams.endDate;

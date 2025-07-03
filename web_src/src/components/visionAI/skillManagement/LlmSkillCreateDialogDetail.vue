@@ -16,7 +16,7 @@
           <div class="progress-step active">
             <div class="step-circle">2</div>
             <div class="step-info">
-              <div class="step-title">详细配置</div>
+              <div class="step-title">{{ isEditMode ? '编辑配置' : '详细配置' }}</div>
               <div class="step-desc">进行中</div>
             </div>
           </div>
@@ -29,11 +29,15 @@
               <img :src="skillInfo.iconUrl || '/static/logo.png'" alt="技能图标" />
             </div>
             <div class="skill-details">
-              <h2 class="skill-name">{{ skillInfo.name }}</h2>
+              <h2 class="skill-name">
+                {{ skillInfo.name }}
+                <span v-if="isEditMode" class="edit-indicator">（编辑中）</span>
+              </h2>
               <div class="skill-meta">
                 <div class="skill-id-badge">
                   <span class="id-label">ID</span>
                   <span class="id-value">{{ skillInfo.skillId }}</span>
+                  <span v-if="isEditMode" class="edit-mode-badge">编辑模式</span>
                 </div>
                 <el-tag size="small" type="primary">{{ skillInfo.scenario === 'vision' ? '视频分析' : '图片处理' }}</el-tag>
                 <el-tag size="small">{{ skillInfo.tags }}</el-tag>
@@ -44,7 +48,15 @@
           <div class="header-actions">
             <el-button @click="goBack" icon="el-icon-back">返回</el-button>
             <el-button type="primary" @click="saveSkill" :loading="saving" icon="el-icon-check">
-              保存技能
+              {{ isEditMode ? '更新技能' : '保存技能' }}
+            </el-button>
+            <el-button 
+              v-if="!isEditMode" 
+              type="success" 
+              @click="saveAndPublishSkill" 
+              :loading="savingAndPublishing" 
+              icon="el-icon-upload">
+              保存并发布
             </el-button>
           </div>
         </div>
@@ -72,11 +84,19 @@
                     </el-button>
                   </div>
                   
-                  <div class="smart-prompt-editor" ref="promptEditor" @click="handleEditorClick" @dblclick="handleEditorDblclick" @keydown="handleEditorKeydown" @input="handleEditorInput" @paste="handleEditorPaste" @beforeinput="handleBeforeInput" @dragstart="handleDragStart" @drop="handleDrop" tabindex="0" contenteditable="true">
-                    <div v-if="!promptTemplate.trim()" class="editor-placeholder">
-                      请输入提示词模板或点击"使用模板"开始
-                    </div>
-                    <div v-else class="editor-content">
+                  <!-- 简单文本框模式：没有使用模板时 -->
+                  <el-input
+                    v-if="!isUsingTemplate"
+                    type="textarea"
+                    v-model="promptTemplate"
+                    placeholder="请输入提示词模板或点击使用模板开始"
+                    :rows="15"
+                    class="simple-prompt-textarea">
+                  </el-input>
+                  
+                  <!-- 复杂编辑器模式：使用模板时 -->
+                  <div v-else class="smart-prompt-editor" ref="promptEditor" @click="handleEditorClick" @dblclick="handleEditorDblclick" @keydown="handleEditorKeydown" @input="handleEditorInput" @paste="handleEditorPaste" @beforeinput="handleBeforeInput" @dragstart="handleDragStart" @drop="handleDrop" tabindex="0" contenteditable="true">
+                    <div class="editor-content">
                       <div 
                         v-for="(segment, index) in parsedPrompt" 
                         :key="index"
@@ -444,14 +464,19 @@
   </template>
   
   <script>
+  import { skillAPI } from '@/components/service/VisionAIService.js'
+  
   export default {
     name: 'LlmSkillCreateDialogDetail',
     data() {
       return {
         saving: false,
+        savingAndPublishing: false, // 保存并发布状态
         validating: false,
+        isEditMode: false, // 是否为编辑模式
         skillInfo: {},
         uploadedImage: '',
+        uploadedImageFile: null, // 保存原始图片文件
         validationResult: '',
         
         // 输出参数
@@ -496,13 +521,57 @@
       }
     },
     
-    created() {
-      // 从路由参数或本地存储获取技能信息
-      this.skillInfo = this.$route.params.skillInfo || JSON.parse(localStorage.getItem('tempSkillInfo') || '{}')
+    computed: {
+      // 检查是否有有效的输出参数
+      hasValidOutputParams() {
+        return this.outputParams.some(param => param.name && param.name.trim())
+      },
       
-      if (!this.skillInfo.name) {
-        this.$message.warning('未找到技能信息，请重新创建')
-        this.goBack()
+      // 检查是否在使用模板模式
+      isUsingTemplate() {
+        return this.parsedPrompt && this.parsedPrompt.length > 0 && 
+               this.parsedPrompt.some(segment => segment.type === 'input')
+      }
+    },
+    
+    created() {
+      // 检测是否为编辑模式
+      this.isEditMode = this.$route.query.mode === 'edit'
+      
+      if (this.isEditMode) {
+        // 编辑模式：从localStorage获取编辑数据
+        const editData = JSON.parse(localStorage.getItem('editSkillInfo') || '{}')
+        if (!editData.name) {
+          this.$message.warning('未找到技能编辑信息，请重新操作')
+          this.goBack()
+          return
+        }
+        
+        this.skillInfo = editData
+        this.promptTemplate = editData.promptTemplate || ''
+        this.outputParams = editData.outputParameters || [
+          { name: '', type: 'boolean', description: '', required: true }
+        ]
+        this.globalRelation = editData.globalRelation || 'and'
+        this.conditionGroups = editData.conditionGroups && editData.conditionGroups.length > 0 
+          ? editData.conditionGroups 
+          : [
+            {
+              relation: 'all',
+              conditions: [
+                { field: '', operator: 'eq', value: '' }
+              ]
+            }
+          ]
+      } else {
+        // 创建模式：从路由参数或本地存储获取技能信息
+        this.skillInfo = this.$route.params.skillInfo || JSON.parse(localStorage.getItem('tempSkillInfo') || '{}')
+        
+        if (!this.skillInfo.name) {
+          this.$message.warning('未找到技能信息，请重新创建')
+          this.goBack()
+          return
+        }
       }
       
       // 监听提示词模板变化
@@ -695,11 +764,41 @@
       
       // 处理编辑器点击
       handleEditorClick(event) {
-        // 如果点击的是空白区域，可以添加新的输入框或处理其他逻辑
+        // 只在模板模式下处理复杂点击逻辑
+        if (!this.isUsingTemplate) {
+          return
+        }
+        
+        // 如果内容为空，允许用户开始输入
+        if (!this.promptTemplate.trim()) {
+          this.focusEditor()
+        }
+      },
+      
+      // 聚焦编辑器，让用户可以输入
+      focusEditor() {
+        this.$nextTick(() => {
+          const editor = this.$refs.promptEditor
+          if (editor) {
+            editor.focus()
+            // 设置光标位置到编辑器末尾
+            const range = document.createRange()
+            const selection = window.getSelection()
+            range.selectNodeContents(editor)
+            range.collapse(false)
+            selection.removeAllRanges()
+            selection.addRange(range)
+          }
+        })
       },
       
       // 处理编辑器输入事件
       handleEditorInput(event) {
+        // 只在模板模式下处理
+        if (!this.isUsingTemplate) {
+          return
+        }
+        
         // 延迟更新模板，避免频繁更新
         clearTimeout(this.inputTimer)
         this.inputTimer = setTimeout(() => {
@@ -709,21 +808,80 @@
       
       // 处理粘贴事件
       handleEditorPaste(event) {
+        // 如果不在模板模式，允许默认行为
+        if (!this.isUsingTemplate) {
+          return
+        }
+        
+        event.preventDefault() // 阻止默认粘贴行为
+        
         const selection = window.getSelection()
         if (selection.rangeCount > 0) {
           const range = selection.getRangeAt(0)
           
           // 检查粘贴位置是否在注释行内
           if (this.isCursorInCommentLine(range)) {
-            event.preventDefault()
             this.$message.warning('注释行不能编辑')
             return false
+          }
+          
+          // 获取剪贴板的纯文本内容
+          const clipboardData = event.clipboardData || window.clipboardData
+          const pastedText = clipboardData.getData('text/plain')
+          
+          if (pastedText) {
+            // 删除选中的内容
+            if (!range.collapsed) {
+              range.deleteContents()
+            }
+            
+            // 将文本按行分割
+            const lines = pastedText.split(/\r?\n/)
+            
+            // 创建文档片段
+            const fragment = document.createDocumentFragment()
+            
+            lines.forEach((line, index) => {
+              // 添加文本节点（即使是空行也添加，保持原始格式）
+              if (line.length > 0) {
+                fragment.appendChild(document.createTextNode(line))
+              }
+              
+              // 如果不是最后一行，添加换行符
+              if (index < lines.length - 1) {
+                fragment.appendChild(document.createElement('br'))
+              }
+            })
+            
+            // 插入到光标位置
+            range.insertNode(fragment)
+            
+            // 移动光标到插入内容的末尾
+            if (fragment.lastChild) {
+              range.setStartAfter(fragment.lastChild)
+              range.setEndAfter(fragment.lastChild)
+            } else {
+              // 如果没有子元素，直接定位到range的结束位置
+              range.collapse(false)
+            }
+            selection.removeAllRanges()
+            selection.addRange(range)
+            
+            // 更新模板
+            setTimeout(() => {
+              this.updatePromptFromEditor()
+            }, 0)
           }
         }
       },
       
       // 处理beforeinput事件（更早期的输入拦截）
       handleBeforeInput(event) {
+        // 只在模板模式下处理
+        if (!this.isUsingTemplate) {
+          return
+        }
+        
         const selection = window.getSelection()
         if (selection.rangeCount > 0) {
           const range = selection.getRangeAt(0)
@@ -829,12 +987,15 @@
             return
           }
           
+          // 保存原始文件用于API调用
+          this.uploadedImageFile = file.raw
+          // 创建预览URL
           this.uploadedImage = URL.createObjectURL(file.raw)
         }
       },
       
       // 运行验证
-      runValidation() {
+      async runValidation() {
         if (!this.uploadedImage) {
           this.$message.warning('请先上传图片')
           return
@@ -845,25 +1006,100 @@
           return
         }
         
+        if (!this.hasValidOutputParams) {
+          this.$message.warning('请先配置输出参数才能进行AI分析')
+          return
+        }
+        
         this.validating = true
         
-        // 模拟AI分析
-        setTimeout(() => {
-          this.validationResult = `基于提供的图片和配置的提示词，AI分析结果如下：
-  
-  1. 第一个子任务判断结果：检测到目标物体，符合预设条件
-  2. 第二个子任务判断结果：未检测到异常情况，状态正常  
-  3. 第三个子任务判断结果：环境参数在正常范围内
-  
-  综合判断：当前场景满足技能要求，无需预警。
-  
-  输出参数：
-  - 检测结果: true
-  - 置信度: 0.95
-  - 异常类型: null`
+        try {
+          // 从URL创建File对象
+          let testImageFile = null
+          if (this.uploadedImageFile) {
+            testImageFile = this.uploadedImageFile
+          } else {
+            // 如果没有保存原始文件，从URL获取
+            const response = await fetch(this.uploadedImage)
+            const blob = await response.blob()
+            testImageFile = new File([blob], 'test-image.jpg', { type: blob.type })
+          }
           
+          // 准备有效的输出参数
+          const validOutputParams = this.outputParams.filter(param => param.name.trim())
+          
+          console.log('正在进行AI分析...')
+          const response = await skillAPI.previewTestLlmSkill(
+            testImageFile,
+            this.promptTemplate,
+            null, // 系统提示词暂时为null
+            validOutputParams.length > 0 ? validOutputParams : null
+          )
+          
+          if (response.data && response.data.success) {
+            // 获取实际的数据（后端API将结果包装在data.data中）
+            const resultData = response.data.data || response.data
+            
+            // 格式化分析结果 - 更紧凑的格式
+            let formattedResult = ''
+            
+            // 优先显示分析结果
+            if (resultData.analysis_result) {
+              if (typeof resultData.analysis_result === 'string') {
+                formattedResult += resultData.analysis_result
+              } else if (typeof resultData.analysis_result === 'object') {
+                formattedResult += JSON.stringify(resultData.analysis_result)
+              }
+            }
+            
+            // 显示提取的参数
+            if (resultData.extracted_parameters) {
+              if (formattedResult) formattedResult += '\n\n'  // 如果前面有内容，先换行分隔
+              formattedResult += '【提取参数】\n'
+              if (typeof resultData.extracted_parameters === 'object') {
+                // 格式化显示参数
+                for (const [key, value] of Object.entries(resultData.extracted_parameters)) {
+                  let displayValue = value
+                  if (typeof value === 'object') {
+                    displayValue = JSON.stringify(value)
+                  }
+                  formattedResult += `${key}: ${displayValue}\n`
+                }
+              } else {
+                formattedResult += String(resultData.extracted_parameters) + '\n'
+              }
+            }
+            
+            // 如果没有有效结果，显示原始响应
+            if (!resultData.analysis_result && !resultData.extracted_parameters) {
+              if (resultData.raw_response) {
+                formattedResult += resultData.raw_response
+              }
+            }
+            
+            this.validationResult = formattedResult.trim() || '暂无分析结果'
+            this.$message.success('AI分析完成')
+          } else {
+            throw new Error('分析响应格式异常')
+          }
+          
+        } catch (error) {
+          console.error('AI分析失败:', error)
+          
+          // 根据错误类型显示不同的错误信息
+          if (error.response && error.response.data && error.response.data.detail) {
+            this.$message.error(`分析失败: ${error.response.data.detail}`)
+            this.validationResult = `分析失败: ${error.response.data.detail}`
+          } else if (error.message.includes('网络')) {
+            this.$message.error('网络连接失败，请检查LLM服务连接')
+            this.validationResult = '网络连接失败，请检查LLM服务连接'
+          } else {
+            this.$message.error('AI分析失败，请重试')
+            this.validationResult = `分析失败: ${error.message}`
+          }
+        } finally {
           this.validating = false
-        }, 3000)
+        }
       },
       
       // 复制结果
@@ -878,7 +1114,7 @@
       },
       
       // 保存技能
-      saveSkill() {
+      async saveSkill() {
         // 验证必填项
         if (!this.promptTemplate.trim()) {
           this.$message.warning('请配置提示词模板')
@@ -893,21 +1129,207 @@
         
         this.saving = true
         
-        // 模拟保存
-        setTimeout(() => {
-          this.$message.success('技能创建成功！')
+        try {
+          if (this.isEditMode) {
+            // 编辑模式：更新技能
+            const skillData = {
+              skill_name: this.skillInfo.name,
+              application_scenario: this.skillInfo.scenario === 'vision' ? 'video_analysis' : 'image_processing',
+              skill_tags: this.skillInfo.tags ? [this.skillInfo.tags] : [],
+              skill_icon: this.skillInfo.skillIcon || null,
+              skill_description: this.skillInfo.description,
+              prompt_template: this.promptTemplate,
+              output_parameters: validParams,
+              alert_conditions: this.conditionGroups.length > 0 ? {
+                condition_groups: this.conditionGroups,
+                global_relation: this.globalRelation
+              } : null
+            }
+            
+            console.log('正在更新多模态技能:', this.skillInfo.id, skillData)
+            
+            // 调用API更新技能
+            const response = await skillAPI.updateLlmSkill(this.skillInfo.id, skillData)
+            
+            if (response.data && response.data.success) {
+              this.$message.success('技能更新成功！')
+              
+              // 清除临时数据
+              localStorage.removeItem('editSkillInfo')
+              
+              // 返回技能列表
+              this.$router.push('/skillManage/multimodalLlmSkills')
+            } else {
+              throw new Error('更新响应格式异常')
+            }
+          } else {
+            // 创建模式：创建技能
+            const skillData = {
+              skill_name: this.skillInfo.name,
+              skill_id: this.skillInfo.skillId,
+              application_scenario: this.skillInfo.scenario === 'vision' ? 'video_analysis' : 'image_processing',
+              skill_tags: this.skillInfo.tags ? [this.skillInfo.tags] : [],
+              skill_icon: this.skillInfo.skillIcon || null, // 使用已上传的图标MinIO对象名称
+              skill_description: this.skillInfo.description,
+              prompt_template: this.promptTemplate,
+              output_parameters: validParams,
+              alert_conditions: this.conditionGroups.length > 0 ? {
+                condition_groups: this.conditionGroups,
+                global_relation: this.globalRelation
+              } : null
+            }
+            
+            console.log('正在创建多模态技能:', skillData)
+            
+            // 调用API创建技能
+            const response = await skillAPI.createLlmSkill(skillData)
+            
+            if (response.data && response.data.success) {
+              this.$message.success('技能创建成功！')
+              
+              // 清除临时数据
+              localStorage.removeItem('tempSkillInfo')
+              
+              // 返回技能列表
+              this.$router.push('/skillManage/multimodalLlmSkills')
+            } else {
+              throw new Error('创建响应格式异常')
+            }
+          }
+          
+        } catch (error) {
+          console.error(`${this.isEditMode ? '更新' : '创建'}技能失败:`, error)
+          
+          // 根据错误类型显示不同的错误信息
+          if (error.response && error.response.data && error.response.data.detail) {
+            this.$message.error(`${this.isEditMode ? '更新' : '创建'}失败: ${error.response.data.detail}`)
+          } else if (error.response && error.response.status === 400) {
+            this.$message.error('请检查输入数据格式是否正确')
+          } else if (error.response && error.response.status === 409 && !this.isEditMode) {
+            this.$message.error('技能ID已存在，请使用不同的技能ID')
+          } else {
+            this.$message.error(`${this.isEditMode ? '更新' : '创建'}技能失败，请检查网络连接`)
+          }
+        } finally {
           this.saving = false
+        }
+      },
+
+      // 保存并发布技能
+      async saveAndPublishSkill() {
+        // 验证必填项
+        if (!this.promptTemplate.trim()) {
+          this.$message.warning('请配置提示词模板')
+          return
+        }
+        
+        const validParams = this.outputParams.filter(param => param.name.trim())
+        if (validParams.length === 0) {
+          this.$message.warning('请至少配置一个输出参数')
+          return
+        }
+        
+        this.savingAndPublishing = true
+        
+        try {
+          // 构建技能数据
+          const skillData = {
+            skill_name: this.skillInfo.name,
+            skill_id: this.skillInfo.skillId,
+            application_scenario: this.skillInfo.scenario === 'vision' ? 'video_analysis' : 'image_processing',
+            skill_tags: this.skillInfo.tags ? [this.skillInfo.tags] : [],
+            skill_icon: this.skillInfo.skillIcon || null, // 使用已上传的图标MinIO对象名称
+            skill_description: this.skillInfo.description,
+            prompt_template: this.promptTemplate,
+            output_parameters: validParams,
+            alert_conditions: this.conditionGroups.length > 0 ? {
+              condition_groups: this.conditionGroups,
+              global_relation: this.globalRelation
+            } : null
+          }
+          
+          console.log('正在创建并发布多模态技能:', skillData)
+          
+          // 第一步：创建技能
+          this.$message.info('正在创建技能...')
+          const createResponse = await skillAPI.createLlmSkill(skillData)
+          
+          if (!createResponse.data || !createResponse.data.success) {
+            throw new Error('创建技能失败')
+          }
+          
+          const createdSkillId = createResponse.data.data.id
+          
+          // 第二步：发布技能
+          this.$message.info('技能创建成功，正在发布...')
+          const publishResponse = await skillAPI.publishLlmSkill(createdSkillId)
+          
+          if (!publishResponse.data || !publishResponse.data.success) {
+            // 发布失败，但技能已创建成功
+            this.$message.warning('技能创建成功，但发布失败，您可以在技能列表中手动发布')
+          } else {
+            this.$message.success('技能创建并发布成功！')
+          }
           
           // 清除临时数据
           localStorage.removeItem('tempSkillInfo')
           
           // 返回技能列表
           this.$router.push('/skillManage/multimodalLlmSkills')
-        }, 2000)
+          
+        } catch (error) {
+          console.error('创建并发布技能失败:', error)
+          
+          // 根据错误类型显示不同的错误信息
+          if (error.response && error.response.data && error.response.data.detail) {
+            this.$message.error(`创建失败: ${error.response.data.detail}`)
+          } else if (error.response && error.response.status === 400) {
+            this.$message.error('请检查输入数据格式是否正确')
+          } else if (error.response && error.response.status === 409) {
+            this.$message.error('技能ID已存在，请使用不同的技能ID')
+          } else {
+            this.$message.error('创建技能失败，请检查网络连接')
+          }
+        } finally {
+          this.savingAndPublishing = false
+        }
       },
       
       // 处理编辑器键盘事件
       handleEditorKeydown(event) {
+        // 只在模板模式下处理复杂键盘逻辑
+        if (!this.isUsingTemplate) {
+          return
+        }
+        
+        // 如果内容为空，允许直接输入
+        if (!this.promptTemplate.trim()) {
+          if (event.key === 'Enter') {
+            // 空白状态下也阻止默认回车行为，手动插入br
+            event.preventDefault()
+            const selection = window.getSelection()
+            if (selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0)
+              const br = document.createElement('br')
+              range.insertNode(br)
+              range.setStartAfter(br)
+              range.setEndAfter(br)
+              selection.removeAllRanges()
+              selection.addRange(range)
+            }
+            setTimeout(() => {
+              this.updatePromptFromEditor()
+            }, 0)
+            return
+          } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            // 允许字符输入，并更新模板
+            setTimeout(() => {
+              this.updatePromptFromEditor()
+            }, 0)
+          }
+          return // 在空状态下，其他按键让浏览器处理
+        }
+
         const selection = window.getSelection()
         if (selection.rangeCount > 0) {
           const range = selection.getRangeAt(0)
@@ -971,7 +1393,27 @@
               event.preventDefault()
               return
             }
-            // 其他情况允许正常换行
+            
+            // 阻止默认的回车行为，手动插入换行
+            event.preventDefault()
+            
+            // 删除选中内容（如果有）
+            if (selectedText !== '') {
+              range.deleteContents()
+            }
+            
+            // 手动插入<br>标签
+            const br = document.createElement('br')
+            range.insertNode(br)
+            
+            // 设置光标位置到换行后
+            range.setStartAfter(br)
+            range.setEndAfter(br)
+            selection.removeAllRanges()
+            selection.addRange(range)
+            
+            // 更新模板内容
+            this.updatePromptFromEditor()
           }
           // 处理其他特殊键（方向键、Home、End等）
           else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
@@ -1097,11 +1539,16 @@
       
       // 从编辑器DOM更新模板内容
       updatePromptFromEditor() {
-        const editorContent = this.$refs.promptEditor.querySelector('.editor-content')
-        if (editorContent) {
-          let newTemplate = ''
-          
-          // 递归处理所有节点
+        const editor = this.$refs.promptEditor
+        if (!editor) return
+        
+        let newTemplate = ''
+        
+        // 首先尝试从editor-content获取内容
+        const editorContent = editor.querySelector('.editor-content')
+        
+        if (editorContent && editorContent.children.length > 0) {
+          // 有结构化内容，按照原逻辑处理
           const processNode = (node) => {
             if (node.nodeType === Node.TEXT_NODE) {
               return node.textContent
@@ -1136,27 +1583,37 @@
             return ''
           }
           
-          // 如果编辑器被直接编辑，获取整个编辑器的内容
-          if (!editorContent.children.length) {
-            newTemplate = this.$refs.promptEditor.textContent || this.$refs.promptEditor.innerText || ''
-          } else {
-            // 处理所有子节点
-            for (let child of editorContent.childNodes) {
-              newTemplate += processNode(child)
+          // 处理所有子节点
+          for (let child of editorContent.childNodes) {
+            newTemplate += processNode(child)
+          }
+        } else {
+          // 没有结构化内容或内容为空，直接获取编辑器的文本内容
+          // 排除占位符的内容
+          const placeholder = editor.querySelector('.editor-placeholder')
+          if (placeholder) {
+            // 排除占位符，只获取可编辑内容
+            let tempText = editor.textContent || editor.innerText || ''
+            const placeholderText = placeholder.textContent || placeholder.innerText || ''
+            if (tempText.includes(placeholderText)) {
+              tempText = tempText.replace(placeholderText, '').trim()
             }
+            newTemplate = tempText
+          } else {
+            newTemplate = editor.textContent || editor.innerText || ''
           }
-          
-          // 清理多余的换行符
-          newTemplate = newTemplate.replace(/\n\s*\n/g, '\n').trim()
-          
-          // 避免无限循环更新
-          if (newTemplate !== this.promptTemplate) {
-            this.isUpdatingPrompt = true
-            this.promptTemplate = newTemplate
-            this.$nextTick(() => {
-              this.isUpdatingPrompt = false
-            })
-          }
+        }
+        
+        // 清理多余的换行符
+        newTemplate = newTemplate.replace(/\n\s*\n/g, '\n').trim()
+        
+        // 避免无限循环更新
+        if (newTemplate !== this.promptTemplate) {
+          this.isUpdatingPrompt = true
+          this.promptTemplate = newTemplate
+          this.$nextTick(() => {
+            this.isUpdatingPrompt = false
+          })
         }
       },
       
@@ -1520,6 +1977,13 @@
     line-height: 1.2;
     letter-spacing: -0.8px;
   }
+
+  .edit-indicator {
+    font-size: 16px;
+    font-weight: 500;
+    color: #f59e0b;
+    margin-left: 8px;
+  }
   
   .skill-meta {
     display: flex;
@@ -1568,6 +2032,19 @@
     letter-spacing: 0.5px;
     font-size: 13px;
   }
+
+  .edit-mode-badge {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    margin-left: 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
+  }
   
   .skill-description {
     margin: 0;
@@ -1608,6 +2085,42 @@
   .header-actions .el-button:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  /* 保存并发布按钮特殊样式 */
+  .header-actions .el-button--success {
+    background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-actions .el-button--success::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: all 0.6s ease;
+  }
+
+  .header-actions .el-button--success:hover {
+    background: linear-gradient(135deg, #85ce61 0%, #67c23a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(103, 194, 58, 0.4);
+  }
+
+  .header-actions .el-button--success:hover::before {
+    left: 100%;
+  }
+
+  .header-actions .el-button--success.is-loading {
+    background: linear-gradient(135deg, #a0cfff 0%, #c0c4cc 100%);
+    box-shadow: 0 2px 8px rgba(160, 207, 255, 0.3);
   }
   
   /* 内容布局 */
@@ -1693,6 +2206,15 @@
     resize: none;
   }
 
+  /* 简单文本框样式 */
+  .simple-prompt-textarea >>> .el-textarea__inner {
+    font-family: 'Courier New', monospace !important;
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+    resize: none !important;
+    height: 100% !important;
+  }
+
   /* 智能编辑器样式 */
   .smart-prompt-editor {
     flex: 1;
@@ -1702,9 +2224,10 @@
     overflow-y: auto;
     font-family: 'Courier New', monospace;
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.3;
     cursor: text;
     outline: none;
+    position: relative;
   }
 
   .smart-prompt-editor:focus {
@@ -1712,17 +2235,61 @@
     box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
   }
 
+  /* 重置contenteditable默认样式，防止回车产生大空白 */
+  .smart-prompt-editor p {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.3;
+  }
+
+  .smart-prompt-editor div {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.3;
+  }
+
+  .smart-prompt-editor br {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.3;
+  }
+
+  /* 重置所有可能的块级元素 */
+  .smart-prompt-editor h1,
+  .smart-prompt-editor h2,
+  .smart-prompt-editor h3,
+  .smart-prompt-editor h4,
+  .smart-prompt-editor h5,
+  .smart-prompt-editor h6,
+  .smart-prompt-editor ul,
+  .smart-prompt-editor ol,
+  .smart-prompt-editor li,
+  .smart-prompt-editor blockquote {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.3;
+  }
+
   .editor-placeholder {
-    padding: 15px;
+    position: absolute;
+    top: 15px;
+    left: 15px;
     color: #c0c4cc;
     font-style: italic;
     text-align: left;
+    pointer-events: none;
+    z-index: 1;
   }
 
   .editor-content {
     padding: 15px;
     min-height: 100%;
     text-align: left;
+  }
+
+  .editor-content.empty-content {
+    min-height: 200px;
+    /* 在空白状态下仍然可见和可编辑 */
   }
 
   .editor-segment {
@@ -1741,7 +2308,7 @@
     padding: 2px 4px;
     border-radius: 3px;
     display: inline;
-    line-height: 1.8;
+    line-height: 1.3;
     cursor: not-allowed;
     user-select: text;
     transition: all 0.3s ease;
@@ -1826,7 +2393,7 @@
     color: #409eff;
     font-family: inherit;
     font-size: inherit;
-    line-height: 1.4;
+    line-height: 1.3;
     outline: none;
     transition: width 0.2s ease, height 0.2s ease, opacity 0.2s ease;
     resize: none;
@@ -2011,6 +2578,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    max-height: 280px;
+    min-height: 120px;
   }
 
   .result-header {
@@ -2040,6 +2609,8 @@
     padding: 18px;
     flex: 1;
     overflow-y: auto;
+    max-height: 200px;
+    min-height: 60px;
   }
 
   .result-content pre {
@@ -2069,6 +2640,8 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+    max-height: 280px;
+    min-height: 120px;
   }
 
   .help-title {
