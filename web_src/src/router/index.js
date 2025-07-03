@@ -50,6 +50,8 @@ import applicationSettings from '../components/visionAI/systemManagement/applica
 import userManagement from '../components/visionAI/systemManagement/userManagement.vue'
 import roleManagement from '../components/visionAI/systemManagement/roleManagement.vue'
 import tenantManagement from '../components/visionAI/systemManagement/tenantManagement.vue'
+import departmentManagement from '../components/visionAI/systemManagement/departmentManagement.vue'
+import positionManagement from '../components/visionAI/systemManagement/positionManagement.vue'
 import profile from '../components/visionAI/systemManagement/profile.vue'
 import parkManagement from '../components/visionAI/ivisualCenter/parkManagement.vue'
 
@@ -211,6 +213,16 @@ export default new VueRouter({
           path: '/systemManage/tenantManagement',
           name: 'tenantManagement',
           component: tenantManagement,
+        },
+        {
+          path: '/systemManage/departmentManagement',
+          name: 'departmentManagement',
+          component: departmentManagement,
+        },
+        {
+          path: '/systemManage/positionManagement',
+          name: 'positionManagement',
+          component: positionManagement,
         },
         {
           path: '/systemManage/profile',
