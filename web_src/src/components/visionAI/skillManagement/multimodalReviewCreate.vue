@@ -20,7 +20,7 @@
             </div>
           </div>
           <div class="header-right" v-if="isCreateMode">
-            <el-button @click="saveDraft">完成</el-button>
+            <el-button @click="saveDraft">保存</el-button>
             <el-button type="primary" @click="saveAndPublish">保存并上线</el-button>
           </div>
           <div class="header-right" v-else-if="isEditMode">
