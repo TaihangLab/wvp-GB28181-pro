@@ -49,8 +49,8 @@
     <!-- 日志列表表格 -->
     <div class="table-container">
       <div class="table-operations">
-        <el-button type="primary" icon="el-icon-download" @click="exportLogs">导出日志</el-button>
-        <el-button type="danger" icon="el-icon-delete" @click="clearLogs">清空日志</el-button>
+        <el-button type="primary" icon="el-icon-download" size="small" @click="exportLogs">导出日志</el-button>
+        <el-button type="danger" icon="el-icon-delete" size="small" @click="clearLogs">清空日志</el-button>
       </div>
       
       <el-table
@@ -66,7 +66,7 @@
           <template slot-scope="scope">
             <el-tag 
               :type="getLogTypeTag(scope.row.type)"
-              size="small"
+              size="mini"
             >
               {{ scope.row.type }}
             </el-tag>
@@ -76,8 +76,7 @@
           <template slot-scope="scope">
             <el-tag 
               :type="getLevelTag(scope.row.level)"
-              :class="{'critical-level': scope.row.level === '严重'}"
-              size="small"
+              size="mini"
             >
               {{ scope.row.level }}
             </el-tag>
@@ -89,7 +88,9 @@
         <el-table-column prop="ip" label="IP地址" width="130" align="center"></el-table-column>
         <el-table-column label="操作" width="100" fixed="right" align="center">
           <template slot-scope="scope">
-            <el-button type="text" @click="viewLogDetail(scope.row)">详情</el-button>
+            <div class="operation-buttons">
+              <el-button type="text" class="view-detail-btn" @click="viewLogDetail(scope.row)">详情</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -126,13 +127,13 @@
         <div class="detail-item">
           <span class="detail-label">类型：</span>
           <span class="detail-value">
-            <el-tag :type="getLogTypeTag(currentLog.type)" size="small">{{ currentLog.type }}</el-tag>
+            <el-tag :type="getLogTypeTag(currentLog.type)" size="mini">{{ currentLog.type }}</el-tag>
           </span>
         </div>
         <div class="detail-item">
           <span class="detail-label">级别：</span>
           <span class="detail-value">
-            <el-tag :type="getLevelTag(currentLog.level)" :class="{'critical-level': currentLog.level === '严重'}" size="small">{{ currentLog.level }}</el-tag>
+            <el-tag :type="getLevelTag(currentLog.level)" size="mini">{{ currentLog.level }}</el-tag>
           </span>
         </div>
         <div class="detail-item">
@@ -533,7 +534,7 @@ export default {
         '信息': 'info',
         '警告': 'warning',
         '错误': 'danger',
-        '严重': '' // 使用自定义颜色
+        '严重': 'danger'
       }
       return levelMap[level] || 'info'
     }
@@ -542,83 +543,444 @@ export default {
 </script>
 
 <style scoped>
+/* 整体背景 */
 .log-records-container {
   padding: 20px;
+  background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+  min-height: calc(100vh - 100px);
 }
 
-.page-title {
+/* 主卡片样式 */
+.table-container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #ebeef5;
   margin-top: 0;
-  margin-bottom: 20px;
-  color: #333;
+  position: relative;
+  overflow: hidden;
 }
 
+/* 搜索区卡片 */
 .filter-section {
   margin-bottom: 20px;
-  padding: 15px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
+  padding: 18px 24px;
+  background: #f5f7fa;
+  border-radius: 12px;
+  border: 1px solid #ebeef5;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.05);
 }
 
-.table-container {
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+/* 搜索表单美化 */
+.filter-section .el-form-item {
+  margin-bottom: 0;
+}
+.filter-section .el-form-item__label {
+  color: #303133;
+  font-weight: 500;
+}
+.filter-section >>> .el-input__inner,
+.filter-section >>> .el-select .el-input__inner {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background: #fff;
+}
+.filter-section >>> .el-input__inner:hover,
+.filter-section >>> .el-select .el-input__inner:hover {
+  border-color: #3b82f6;
+}
+.filter-section >>> .el-input__inner:focus,
+.filter-section >>> .el-select .el-input__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
+/* 搜索按钮 */
+.filter-section >>> .el-button--primary {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(30, 64, 175, 0.3);
+  color: white;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+.filter-section >>> .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0891b2 100%);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 4px 8px rgba(30, 64, 175, 0.4);
+  transform: translateY(-2px);
+}
+.filter-section >>> .el-button:not(.el-button--primary) {
+  background: #f5f7fa;
+  border-color: #e4e7ed;
+  color: #606266;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+.filter-section >>> .el-button:not(.el-button--primary):hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
+}
+
+/* 操作按钮区 */
 .table-operations {
-  padding: 15px;
+  padding: 18px 24px 18px 24px;
   text-align: right;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: none;
+}
+.table-operations >>> .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 8px;
+  margin-right: 8px;
+  transition: all 0.3s ease;
+}
+.table-operations >>> .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+/* 清空日志按钮与重置按钮保持一致的样式 */
+.table-operations >>> .el-button--danger {
+  background: #f5f7fa;
+  border-color: #e4e7ed;
+  color: #606266;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+.table-operations >>> .el-button--danger:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
 }
 
-.pagination-container {
-  padding: 15px;
-  text-align: right;
+/* 表格样式 */
+.custom-table {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #ebeef5;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
-
-/* 自定义表格样式 */
 .custom-table >>> .el-table__cell {
   border-right: none;
 }
-
 .custom-table >>> .el-table::before {
   height: 0;
 }
-
 .custom-table >>> .el-table__header-wrapper th {
   font-weight: bold;
   text-align: center;
+  background: #f5f7fa !important;
+  color: #303133 !important;
+  border-bottom: 1px solid #ebeef5 !important;
 }
-
 .custom-table >>> .el-table__row td {
   text-align: center;
 }
+.custom-table >>> .el-table .el-table__body tr:hover > td {
+  background: #f5f7fa !important;
+}
+.custom-table >>> .el-table--striped .el-table__body tr.el-table__row--striped td {
+  background-color: #fafafa;
+}
 
+/* ===== 表格操作按钮样式 - 完全参照camera.css ===== */
+.operation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.view-detail-btn {
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  background: #f5f7fa !important;
+  border-color: #e4e7ed !important;
+  color: #606266 !important;
+  height: 24px !important;
+  min-width: 50px !important;
+}
+
+.view-detail-btn:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e3a8a !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ===== 标签样式 - 完全参照camera.css ===== */
+/* 类型标签 - 灰底灰字 */
+.log-records-container >>> .el-table .el-tag[type=""],
+.log-records-container >>> .el-dialog .el-tag[type=""] {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+}
+
+/* 状态标签 - 科技感浅色 */
+.log-records-container >>> .el-table .el-tag--success,
+.log-records-container >>> .el-dialog .el-tag--success {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+}
+
+.log-records-container >>> .el-table .el-tag--danger,
+.log-records-container >>> .el-dialog .el-tag--danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%) !important;
+  color: #991b1b !important;
+  border: 1px solid #fca5a5 !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+}
+
+.log-records-container >>> .el-table .el-tag--warning,
+.log-records-container >>> .el-dialog .el-tag--warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #fed7aa 100%) !important;
+  color: #92400e !important;
+  border: 1px solid #fbbf24 !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+}
+
+.log-records-container >>> .el-table .el-tag--info,
+.log-records-container >>> .el-dialog .el-tag--info {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #1e40af !important;
+  border: 1px solid #93c5fd !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+}
+
+/* 统一表格内所有标签样式 */
+.log-records-container >>> .el-table .el-tag,
+.log-records-container >>> .el-dialog .el-tag {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 0 8px !important;
+  height: 24px !important;
+  line-height: 22px !important;
+  transition: all 0.3s ease !important;
+}
+
+.log-records-container >>> .el-table .el-tag:hover,
+.log-records-container >>> .el-dialog .el-tag:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 分页器科技感蓝色样式 */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+  padding: 10px 0 20px 0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+.pagination-container >>> .el-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pagination-container >>> .el-pagination .el-pager li {
+  min-width: 32px;
+  height: 32px;
+  line-height: 30px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #4b5563;
+  margin: 0 3px;
+  transition: all 0.3s ease;
+  font-size: 13px;
+  font-weight: 500;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+.pagination-container >>> .el-pagination .el-pager li.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  border-color: #3b82f6;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.pagination-container >>> .el-pagination .el-pager li:hover {
+  border-color: #3b82f6;
+  color: #1e40af;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+.pagination-container >>> .el-pagination button {
+  min-width: 32px;
+  height: 32px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #4b5563;
+  margin: 0 3px;
+  transition: all 0.3s ease;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+.pagination-container >>> .el-pagination button:hover {
+  border-color: #3b82f6;
+  color: #1e40af;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+/* ===== 弹框样式 - 完全参照camera.css ===== */
+.log-records-container >>> .el-dialog {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+.log-records-container >>> .el-dialog__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+}
+
+.log-records-container >>> .el-dialog__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+}
+
+.log-records-container >>> .el-dialog__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.log-records-container >>> .el-dialog__close:hover {
+  color: #3b82f6 !important;
+}
+
+.log-records-container >>> .el-dialog__body {
+  padding: 20px !important;
+  background: #ffffff !important;
+}
+
+.log-records-container >>> .el-dialog__footer {
+  padding: 10px 20px 20px !important;
+  text-align: right !important;
+  border-top: 1px solid rgba(59, 130, 246, 0.1) !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+}
+
+/* 弹框内按钮样式 */
+.log-records-container >>> .el-dialog .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.log-records-container >>> .el-dialog .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.log-records-container >>> .el-dialog .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.log-records-container >>> .el-dialog .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+.log-records-container >>> .el-dialog .el-button--danger {
+  background: linear-gradient(135deg, #f56c6c 0%, #e53e3e 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(245, 108, 108, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+}
+
+.log-records-container >>> .el-dialog .el-button--danger:hover {
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%) !important;
+  box-shadow: 0 4px 10px rgba(245, 108, 108, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 日志详情内容美化 */
 .log-detail {
   display: flex;
   flex-wrap: wrap;
 }
-
 .detail-item {
   width: 50%;
   margin-bottom: 15px;
   display: flex;
 }
-
 .detail-item.full-width {
   width: 100%;
 }
-
 .detail-label {
   font-weight: bold;
   width: 100px;
   color: #606266;
 }
-
 .detail-value {
   flex: 1;
 }
-
 .detail-value.message {
   white-space: pre-wrap;
   background-color: #f5f7fa;
@@ -626,7 +988,6 @@ export default {
   border-radius: 4px;
   margin-top: 5px;
 }
-
 .detail-value.stack-trace {
   white-space: pre-wrap;
   background-color: #f5f7fa;
@@ -643,7 +1004,6 @@ export default {
   display: flex;
   align-items: center;
 }
-
 .confirm-message i {
   font-size: 20px;
   color: #e6a23c;
@@ -655,13 +1015,148 @@ export default {
   .detail-item {
     width: 100%;
   }
+  .table-container {
+    border-radius: 8px;
+    padding: 0 2px;
+  }
+  .filter-section {
+    border-radius: 8px;
+    padding: 12px 8px;
+  }
+  .pagination-container {
+    border-radius: 8px;
+    padding: 8px 2px;
+  }
+  .el-dialog {
+    border-radius: 8px;
+  }
 }
 
-/* 自定义严重级别标签样式 */
-.critical-level {
-  background-color: #5d0404 !important;
-  border-color: #5d0404 !important;
-  color: #fff !important;
-  font-weight: bold;
+/* ===== 系统级弹框样式 (Alert/Confirm/Prompt) ===== */
+/* MessageBox 弹框整体样式 */
+.log-records-container >>> .el-message-box {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+/* MessageBox 头部样式 */
+.log-records-container >>> .el-message-box__header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+  padding: 16px 20px !important;
+}
+
+/* MessageBox 标题样式 */
+.log-records-container >>> .el-message-box__title {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+}
+
+/* MessageBox 关闭按钮 */
+.log-records-container >>> .el-message-box__close {
+  color: #6b7280 !important;
+  transition: color 0.3s ease !important;
+}
+
+.log-records-container >>> .el-message-box__close:hover {
+  color: #3b82f6 !important;
+}
+
+/* MessageBox 主体内容样式 */
+.log-records-container >>> .el-message-box__content {
+  padding: 20px !important;
+  background: #ffffff !important;
+}
+
+/* MessageBox 消息文本样式 */
+.log-records-container >>> .el-message-box__message {
+  color: #374151 !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+}
+
+/* MessageBox 图标样式 */
+.log-records-container >>> .el-message-box__status {
+  font-size: 20px !important;
+}
+
+.log-records-container >>> .el-message-box__status.el-icon-warning {
+  color: #f59e0b !important;
+}
+
+.log-records-container >>> .el-message-box__status.el-icon-info {
+  color: #3b82f6 !important;
+}
+
+.log-records-container >>> .el-message-box__status.el-icon-success {
+  color: #10b981 !important;
+}
+
+.log-records-container >>> .el-message-box__status.el-icon-error {
+  color: #ef4444 !important;
+}
+
+/* MessageBox 底部按钮区域 */
+.log-records-container >>> .el-message-box__btns {
+  padding: 10px 20px 20px !important;
+  text-align: right !important;
+  border-top: 1px solid rgba(59, 130, 246, 0.1) !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+}
+
+/* MessageBox 按钮样式 */
+.log-records-container >>> .el-message-box__btns .el-button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+}
+
+.log-records-container >>> .el-message-box__btns .el-button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.log-records-container >>> .el-message-box__btns .el-button--default {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #4b5563 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  margin-right: 10px !important;
+}
+
+.log-records-container >>> .el-message-box__btns .el-button--default:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #3b82f6 !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* 危险操作按钮样式 (删除确认等) */
+.log-records-container >>> .el-message-box__btns .el-button--danger {
+  background: linear-gradient(135deg, #f56c6c 0%, #e53e3e 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(245, 108, 108, 0.3) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+}
+
+.log-records-container >>> .el-message-box__btns .el-button--danger:hover {
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%) !important;
+  box-shadow: 0 4px 10px rgba(245, 108, 108, 0.4) !important;
+  transform: translateY(-1px) !important;
 }
 </style>
