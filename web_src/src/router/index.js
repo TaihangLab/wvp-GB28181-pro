@@ -47,6 +47,10 @@ import logRecords from '../components/visionAI/smartControl/logRecords.vue'
 import edgeServer from '../components/visionAI/edgeManagement/edgeServer.vue'
 import edgeBox from '../components/visionAI/edgeManagement/edgeBox.vue'
 import applicationSettings from '../components/visionAI/systemManagement/applicationSettings.vue'
+import userManagement from '../components/visionAI/systemManagement/userManagement.vue'
+import roleManagement from '../components/visionAI/systemManagement/roleManagement.vue'
+import tenantManagement from '../components/visionAI/systemManagement/tenantManagement.vue'
+import profile from '../components/visionAI/systemManagement/profile.vue'
 import parkManagement from '../components/visionAI/ivisualCenter/parkManagement.vue'
 
 const originalPush = VueRouter.prototype.push
@@ -192,6 +196,26 @@ export default new VueRouter({
           path: '/systemManage/appSettings',
           name: 'applicationSettings',
           component: applicationSettings,
+        },
+        {
+          path: '/systemManage/userManagement',
+          name: 'userManagement',
+          component: userManagement,
+        },
+        {
+          path: '/systemManage/roleManagement',
+          name: 'roleManagement',
+          component: roleManagement,
+        },
+        {
+          path: '/systemManage/tenantManagement',
+          name: 'tenantManagement',
+          component: tenantManagement,
+        },
+        {
+          path: '/systemManage/profile',
+          name: 'profile',
+          component: profile,
         },
         {
           path: '/channelList/:deviceId/:parentChannelId/',

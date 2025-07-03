@@ -81,6 +81,9 @@
           <span>系统管理</span>
         </template>
         <el-menu-item index="/systemManage/appSettings">应用设置</el-menu-item>
+        <el-menu-item index="/systemManage/userManagement">用户管理</el-menu-item>
+        <el-menu-item index="/systemManage/roleManagement">角色管理</el-menu-item>
+        <el-menu-item index="/systemManage/tenantManagement">租户管理</el-menu-item>
       </el-submenu>
 
       <!-- 可视中心菜单 -->
@@ -131,18 +134,9 @@
           <el-avatar :size="28" icon="el-icon-user" class="user-avatar"></el-avatar>
           <span>{{ username }}</span>
         </template>
-        <!-- <el-menu-item @click="openDoc">
-          <i class="el-icon-document"></i>
-          <span>在线文档</span>
-        </el-menu-item> -->
-        <el-menu-item>
-          <i class="el-icon-bell"></i>
-          <el-switch v-model="alarmNotify"
-            active-color="#13ce66"
-            inactive-color="#ff4949"
-            @change="alarmNotifyChannge">
-          </el-switch>
-          <span class="switch-label">报警信息推送</span>
+        <el-menu-item @click="goToProfile">
+          <i class="el-icon-user-solid"></i>
+          <span>个人中心</span>
         </el-menu-item>
         <el-menu-item @click="changePassword">
           <i class="el-icon-key"></i>
@@ -168,8 +162,6 @@ export default {
   components: {Notification, changePasswordDialog},
   data() {
     return {
-      alarmNotify: false,
-      sseSource: null,
       username: userService.getUser().username,
       activeIndex: this.$route.path.indexOf("/", 1)>0?this.$route.path.substring(0, this.$route.path.indexOf("/", 1)):this.$route.path,
       editUser: userService.getUser() ? userService.getUser().role.id === 1 : false
@@ -185,14 +177,6 @@ export default {
     }
   },
   mounted() {
-    window.addEventListener('beforeunload', e => this.beforeunloadHandler(e))
-    this.alarmNotify = this.getAlarmSwitchStatus() === "true";
-
-    // TODO: 此处延迟连接 sse, 避免 sse 连接时 browserId 还未生成, 后续待优化
-    setTimeout(() => {
-      this.sseControl()
-    }, 3000);
-
     // 添加通道管理菜单的特殊处理
     this.$nextTick(() => {
       // 获取到通道管理的菜单项
@@ -217,10 +201,6 @@ export default {
         // 删除用户信息，回到登录页面
         userService.clearUserInfo()
         this.$router.push('/login');
-        if (this.sseSource != null) {
-          this.sseSource.close();
-        }
-
       }).catch((error) => {
         console.error("登出失败")
         console.error(error)
@@ -229,79 +209,16 @@ export default {
     changePassword() {
       this.$refs.changePasswordDialog.openDialog()
     },
+    goToProfile() {
+      this.$router.push('/systemManage/profile');
+    },
     openDoc() {
       console.log(process.env.BASE_API)
       window.open(!!process.env.BASE_API ? process.env.BASE_API + "/doc.html" : "/doc.html")
-    },
-    beforeunloadHandler() {
-      this.sseSource.close();
-    },
-    alarmNotifyChannge() {
-      this.setAlarmSwitchStatus()
-      this.sseControl()
-    },
-    sseControl() {
-      let that = this;
-      if (this.alarmNotify) {
-        console.log("申请SSE推送API调用，浏览器ID: " + this.$browserId);
-        let url = (process.env.NODE_ENV === 'development' ? "debug" : "") + 'api/emit?browserId=' + this.$browserId
-        this.sseSource = new EventSource(url);
-        this.sseSource.addEventListener('message', function (evt) {
-          console.log("收到信息：" + evt.data);
-          let data = JSON.parse(evt.data)
-          that.$notify({
-            title: '报警信息',
-            dangerouslyUseHTMLString: true,
-            message: `<strong>设备名称：</strong> <i> ${data.deviceName}</i>` +
-                     `<br><strong>设备编号：</strong> <i>${ data.deviceId}</i>` +
-                     `<br><strong>通道编号：</strong> <i>${ data.channelId}</i>` +
-                     `<br><strong>报警级别：</strong> <i>${ data.alarmPriorityDescription}</i>` +
-                     `<br><strong>报警方式：</strong> <i>${ data.alarmMethodDescription}</i>` +
-                     `<br><strong>报警类型：</strong> <i>${ data.alarmTypeDescription}</i>` +
-                     `<br><strong>报警时间：</strong> <i>${ data.alarmTime}</i>`,
-            type: 'warning',
-            position: 'bottom-right',
-            duration: 5000
-          });
-        });
-        this.sseSource.addEventListener('open', function (e) {
-          console.log("SSE连接打开.");
-        }, false);
-        this.sseSource.addEventListener('error', function (e) {
-          if (e.target.readyState == EventSource.CLOSED) {
-            console.log("SSE连接关闭");
-          } else {
-            console.log(e.target.readyState);
-          }
-        }, false);
-      } else {
-        if (this.sseSource != null) {
-          this.sseSource.removeEventListener('open', null);
-          this.sseSource.removeEventListener('message', null);
-          this.sseSource.removeEventListener('error', null);
-          this.sseSource.close();
-        }
-
-      }
-    },
-    getAlarmSwitchStatus() {
-      if (localStorage.getItem("alarmSwitchStatus") == null) {
-        localStorage.setItem("alarmSwitchStatus", false);
-      }
-      return localStorage.getItem("alarmSwitchStatus");
-    },
-    setAlarmSwitchStatus() {
-      localStorage.setItem("alarmSwitchStatus", this.alarmNotify);
     }
   },
   destroyed() {
-    window.removeEventListener('beforeunload', e => this.beforeunloadHandler(e))
-    if (this.sseSource != null) {
-      this.sseSource.removeEventListener('open', null);
-      this.sseSource.removeEventListener('message', null);
-      this.sseSource.removeEventListener('error', null);
-      this.sseSource.close();
-    }
+    // 组件销毁时的清理工作
   },
 
 }
@@ -428,10 +345,7 @@ export default {
   border-color: rgba(75, 216, 255, 0.8);
 }
 
-.switch-label {
-  margin-left: 8px;
-  font-size: 14px;
-}
+/* 样式已移除，不再需要switch-label */
 
 /* 菜单项样式 */
 .modern-menu .el-menu-item,
