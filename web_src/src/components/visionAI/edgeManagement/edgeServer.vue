@@ -417,6 +417,15 @@ export default {
   color: #303133 !important;
   border-bottom: 1px solid #ebeef5 !important;
 }
+/* 确保固定列表头也使用相同的背景色 */
+.custom-table >>> .el-table__fixed-right-header-wrapper th,
+.custom-table >>> .el-table__fixed-header-wrapper th {
+  font-weight: bold;
+  text-align: center;
+  background: #f5f7fa !important;
+  color: #303133 !important;
+  border-bottom: 1px solid #ebeef5 !important;
+}
 .custom-table >>> .el-table__row td {
   text-align: center;
 }
