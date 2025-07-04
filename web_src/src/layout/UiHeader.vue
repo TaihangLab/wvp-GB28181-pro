@@ -84,6 +84,8 @@
         <el-menu-item index="/systemManage/userManagement">用户管理</el-menu-item>
         <el-menu-item index="/systemManage/roleManagement">角色管理</el-menu-item>
         <el-menu-item index="/systemManage/tenantManagement">租户管理</el-menu-item>
+        <el-menu-item index="/systemManage/departmentManagement">部门管理</el-menu-item>
+        <el-menu-item index="/systemManage/positionManagement">岗位管理</el-menu-item>
       </el-submenu>
 
       <!-- 可视中心菜单 -->
