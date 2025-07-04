@@ -1088,7 +1088,7 @@ export default {
       // 获取技能详情数据并跳转到编辑页面
       this.detailLoading = true
       
-      skillAPI.getLlmSkillDetail(skill.id)
+      skillAPI.getLlmSkillDetail(skill.skillId)
         .then(response => {
           if (response.data && response.data.success) {
             const skillDetail = response.data.data
@@ -1218,14 +1218,14 @@ export default {
         // 设置loading状态
         this.$set(this.skillStatusLoading, skill.id, true)
         
-        console.log(`正在${action}技能:`, skill.name, '(ID:', skill.id, ')')
+        console.log(`正在${action}技能:`, skill.name, '(skill_id:', skill.skillId, ')')
         
         // 调用相应的API
         let response
         if (actionVerb === 'publish') {
-          response = await skillAPI.publishLlmSkill(skill.id)
+          response = await skillAPI.publishLlmSkill(skill.skillId)
         } else {
-          response = await skillAPI.unpublishLlmSkill(skill.id)
+          response = await skillAPI.unpublishLlmSkill(skill.skillId)
         }
         
         if (response.data && response.data.success) {
@@ -1275,20 +1275,53 @@ export default {
 
 
     // 删除技能
-    deleteSkill(skill) {
-      this.$confirm('确定要删除这个技能吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        const index = this.skills.findIndex(s => s.id === skill.id)
-        if (index > -1) {
-          this.skills.splice(index, 1)
+    async deleteSkill(skill) {
+      try {
+        await this.$confirm('确定要删除这个技能吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+        
+        console.log('正在删除技能:', skill.name, '(skill_id:', skill.skillId, ')')
+        
+        // 调用删除API
+        const response = await skillAPI.deleteLlmSkill(skill.skillId)
+        
+        if (response.data && response.data.success) {
+          // 从本地列表中移除技能
+          const index = this.skills.findIndex(s => s.skillId === skill.skillId)
+          if (index > -1) {
+            this.skills.splice(index, 1)
+          }
+          
           this.$message.success('删除成功')
+          
+          // 刷新技能列表
+          this.loadSkillList()
+        } else {
+          throw new Error('删除失败')
         }
-      }).catch(() => {
-        this.$message.info('已取消删除')
-      })
+        
+      } catch (error) {
+        if (error === 'cancel') {
+          this.$message.info('已取消删除')
+          return
+        }
+        
+        console.error('删除技能失败:', error)
+        
+        // 根据错误类型显示不同的错误信息
+        if (error.response && error.response.data && error.response.data.detail) {
+          this.$message.error(`删除失败: ${error.response.data.detail}`)
+        } else if (error.response && error.response.status === 404) {
+          this.$message.error('技能不存在或已被删除')
+        } else if (error.response && error.response.status >= 500) {
+          this.$message.error('服务器内部错误，请稍后重试')
+        } else {
+          this.$message.error('删除技能失败，请重试')
+        }
+      }
     },
 
     // 批量删除
@@ -1316,10 +1349,16 @@ export default {
         // 设置loading状态
         this.batchDeleting = true
 
-        console.log('正在批量删除技能:', this.selectedSkills)
+        // 获取选中技能的skill_id数组
+        const selectedSkillIds = this.selectedSkills.map(skillId => {
+          const skill = this.skills.find(s => s.id === skillId)
+          return skill ? skill.skillId : skillId
+        })
+        
+        console.log('正在批量删除技能, skill_ids:', selectedSkillIds)
 
         // 调用批量删除API
-        const response = await skillAPI.batchDeleteLlmSkills(this.selectedSkills)
+        const response = await skillAPI.batchDeleteLlmSkills(selectedSkillIds)
 
         if (response.data && response.data.success) {
           // 获取删除结果
@@ -1387,7 +1426,7 @@ export default {
 
 
     showSkillDetail(skill) {
-      if (!skill.id) {
+      if (!skill.skillId) {
         this.$message.warning('无效的技能ID')
         return
       }
@@ -1396,7 +1435,7 @@ export default {
       this.detailDialogVisible = true
       
       // 调用API获取技能详情
-      skillAPI.getLlmSkillDetail(skill.id)
+      skillAPI.getLlmSkillDetail(skill.skillId)
         .then(response => {
           if (response.data && response.data.success) {
             const skillDetail = response.data.data
