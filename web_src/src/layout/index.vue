@@ -13,7 +13,7 @@
 
 <script>
 import uiHeader from "./UiHeader.vue";
-import IntelligentAssistant from "../components/common/IntelligentAssistant.vue";
+import IntelligentAssistant from "../components/visionAI/chatAssistant/IntelligentAssistant.vue";
 
 export default {
   name: "index",
