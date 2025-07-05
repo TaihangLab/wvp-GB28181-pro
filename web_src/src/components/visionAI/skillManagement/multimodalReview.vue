@@ -27,7 +27,7 @@
           <el-option label="合规检测" value="合规检测"></el-option>
         </el-select>
 
-          <el-input v-model="searchInput" placeholder="请输入技能名称搜索" class="search-input" @keyup.enter="handleSearch">
+          <el-input v-model="searchInput" placeholder="请输入技能名称搜索" class="search-input" @input="handleSearchInput" @keyup.enter="handleSearch">
             <el-button slot="append" icon="el-icon-search" @click="handleSearch"></el-button>
           </el-input>
 
@@ -58,7 +58,20 @@
 
       <!-- 技能卡片网格 -->
       <div class="skills-container">
-        <div class="skills-grid">
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading-container" v-loading="loading" element-loading-text="正在加载技能列表...">
+          <div class="loading-placeholder"></div>
+        </div>
+        
+        <!-- 空状态 -->
+        <div v-else-if="!loading && skills.length === 0" class="empty-state">
+          <el-empty description="暂无技能数据" image-size="120">
+            <el-button type="primary" @click="createSkill">创建第一个技能</el-button>
+          </el-empty>
+        </div>
+        
+        <!-- 技能网格 -->
+        <div v-else class="skills-grid">
           <div v-for="skill in paginatedSkills" :key="skill.id" 
                class="skill-card"
                @mouseenter="showCardCheckbox(skill.id)"
@@ -194,6 +207,9 @@ export default {
       // 技能数据
       skills: [],
       loading: false, // 加载状态
+      
+      // 搜索防抖
+      searchDebounceTimer: null,
 
       // 示例数据（保留作为参考，但不再使用）
       exampleSkills: [
@@ -468,69 +484,31 @@ export default {
     // 组件挂载后立即加载数据
     this.refreshData()
   },
+  
+  beforeDestroy() {
+    // 清理搜索防抖定时器
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer)
+      this.searchDebounceTimer = null
+    }
+  },
   computed: {
-    filteredSkills() {
-      let filtered = this.skills
-
-      // 关键词搜索
-      if (this.searchKeyword) {
-        filtered = filtered.filter(skill =>
-          skill.name.includes(this.searchKeyword) ||
-          skill.description.includes(this.searchKeyword)
-        )
-      }
-
-      // 技能状态过滤
-      if (this.selectedProvider) {
-        filtered = filtered.filter(skill => skill.status === this.selectedProvider)
-      }
-
-      // 分类过滤
-      if (this.selectedCategory) {
-        filtered = filtered.filter(skill =>
-          skill.categories.includes(this.selectedCategory)
-        )
-      }
-
-      // 排序
-      filtered.sort((a, b) => {
-        let comparison = 0
-        
-        if (this.sortType === 'name') {
-          // 按技能名称排序
-          comparison = a.name.localeCompare(b.name, 'zh-CN')
-        } else {
-          // 按创建时间排序（这里用ID作为时间替代，因为ID包含时间戳特征）
-          comparison = a.id.localeCompare(b.id)
-        }
-        
-        // 根据排序方向调整结果
-        return this.sortOrder === 'desc' ? -comparison : comparison
-      })
-
-      // 更新总数
-      this.totalCount = filtered.length
-
-      return filtered
-    },
-
+    // 当前页显示的技能列表（后端分页，直接使用skills数组）
     paginatedSkills() {
-      const start = (this.currentPage - 1) * this.pageSize
-      const end = start + this.pageSize
-      return this.filteredSkills.slice(start, end)
+      return this.skills
     },
 
-    // 是否全部选中
+    // 是否全部选中（基于当前所有数据）
     isAllSelected() {
-      return this.filteredSkills.length > 0 && 
-             this.selectedSkills.length === this.filteredSkills.length &&
-             this.filteredSkills.every(skill => this.selectedSkills.includes(skill.id))
+      return this.skills.length > 0 && 
+             this.selectedSkills.length === this.totalCount &&
+             this.skills.every(skill => this.selectedSkills.includes(skill.id))
     },
 
     // 是否当前页全部选中
     isCurrentPageSelected() {
-      return this.paginatedSkills.length > 0 && 
-             this.paginatedSkills.every(skill => this.selectedSkills.includes(skill.id))
+      return this.skills.length > 0 && 
+             this.skills.every(skill => this.selectedSkills.includes(skill.id))
     },
 
     // 排序类型文本
@@ -546,8 +524,11 @@ export default {
       try {
         this.loading = true
         
-        // 构建查询参数
-        const params = {}
+        // 构建查询参数，使用后端分页和过滤
+        const params = {
+          page: this.currentPage,
+          limit: this.pageSize
+        }
         
         // 状态过滤
         if (this.selectedProvider === 'online') {
@@ -556,19 +537,42 @@ export default {
           params.status = false
         }
         
+        // 名称搜索
+        if (this.searchKeyword && this.searchKeyword.trim()) {
+          params.name = this.searchKeyword.trim()
+        }
+        
+        // 标签过滤
+        if (this.selectedCategory && this.selectedCategory.trim()) {
+          params.tag = this.selectedCategory.trim()
+        }
+        
+        console.log('加载复判技能列表，参数:', params)
+        
         const response = await VisionAIService.reviewSkillAPI.getReviewSkillList(params)
         
-        // 修复数据解析逻辑，适配后端直接返回数组的格式
+        // 解析后端返回的数据格式
         let skillsData = null
+        let totalCount = 0
+        let pageInfo = {}
         
-        if (response.data && Array.isArray(response.data)) {
-          // 后端直接返回技能数组的格式
-          skillsData = response.data
-          this.totalCount = response.data.length
-        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          // 标准包装格式 {code: 0, data: [...], total: 0}
+        if (response.data && response.data.success && response.data.data) {
+          // 后端新格式：{success: true, data: [...], total: N, page: 1, limit: 10, total_pages: N}
           skillsData = response.data.data
-          this.totalCount = response.data.total || response.data.data.length
+          totalCount = response.data.total || 0
+          pageInfo = {
+            page: response.data.page || this.currentPage,
+            limit: response.data.limit || this.pageSize,
+            total_pages: response.data.total_pages || 0
+          }
+        } else if (response.data && Array.isArray(response.data)) {
+          // 兼容：后端直接返回数组的格式
+          skillsData = response.data
+          totalCount = response.data.length
+        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+          // 兼容：标准包装格式 {code: 0, data: [...], total: 0}
+          skillsData = response.data.data
+          totalCount = response.data.total || response.data.data.length
         } else {
           console.error('API返回数据格式异常:', response)
           this.skills = []
@@ -576,7 +580,7 @@ export default {
           return
         }
         
-        if (skillsData) {
+        if (skillsData && Array.isArray(skillsData)) {
           // 转换数据格式以适配前端组件
           this.skills = skillsData.map(skill => ({
             id: skill.skill_id, // 使用skill_id作为前端ID
@@ -591,8 +595,17 @@ export default {
             version: skill.version
           }))
           
-          console.log('加载复判技能列表成功，共', this.skills.length, '个技能')
+          // 更新总数
+          this.totalCount = totalCount
+          
+          console.log('加载复判技能列表成功，共', totalCount, '个技能，当前页', this.skills.length, '个技能')
+          console.log('分页信息:', pageInfo)
+        } else {
+          console.warn('返回的技能数据为空或格式错误')
+          this.skills = []
+          this.totalCount = 0
         }
+        
       } catch (error) {
         console.error('加载技能列表失败:', error)
         this.$message.error('加载技能列表失败: ' + (error.message || '未知错误'))
@@ -663,8 +676,9 @@ export default {
         this.selectedSkills = []
         
         // 检查当前页是否还有数据，如果没有则回到上一页
-        if (this.paginatedSkills.length === 0 && this.currentPage > 1) {
+        if (this.skills.length === 0 && this.currentPage > 1) {
           this.currentPage--
+          await this.loadSkillsData()
         }
         
         return true
@@ -704,8 +718,9 @@ export default {
         this.selectedSkills = []
         
         // 检查当前页是否还有数据，如果没有则回到上一页
-        if (this.paginatedSkills.length === 0 && this.currentPage > 1) {
+        if (this.skills.length === 0 && this.currentPage > 1) {
           this.currentPage--
+          await this.loadSkillsData()
         }
         
         if (response.data && response.data.success) {
@@ -774,9 +789,41 @@ export default {
       })
     },
 
-    handleSearch() {
+    // 实时搜索输入处理（防抖）
+    handleSearchInput() {
+      // 清除之前的定时器
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer)
+      }
+      
+      // 设置新的防抖定时器
+      this.searchDebounceTimer = setTimeout(() => {
+        this.handleSearchDebounced()
+      }, 500) // 500ms防抖延迟
+    },
+
+    // 防抖搜索执行
+    async handleSearchDebounced() {
+      const newKeyword = this.searchInput.trim()
+      // 只有当搜索关键词真正改变时才重新搜索
+      if (newKeyword !== this.searchKeyword) {
+        this.searchKeyword = newKeyword
+        this.currentPage = 1
+        await this.loadSkillsData()
+      }
+    },
+
+    // 立即搜索（按回车或点击搜索按钮）
+    async handleSearch() {
+      // 清除防抖定时器
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer)
+        this.searchDebounceTimer = null
+      }
+      
       this.searchKeyword = this.searchInput.trim()
       this.currentPage = 1
+      await this.loadSkillsData()
     },
 
     async handleFilter() {
@@ -880,13 +927,15 @@ export default {
     },
 
     // 分页
-    handleSizeChange(val) {
+    async handleSizeChange(val) {
       this.pageSize = val
       this.currentPage = 1
+      await this.loadSkillsData()
     },
 
-    handleCurrentChange(val) {
+    async handleCurrentChange(val) {
       this.currentPage = val
+      await this.loadSkillsData()
     },
 
     goToPage() {
@@ -978,19 +1027,22 @@ export default {
         // 如果已全选，则取消全选
         this.selectedSkills = []
       } else {
-        // 选择所有过滤后的技能
-        this.selectedSkills = this.filteredSkills.map(skill => skill.id)
+        // 注意：由于使用后端分页，这里的"全选"实际上是选择当前页的所有技能
+        // 真正的全选功能需要获取所有数据，但这会影响性能
+        // 暂时保持选择当前页的所有技能
+        this.selectedSkills = this.skills.map(skill => skill.id)
+        this.$message.info('由于使用分页加载，当前只能选择本页的所有技能')
       }
     },
 
     selectCurrentPage() {
       if (this.isCurrentPageSelected) {
         // 如果当前页已全选，则取消当前页选择
-        const currentPageIds = this.paginatedSkills.map(skill => skill.id)
+        const currentPageIds = this.skills.map(skill => skill.id)
         this.selectedSkills = this.selectedSkills.filter(id => !currentPageIds.includes(id))
       } else {
         // 选择当前页所有技能
-        const currentPageIds = this.paginatedSkills.map(skill => skill.id)
+        const currentPageIds = this.skills.map(skill => skill.id)
         currentPageIds.forEach(id => {
           if (!this.selectedSkills.includes(id)) {
             this.selectedSkills.push(id)
@@ -1687,6 +1739,39 @@ export default {
 }
 
 
+
+/* 加载状态和空状态样式 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  width: 100%;
+}
+
+.loading-placeholder {
+  width: 100%;
+  height: 400px;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  width: 100%;
+  padding: 40px;
+}
+
+.empty-state >>> .el-empty__description {
+  color: #909399;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.empty-state >>> .el-empty__image {
+  margin-bottom: 20px;
+}
 
 /* 响应式设计 */
 @media (max-width: 1600px) {

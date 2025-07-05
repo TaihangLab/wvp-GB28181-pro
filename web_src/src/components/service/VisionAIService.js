@@ -1372,13 +1372,82 @@ export const reviewSkillAPI = {
   /**
    * 获取复判技能列表
    * @param {Object} params - 查询参数
+   * @param {number} [params.page=1] - 当前页码，从1开始
+   * @param {number} [params.limit=10] - 每页数量，1-100
    * @param {boolean} [params.status] - 技能状态过滤 (true=已上线, false=未上线)
+   * @param {string} [params.name] - 技能名称搜索（模糊匹配）
+   * @param {string} [params.tag] - 标签过滤，单个标签名称
    * @returns {Promise} 包含技能列表的Promise对象
    */
   getReviewSkillList(params = {}) {
-    console.log('获取复判技能列表, 参数:', params);
+    // 处理查询和分页参数
+    const apiParams = { ...params };
 
-    return visionAIAxios.get('/api/v1/llm-skill-review/review-skills', { params })
+    // 处理分页参数
+    if (!apiParams.page) {
+      apiParams.page = 1; // 默认第1页
+    }
+
+    if (!apiParams.limit) {
+      apiParams.limit = 10; // 默认每页10条
+    } else {
+      apiParams.limit = Math.min(params.limit, 100); // 限制最大为100条
+    }
+
+    // 处理状态过滤参数
+    if (apiParams.status !== undefined) {
+      // 如果是字符串，转换为布尔值
+      if (typeof apiParams.status === 'string') {
+        if (apiParams.status === 'online') {
+          apiParams.status = true;
+        } else if (apiParams.status === 'offline') {
+          apiParams.status = false;
+        } else {
+          // 其他情况删除该参数
+          delete apiParams.status;
+        }
+      }
+    }
+
+    // 处理名称搜索参数
+    if (apiParams.name && typeof apiParams.name === 'string') {
+      apiParams.name = apiParams.name.trim();
+      if (!apiParams.name) {
+        delete apiParams.name;
+      }
+    }
+
+    // 处理标签过滤参数
+    if (apiParams.tag && typeof apiParams.tag === 'string') {
+      apiParams.tag = apiParams.tag.trim();
+      if (!apiParams.tag) {
+        delete apiParams.tag;
+      }
+    }
+
+    // 处理前端传递的其他参数名映射
+    if (apiParams.searchKeyword) {
+      apiParams.name = apiParams.searchKeyword;
+      delete apiParams.searchKeyword;
+    }
+
+    if (apiParams.selectedCategory) {
+      apiParams.tag = apiParams.selectedCategory;
+      delete apiParams.selectedCategory;
+    }
+
+    if (apiParams.selectedProvider) {
+      if (apiParams.selectedProvider === 'online') {
+        apiParams.status = true;
+      } else if (apiParams.selectedProvider === 'offline') {
+        apiParams.status = false;
+      }
+      delete apiParams.selectedProvider;
+    }
+
+    console.log('获取复判技能列表, 处理后的参数:', apiParams);
+
+    return visionAIAxios.get('/api/v1/llm-skill-review/review-skills', { params: apiParams })
       .then(response => {
         console.log('获取复判技能列表成功:', response.data);
         return response;
