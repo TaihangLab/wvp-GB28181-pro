@@ -207,12 +207,12 @@
     <!-- 全屏聊天界面 -->
     <div class="fullscreen-chat-container" v-if="isFullScreen" :class="{ 'exiting': isExitingFullScreen }" :style="getExitAnimationStyle()">
       <!-- 左侧历史聊天 -->
-      <div class="chat-history-sidebar">
+      <div class="chat-history-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
         <!-- 顶部操作按钮组 -->
         <div class="sidebar-header">
           <div class="header-actions">
-            <div class="action-btn" @click="toggleSidebar" title="收起侧栏">
-              <i class="el-icon-s-fold"></i>
+            <div class="action-btn" @click="toggleSidebar" :title="sidebarCollapsed ? '展开侧栏' : '收起侧栏'">
+              <i :class="sidebarCollapsed ? 'el-icon-s-unfold' : 'el-icon-s-fold'"></i>
             </div>
             <div class="action-btn" @click="createNewChat" title="新建对话">
               <i class="el-icon-plus"></i>
@@ -310,7 +310,7 @@
       </div>
 
       <!-- 右侧聊天区域 -->
-      <div class="chat-main-area">
+      <div class="chat-main-area" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
         <!-- 顶部工具栏 -->
         <div class="chat-toolbar">
           <div class="toolbar-left">
