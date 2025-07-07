@@ -1,3 +1,5 @@
+import VisionAIService from '../../service/VisionAIService.js'
+
 export default {
     name: 'IntelligentAssistant',
     data() {
@@ -56,6 +58,12 @@ export default {
         selectedGroupForMove: null,
         // 新增：分组悬停状态
         hoveredGroupId: null,
+        // 新增：API相关状态
+        currentEventSource: null, // 当前的EventSource连接
+        isConnecting: false, // 是否正在连接中
+        apiError: null, // API错误信息
+        retryCount: 0, // 重试次数
+        maxRetries: 3, // 最大重试次数
       }
     },
         methods: {
@@ -176,37 +184,28 @@ export default {
         }, exitDuration);
       },
       createNewChat() {
-        const newChatId = Date.now().toString();
-        const newChat = {
-          id: newChatId,
-          title: '新的对话',
-          messages: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          groupId: null // 默认不属于任何分组
-        };
-        
         // 如果当前有消息，先保存当前对话
         if (this.messages.length > 0) {
           this.saveCurrentChat();
         }
         
-        // 创建新对话
-        this.chatHistories.unshift(newChat);
-        this.currentChatId = newChatId;
-        this.currentChatIndex = 0;
+        // 重置当前会话状态，让下次发送消息时自动创建新会话
+        this.currentChatId = null;
+        this.currentChatIndex = -1;
         this.messages = [];
         this.showWelcomeMessage = true;
         this.inputMessage = '';
         
-
+        console.log('创建新聊天会话');
       },
       saveCurrentChat() {
+        // 后端API会自动保存会话，这里只需要更新本地状态
         if (this.currentChatId && this.messages.length > 0) {
-          const chatIndex = this.chatHistories.findIndex(chat => chat.id === this.currentChatId);
+          const chatIndex = this.chatHistories.findIndex(chat => chat.conversation_id === this.currentChatId);
           if (chatIndex !== -1) {
+            // 更新本地缓存的会话信息
             this.chatHistories[chatIndex].messages = [...this.messages];
-            this.chatHistories[chatIndex].updatedAt = new Date().toISOString();
+            this.chatHistories[chatIndex].last_message_time = new Date().toISOString();
             
             // 根据第一条用户消息生成标题
             const firstUserMessage = this.messages.find(msg => msg.type === 'user');
@@ -214,43 +213,103 @@ export default {
               const title = firstUserMessage.content.substring(0, 30) + (firstUserMessage.content.length > 30 ? '...' : '');
               this.chatHistories[chatIndex].title = title;
             }
-            
-
           }
         }
+        console.log('本地会话状态已更新');
       },
-      loadChatHistory(chatId) {
-        // 先保存当前聊天
-        this.saveCurrentChat();
-        
-        // 加载指定的聊天历史
-        const chat = this.chatHistories.find(c => c.id === chatId);
-        if (chat) {
+      async loadChatHistory(chatId) {
+        try {
+          // 先保存当前聊天
+          this.saveCurrentChat();
+          
+          // 停止当前聊天请求
+          this.stopCurrentChat();
+          
+          console.log('加载会话历史:', chatId);
+          
+          // 从API加载会话消息
+          const response = await VisionAIService.chatAssistantAPI.getChatMessages(chatId);
+          
+          console.log('会话消息API响应:', response.data); // 添加调试日志
+          
+          // 适配后端返回的格式: {code: 0, msg: 'success', data: Array}
+          let messagesData = [];
+          
+          if (response.data && response.data.code === 0 && Array.isArray(response.data.data)) {
+            messagesData = response.data.data;
+          } else if (response.data && Array.isArray(response.data)) {
+            // 兼容直接返回数组的格式
+            messagesData = response.data;
+          } else {
+            console.error('会话消息格式错误:', response.data);
+            this.$message.error('加载会话历史失败：数据格式错误');
+            return;
+          }
+          
+          // 转换API返回的消息格式为前端格式
+          this.messages = messagesData.map(msg => ({
+            type: msg.role === 'user' ? 'user' : 'assistant',
+            content: msg.content,
+            time: this.formatTimestamp(msg.timestamp || new Date().toISOString()),
+            displayContent: msg.content,
+            isTyping: false
+          }));
+          
           this.currentChatId = chatId;
-          this.currentChatIndex = this.chatHistories.findIndex(c => c.id === chatId);
-          this.messages = [...chat.messages];
+          this.currentChatIndex = this.chatHistories.findIndex(c => c.conversation_id === chatId);
           this.showWelcomeMessage = this.messages.length === 0;
           this.inputMessage = '';
           this.scrollToBottom();
+          
+          console.log('会话历史加载成功:', this.messages.length, '条消息');
+          
+        } catch (error) {
+          console.error('加载会话历史失败:', error);
+          this.$message.error('加载会话历史失败，请稍后重试');
+          
+          // 回退到本地缓存的消息（如果有）
+          const chat = this.chatHistories.find(c => c.conversation_id === chatId);
+          if (chat && chat.messages) {
+            this.currentChatId = chatId;
+            this.currentChatIndex = this.chatHistories.findIndex(c => c.conversation_id === chatId);
+            this.messages = [...chat.messages];
+            this.showWelcomeMessage = this.messages.length === 0;
+            this.inputMessage = '';
+            this.scrollToBottom();
+            console.log('使用本地缓存的会话历史');
+          }
         }
       },
-      deleteChatHistory(chatId) {
-        const chatIndex = this.chatHistories.findIndex(chat => chat.id === chatId);
-        if (chatIndex !== -1) {
-          this.chatHistories.splice(chatIndex, 1);
+      async deleteChatHistory(chatId) {
+        try {
+          console.log('删除会话:', chatId);
           
-          // 如果删除的是当前聊天
-          if (this.currentChatId === chatId) {
-            if (this.chatHistories.length > 0) {
-              // 切换到第一个聊天
-              this.loadChatHistory(this.chatHistories[0].id);
-            } else {
-              // 没有聊天历史了，创建新的
-              this.createNewChat();
+          // 调用API删除会话
+          await VisionAIService.chatAssistantAPI.deleteChatConversation(chatId);
+          
+          // 删除本地缓存
+          const chatIndex = this.chatHistories.findIndex(chat => chat.conversation_id === chatId);
+          if (chatIndex !== -1) {
+            this.chatHistories.splice(chatIndex, 1);
+            
+            // 如果删除的是当前聊天
+            if (this.currentChatId === chatId) {
+              if (this.chatHistories.length > 0) {
+                // 切换到第一个聊天
+                this.loadChatHistory(this.chatHistories[0].conversation_id);
+              } else {
+                // 没有聊天历史了，创建新的
+                this.createNewChat();
+              }
             }
+            
+            this.$message.success('会话删除成功');
+            console.log('会话删除成功:', chatId);
           }
           
-
+        } catch (error) {
+          console.error('删除会话失败:', error);
+          this.$message.error('删除会话失败，请稍后重试');
         }
       },
       formatChatTime(dateStr) {
@@ -267,6 +326,21 @@ export default {
           return `${diffDays}天前`;
         } else {
           return date.toLocaleDateString();
+        }
+      },
+      
+      /**
+       * 格式化时间戳为显示时间
+       * @param {string} timestamp ISO时间戳
+       * @returns {string} 格式化的时间
+       */
+      formatTimestamp(timestamp) {
+        try {
+          const date = new Date(timestamp);
+          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        } catch (error) {
+          console.error('时间格式化错误:', error);
+          return this.getCurrentTime();
         }
       },
       getCurrentChatTitle() {
@@ -378,8 +452,8 @@ export default {
         // 拖拽结束后重新开始隐藏计时
         this.startHideTimer();
       },
-      sendMessage() {
-        if (!this.inputMessage.trim() || this.isTypingResponse) return;
+      async sendMessage() {
+        if (!this.inputMessage.trim() || this.isTypingResponse || this.isConnecting) return;
         
         // 用户开始发送消息时，关闭欢迎提示
         if (this.showWelcomeMessage) {
@@ -399,6 +473,9 @@ export default {
         
         // 显示打字指示器
         this.isTypingResponse = true;
+        this.isConnecting = true;
+        this.apiError = null;
+        
         const typingMessage = {
           type: 'assistant',
           content: '',
@@ -408,29 +485,210 @@ export default {
         this.messages.push(typingMessage);
         this.scrollToBottom();
         
-        // 模拟AI回复
-        setTimeout(() => {
-          // 移除打字指示器
-          this.messages.pop();
-          this.isTypingResponse = false;
+        try {
+          // 准备聊天数据（使用适合"太行·问道"的系统提示词）
+          const systemPrompt = `你是太行·问道，一个专业的智能视频分析系统的AI助手。你的使命是帮助用户更好地使用这个智能安防监控平台。
+
+你的特点：
+- 专业：精通视频监控、智能分析、安防技术等领域
+- 友好：以温和、专业的语气回答问题  
+- 实用：提供具体、可操作的建议和指导
+- 简洁：回答准确且不冗长
+
+你可以帮助用户：
+- 系统操作指导（设备管理、预警处理等）
+- 技术问题解答（摄像头配置、算法解释等）
+- 功能介绍（监控功能、智能分析能力等）
+- 故障排除建议
+
+请用中文回答，保持专业和友好的语调。`;
+
+          const chatData = {
+            message: currentInput,
+            conversation_id: this.currentChatId,
+            stream: true,
+            system_prompt: systemPrompt
+          };
           
-          const response = this.generateResponse(currentInput);
+          // 创建助手回复消息
           const assistantMessage = {
             type: 'assistant',
-            content: response,
+            content: '',
             time: this.getCurrentTime(),
             displayContent: '',
             isTyping: false
           };
-          this.messages.push(assistantMessage);
           
-          // 打字机效果
-          this.typeWriter(assistantMessage, response);
-        }, 1500);
+          // 移除打字指示器
+          this.messages.pop();
+          this.messages.push(assistantMessage);
+          this.isTypingResponse = false;
+          this.isConnecting = false;
+          this.scrollToBottom();
+          
+          // 创建流式连接
+          this.currentEventSource = await VisionAIService.chatAssistantAPI.createChatStream(
+            chatData,
+            // onMessage回调 - 接收流式数据
+            (chunk, fullResponse, conversationId) => {
+              // 如果获取到新的会话ID，更新当前会话ID
+              if (conversationId && !this.currentChatId) {
+                this.currentChatId = conversationId;
+                console.log('设置新的会话ID:', this.currentChatId);
+              }
+              
+              assistantMessage.displayContent = fullResponse;
+              this.scrollToBottom();
+            },
+            // onError回调 - 处理错误
+            (error) => {
+              console.error('聊天API错误:', error);
+              this.handleChatError(error, assistantMessage);
+            },
+            // onComplete回调 - 完成响应
+            async (fullResponse, conversationId) => {
+              // 确保会话ID设置正确
+              if (conversationId && !this.currentChatId) {
+                this.currentChatId = conversationId;
+                console.log('完成时设置会话ID:', this.currentChatId);
+              }
+              
+              assistantMessage.content = fullResponse;
+              assistantMessage.displayContent = fullResponse;
+              this.isTypingResponse = false;
+              this.isConnecting = false;
+              this.currentEventSource = null;
+              this.retryCount = 0;
+              
+              // 保存当前聊天（主要是本地状态管理）
+              this.saveCurrentChat();
+              this.scrollToBottom();
+              
+              // 重新加载会话列表以显示新会话
+              await this.loadChatConversations();
+              
+              // 如果是新对话的第一条消息，自动生成标题
+              if (this.messages.length === 2) { // 用户消息 + 助手回复
+                try {
+                  const response = await VisionAIService.chatAssistantAPI.autoGenerateTitle(this.currentChatId);
+                  if (response.data && response.data.success) {
+                    // 再次更新对话列表以显示新标题
+                    await this.loadChatConversations();
+                    console.log('自动生成标题成功:', response.data.data.title);
+                  }
+                } catch (error) {
+                  console.warn('自动生成标题失败:', error);
+                  // 不阻断正常流程，只记录警告
+                }
+              }
+              
+              console.log('聊天完成:', fullResponse);
+            }
+          );
+          
+        } catch (error) {
+          console.error('发送消息失败:', error);
+          this.handleChatError(error);
+        }
       },
       sendQuickMessage(message) {
         this.inputMessage = message;
         this.sendMessage();
+      },
+      
+      /**
+       * 处理聊天错误
+       * @param {Error} error 错误对象
+       * @param {Object} assistantMessage 助手消息对象
+       */
+      handleChatError(error, assistantMessage = null) {
+        this.isTypingResponse = false;
+        this.isConnecting = false;
+        this.apiError = error;
+        
+        // 关闭当前连接
+        if (this.currentEventSource) {
+          this.currentEventSource.close();
+          this.currentEventSource = null;
+        }
+        
+        // 移除打字指示器（如果存在）
+        const lastMessage = this.messages[this.messages.length - 1];
+        if (lastMessage && lastMessage.isTyping) {
+          this.messages.pop();
+        }
+        
+        let errorMessage = '抱歉，遇到了一些问题。';
+        
+        if (error.message && error.message.includes('network')) {
+          errorMessage = '网络连接异常，请检查网络后重试。';
+        } else if (error.message && error.message.includes('timeout')) {
+          errorMessage = '请求超时，请稍后重试。';
+        } else if (this.retryCount < this.maxRetries) {
+          // 自动重试
+          this.retryCount++;
+          errorMessage = `连接异常，正在重试 (${this.retryCount}/${this.maxRetries})...`;
+          
+          setTimeout(() => {
+            this.sendMessage();
+          }, 2000);
+          
+          // 显示重试消息
+          if (assistantMessage) {
+            assistantMessage.content = errorMessage;
+            assistantMessage.displayContent = errorMessage;
+          } else {
+            this.messages.push({
+              type: 'assistant',
+              content: errorMessage,
+              time: this.getCurrentTime(),
+              displayContent: errorMessage,
+              isTyping: false,
+              isError: true
+            });
+          }
+          this.scrollToBottom();
+          return;
+        } else {
+          errorMessage = '服务暂时不可用，请稍后再试。如果问题持续，请联系技术支持。';
+        }
+        
+        // 显示错误消息
+        if (assistantMessage) {
+          assistantMessage.content = errorMessage;
+          assistantMessage.displayContent = errorMessage;
+          assistantMessage.isError = true;
+        } else {
+          this.messages.push({
+            type: 'assistant',
+            content: errorMessage,
+            time: this.getCurrentTime(),
+            displayContent: errorMessage,
+            isTyping: false,
+            isError: true
+          });
+        }
+        
+        this.scrollToBottom();
+        console.error('聊天错误处理:', error);
+      },
+      
+      /**
+       * 停止当前聊天请求
+       */
+      stopCurrentChat() {
+        if (this.currentEventSource) {
+          this.currentEventSource.close();
+          this.currentEventSource = null;
+        }
+        this.isTypingResponse = false;
+        this.isConnecting = false;
+        
+        // 移除打字指示器
+        const lastMessage = this.messages[this.messages.length - 1];
+        if (lastMessage && lastMessage.isTyping) {
+          this.messages.pop();
+        }
       },
       typeWriter(message, text) {
         let index = 0;
@@ -614,6 +872,8 @@ export default {
         }
         
         console.log('侧边栏状态:', this.sidebarCollapsed ? '收起' : '展开');
+        console.log('分组数量:', this.userGroups.length);
+        console.log('分组数据:', this.userGroups);
       },
       
       // 搜索相关方法
@@ -631,7 +891,9 @@ export default {
       },
       
       getGroupChatCount(groupId) {
-        return this.chatHistories.filter(chat => chat.groupId === groupId).length;
+        // 使用分组数据中已经计算好的对话数量
+        const group = this.userGroups.find(g => g.id === groupId);
+        return group ? group.conversation_count : 0;
       },
       
       getFilteredChats() {
@@ -639,10 +901,10 @@ export default {
         
         // 如果选中了某个分组，只显示该分组的对话
         if (this.selectedGroupId) {
-          chats = this.chatHistories.filter(chat => chat.groupId === this.selectedGroupId);
+          chats = this.chatHistories.filter(chat => chat.group_id === this.selectedGroupId);
         } else {
           // 显示所有不属于任何分组的对话
-          chats = this.chatHistories.filter(chat => !chat.groupId);
+          chats = this.chatHistories.filter(chat => !chat.group_id);
         }
         
         // 如果有搜索关键词，进行过滤
@@ -650,7 +912,7 @@ export default {
           const query = this.searchQuery.toLowerCase();
           chats = chats.filter(chat => 
             chat.title.toLowerCase().includes(query) ||
-            chat.messages.some(msg => msg.content.toLowerCase().includes(query))
+            (chat.messages && chat.messages.some(msg => msg.content.toLowerCase().includes(query)))
           );
         }
         
@@ -669,20 +931,38 @@ export default {
       },
       
       // 创建新分组
-      createGroup() {
-        this.$refs.groupForm.validate((valid) => {
+      async createGroup() {
+        this.$refs.groupForm.validate(async (valid) => {
           if (valid) {
-            const newGroup = {
-              id: 'group_' + Date.now(),
-              name: this.groupForm.name.trim()
-            };
-            
-            this.userGroups.push(newGroup);
-            
-            this.showGroupDialog = false;
-            this.$message.success(`分组"${newGroup.name}"创建成功`);
-            
-            console.log('创建新分组：', newGroup);
+            try {
+              const response = await VisionAIService.chatAssistantAPI.createGroup(this.groupForm.name.trim());
+              
+              console.log('创建分组API响应:', response.data); // 添加调试日志
+              
+              // 适配后端返回的格式
+              let isSuccess = false;
+              if (response.data && response.data.code === 0) {
+                isSuccess = true;
+              } else if (response.data && response.data.success) {
+                isSuccess = true;
+              }
+              
+              if (isSuccess) {
+                // 重新加载分组列表和会话列表
+                await this.loadUserGroups();
+                await this.loadChatConversations();
+                
+                this.showGroupDialog = false;
+                this.$message.success(`分组"${this.groupForm.name}"创建成功`);
+                
+                console.log('创建新分组成功:', response.data);
+              } else {
+                throw new Error(response.data && response.data.msg ? response.data.msg : '创建分组失败');
+              }
+            } catch (error) {
+              console.error('创建分组失败:', error);
+              this.$message.error('创建分组失败：' + (error.message || '请稍后重试'));
+            }
           }
         });
       },
@@ -730,35 +1010,46 @@ export default {
       },
       
       // 删除分组
-      deleteGroup(groupId) {
+      async deleteGroup(groupId) {
         const group = this.userGroups.find(g => g.id === groupId);
         if (!group) {
           this.$message.error('未找到要删除的分组');
           return;
         }
         
-        // 将该分组下的所有对话移动到无分组
-        const groupChats = this.chatHistories.filter(chat => chat.groupId === groupId);
-        groupChats.forEach(chat => {
-          chat.groupId = null;
-          chat.updatedAt = new Date().toISOString();
-        });
-        
-        // 删除分组
-        const groupIndex = this.userGroups.findIndex(g => g.id === groupId);
-        if (groupIndex !== -1) {
-          this.userGroups.splice(groupIndex, 1);
+        try {
+          const response = await VisionAIService.chatAssistantAPI.deleteGroup(groupId);
+          
+          console.log('删除分组API响应:', response.data); // 添加调试日志
+          
+          // 适配后端返回的格式
+          let isSuccess = false;
+          if (response.data && response.data.code === 0) {
+            isSuccess = true;
+          } else if (response.data && response.data.success) {
+            isSuccess = true;
+          }
+          
+          if (isSuccess) {
+            // 重新加载分组列表和对话列表
+            await this.loadUserGroups();
+            await this.loadChatConversations();
+            
+            // 如果当前选中的是被删除的分组，切换到无分组
+            if (this.selectedGroupId === groupId) {
+              this.selectedGroupId = null;
+            }
+            
+            this.$message.success(`分组"${group.name}"已删除，相关对话已移动到无分组`);
+            
+            console.log('删除分组成功：', group);
+          } else {
+            throw new Error(response.data && response.data.msg ? response.data.msg : '删除分组失败');
+          }
+        } catch (error) {
+          console.error('删除分组失败:', error);
+          this.$message.error('删除分组失败：' + (error.message || '请稍后重试'));
         }
-        
-        // 如果当前选中的是被删除的分组，切换到无分组
-        if (this.selectedGroupId === groupId) {
-          this.selectedGroupId = null;
-        }
-        
-        this.$message.success(`分组"${group.name}"已删除${groupChats.length > 0 ? '，相关对话已移动到无分组' : ''}`);
-        
-        console.log('删除分组：', group);
-        console.log('移动的对话数量：', groupChats.length);
       },
       
       // 注：移除localStorage持久化功能，保持纯前端内存状态
@@ -825,13 +1116,42 @@ export default {
               }
               return true;
             }
-          }).then(({ value }) => {
-            chat.title = value.trim();
-            chat.updatedAt = new Date().toISOString();
+          }).then(async ({ value }) => {
+            try {
+              // 调用后端API更新标题
+              const response = await VisionAIService.chatAssistantAPI.updateConversationTitle(
+                this.selectedChatId, 
+                value.trim()
+              );
+              
+              console.log('更新标题API响应:', response.data); // 添加调试日志
+              
+              // 适配后端返回的格式
+              let isSuccess = false;
+              if (response.data && response.data.code === 0) {
+                isSuccess = true;
+              } else if (response.data && response.data.success) {
+                isSuccess = true;
+              }
+              
+              if (isSuccess) {
+                // 更新本地状态
+                chat.title = value.trim();
+                chat.updatedAt = new Date().toISOString();
+                
+                // 重新加载会话列表以同步数据
+                await this.loadChatConversations();
+                
+                this.$message.success('标题修改成功');
+                console.log('标题修改成功:', value.trim());
+              } else {
+                throw new Error(response.data && response.data.msg ? response.data.msg : '标题修改失败');
+              }
+            } catch (error) {
+              console.error('修改标题失败:', error);
+              this.$message.error('修改标题失败：' + (error.message || '请稍后重试'));
+            }
             
-
-            
-            this.$message.success('标题修改成功');
             this.selectedChatId = null; // 编辑完成后重置选中的聊天ID
           }).catch(() => {
             // 用户取消
@@ -879,56 +1199,60 @@ export default {
       },
       
       // 确认移动到分组
-      confirmMoveToGroup() {
+      async confirmMoveToGroup() {
         console.log('=== 开始移动到分组 ===');
         console.log('selectedChatId:', this.selectedChatId);
         console.log('selectedGroupForMove:', this.selectedGroupForMove);
-        console.log('chatHistories长度:', this.chatHistories.length);
-        console.log('chatHistories内容:', this.chatHistories);
         
         // 检查是否有选中的聊天ID
         if (!this.selectedChatId) {
           console.error('没有选中的聊天ID');
           this.$message.error('请先选择要移动的对话');
-          this.cancelMoveToGroup(); // 出错时重置状态
+          this.cancelMoveToGroup();
           return;
         }
         
-        // 检查是否有聊天记录
-        if (!this.chatHistories || this.chatHistories.length === 0) {
-          console.error('没有聊天记录');
-          this.$message.error('没有可移动的对话记录');
-          this.cancelMoveToGroup(); // 出错时重置状态
-          return;
-        }
-        
-        const chat = this.chatHistories.find(c => c.id === this.selectedChatId);
-        console.log('找到的聊天记录:', chat);
-        
-        if (chat) {
-          const oldGroupId = chat.groupId;
-          chat.groupId = this.selectedGroupForMove;
-          chat.updatedAt = new Date().toISOString();
+        try {
+          const response = await VisionAIService.chatAssistantAPI.updateConversationGroup(
+            this.selectedChatId, 
+            this.selectedGroupForMove
+          );
           
-          console.log('聊天记录已更新:', chat);
+          console.log('移动对话API响应:', response.data); // 添加调试日志
           
-          // 显示成功消息
-          if (this.selectedGroupForMove === null) {
-            this.$message.success('已移动到无分组');
-          } else {
-            const targetGroup = this.userGroups.find(g => g.id === this.selectedGroupForMove);
-            this.$message.success(`已移动到"${targetGroup ? targetGroup.name : '未知分组'}"`);
+          // 适配后端返回的格式
+          let isSuccess = false;
+          if (response.data && response.data.code === 0) {
+            isSuccess = true;
+          } else if (response.data && response.data.success) {
+            isSuccess = true;
           }
           
-          this.showMoveDialog = false;
-          this.selectedGroupForMove = null;
-          this.selectedChatId = null; // 移动完成后重置选中的聊天ID
-          
-          console.log('移动操作完成');
-        } else {
-          console.error('未找到对应的聊天记录');
-          this.$message.error('未找到要移动的对话记录');
-          this.cancelMoveToGroup(); // 出错时重置状态
+          if (isSuccess) {
+            // 重新加载对话列表和分组列表
+            await this.loadChatConversations();
+            await this.loadUserGroups();
+            
+            // 显示成功消息
+            if (this.selectedGroupForMove === null) {
+              this.$message.success('已移动到无分组');
+            } else {
+              const targetGroup = this.userGroups.find(g => g.id === this.selectedGroupForMove);
+              this.$message.success(`已移动到"${targetGroup ? targetGroup.name : '未知分组'}"`);
+            }
+            
+            this.showMoveDialog = false;
+            this.selectedGroupForMove = null;
+            this.selectedChatId = null;
+            
+            console.log('移动操作完成');
+          } else {
+            throw new Error(response.data && response.data.msg ? response.data.msg : '移动对话失败');
+          }
+        } catch (error) {
+          console.error('移动对话失败:', error);
+          this.$message.error('移动对话失败：' + (error.message || '请稍后重试'));
+          this.cancelMoveToGroup();
         }
       },
       
@@ -972,6 +1296,112 @@ export default {
       
 
       
+      /**
+       * 从API加载会话列表
+       */
+      async loadChatConversations() {
+        try {
+          console.log('加载会话列表...');
+          const response = await VisionAIService.chatAssistantAPI.getChatConversations({ limit: 50 });
+          
+          console.log('会话API响应:', response.data); // 添加调试日志
+          
+          // 适配后端返回的格式: {code: 0, msg: 'success', data: Array}
+          let conversationsData = [];
+          
+          if (response.data && response.data.code === 0 && Array.isArray(response.data.data)) {
+            conversationsData = response.data.data;
+          } else if (response.data && Array.isArray(response.data)) {
+            // 兼容直接返回数组的格式
+            conversationsData = response.data;
+          } else {
+            console.warn('会话列表格式错误或为空:', response.data);
+            this.$set(this, 'chatHistories', []);
+            return;
+          }
+          
+          // 转换API返回的会话格式为前端格式
+          const newChatHistories = conversationsData.map(conv => ({
+            id: conv.conversation_id, // 添加id字段用于前端操作
+            conversation_id: conv.conversation_id,
+            title: conv.title || '新的对话',
+            message_count: conv.message_count || 0,
+            last_message_time: conv.last_message_time,
+            created_at: conv.created_at,
+            updatedAt: conv.last_message_time, // 添加updatedAt字段用于时间显示
+            group_id: conv.group_id, // 保持后端字段名
+            groupId: conv.group_id, // 同时支持前端习惯的字段名
+            messages: [] // 消息将在需要时单独加载
+          }));
+          
+          // 使用 Vue.set 确保响应式更新
+          this.$set(this, 'chatHistories', newChatHistories);
+          
+          console.log('会话列表加载成功:', this.chatHistories.length, '个会话');
+          console.log('会话详细数据:', this.chatHistories);
+          
+          // 强制触发Vue重新渲染
+          this.$forceUpdate();
+          
+        } catch (error) {
+          console.error('加载会话列表失败:', error);
+          // 不显示错误消息，保持默认的空列表
+          this.$set(this, 'chatHistories', []);
+        }
+      },
+      
+      /**
+       * 从API加载用户分组列表
+       */
+      async loadUserGroups() {
+        try {
+          console.log('加载分组列表...');
+          const response = await VisionAIService.chatAssistantAPI.getGroups();
+          
+          console.log('分组API响应:', response.data); // 添加调试日志
+          
+          // 适配后端返回的格式: {code: 0, msg: 'success', data: Array}
+          let groupsData = [];
+          
+          if (response.data && response.data.code === 0 && Array.isArray(response.data.data)) {
+            groupsData = response.data.data;
+          } else if (response.data && response.data.success && Array.isArray(response.data.data)) {
+            // 兼容 {success: true, data: Array} 格式
+            groupsData = response.data.data;
+          } else if (response.data && Array.isArray(response.data)) {
+            // 兼容直接返回数组的格式
+            groupsData = response.data;
+          } else {
+            console.warn('分组列表格式错误或为空:', response.data);
+            this.$set(this, 'userGroups', []);
+            return;
+          }
+          
+          // 转换API返回的分组格式为前端格式
+          const newGroups = groupsData.map(group => ({
+            id: group.id,
+            name: group.name,
+            conversation_count: group.conversation_count || 0,
+            created_at: group.created_at,
+            updated_at: group.updated_at
+          }));
+          
+          // 使用 Vue.set 确保响应式更新
+          this.$set(this, 'userGroups', newGroups);
+          
+          console.log('分组列表加载成功:', this.userGroups.length, '个分组');
+          console.log('分组详细数据:', this.userGroups);
+          
+          // 强制触发Vue重新渲染
+          this.$forceUpdate();
+          
+        } catch (error) {
+          console.error('加载分组列表失败:', error);
+          // 不显示错误消息，保持默认的空列表
+          this.$set(this, 'userGroups', []);
+        }
+      },
+      
       // 强制设置Element UI组件的z-index
       forceElementUIZIndex() {
         console.log('强制设置Element UI组件z-index...');
@@ -1005,6 +1435,106 @@ export default {
         });
         
         console.log('Element UI组件z-index设置完成');
+      },
+      
+      // 调试方法：手动检查组件状态
+      debugGroupsDisplay() {
+        console.log('=== 分组显示调试信息 ===');
+        console.log('是否在全屏模式:', this.isFullScreen);
+        console.log('侧边栏是否收起:', this.sidebarCollapsed);
+        console.log('分组数量:', this.userGroups.length);
+        console.log('分组数据:', this.userGroups);
+        console.log('会话数量:', this.chatHistories.length);
+        console.log('会话数据:', this.chatHistories);
+        
+        // 检查DOM元素
+        const fullscreenContainer = document.querySelector('.fullscreen-chat-container');
+        const sidebarElement = document.querySelector('.chat-history-sidebar');
+        const groupsSection = document.querySelector('.groups-section');
+        const groupsList = document.querySelector('.groups-list');
+        const groupItems = document.querySelectorAll('.group-item');
+        const chatItems = document.querySelectorAll('.chat-history-item');
+        
+        console.log('全屏容器DOM元素:', fullscreenContainer);
+        console.log('侧边栏DOM元素:', sidebarElement);
+        console.log('分组区域DOM元素:', groupsSection);
+        console.log('分组列表DOM元素:', groupsList);
+        console.log('分组项数量:', groupItems.length);
+        console.log('会话项数量:', chatItems.length);
+        
+        if (sidebarElement) {
+          const sidebarStyles = window.getComputedStyle(sidebarElement);
+          console.log('侧边栏样式:', {
+            display: sidebarStyles.display,
+            visibility: sidebarStyles.visibility,
+            opacity: sidebarStyles.opacity,
+            width: sidebarStyles.width
+          });
+        }
+        
+        if (groupsSection) {
+          const styles = window.getComputedStyle(groupsSection);
+          console.log('分组区域样式:', {
+            display: styles.display,
+            visibility: styles.visibility,
+            opacity: styles.opacity
+          });
+        }
+        
+        // 强制刷新数据
+        this.loadUserGroups();
+        this.loadChatConversations();
+        
+        return {
+          isFullScreen: this.isFullScreen,
+          sidebarCollapsed: this.sidebarCollapsed,
+          groupsCount: this.userGroups.length,
+          groupsData: this.userGroups,
+          chatsCount: this.chatHistories.length,
+          chatsData: this.chatHistories
+        };
+      },
+      
+      // 手动测试API调用
+      async testAPICalls() {
+        console.log('=== 手动测试API调用 ===');
+        
+        try {
+          // 1. 测试获取分组列表
+          console.log('1. 测试获取分组列表...');
+          const groupsResponse = await VisionAIService.chatAssistantAPI.getGroups();
+          console.log('分组列表响应:', groupsResponse);
+          console.log('分组列表响应数据:', groupsResponse.data);
+          
+          // 2. 测试获取会话列表
+          console.log('2. 测试获取会话列表...');
+          const chatsResponse = await VisionAIService.chatAssistantAPI.getChatConversations();
+          console.log('会话列表响应:', chatsResponse);
+          console.log('会话列表响应数据:', chatsResponse.data);
+          
+          // 3. 测试创建分组
+          console.log('3. 测试创建分组...');
+          const createResponse = await VisionAIService.chatAssistantAPI.createGroup('测试分组' + Date.now());
+          console.log('创建分组响应:', createResponse);
+          console.log('创建分组响应数据:', createResponse.data);
+          
+          // 4. 再次获取分组列表
+          console.log('4. 创建后再次获取分组列表...');
+          const groupsResponse2 = await VisionAIService.chatAssistantAPI.getGroups();
+          console.log('创建后分组列表响应:', groupsResponse2);
+          console.log('创建后分组列表响应数据:', groupsResponse2.data);
+          
+          return {
+            groupsResponse: groupsResponse.data,
+            chatsResponse: chatsResponse.data,
+            createResponse: createResponse.data,
+            groupsAfterCreate: groupsResponse2.data
+          };
+          
+        } catch (error) {
+          console.error('API测试失败:', error);
+          return { error: error.message };
+        }
       },
       
       // 监听Element UI组件的创建
@@ -1068,11 +1598,15 @@ export default {
         }
       }
     },
-    mounted() {
+    async mounted() {
       console.log('=== 智能助手组件初始化 ===');
       
       // 初始化位置到右侧
       this.initializePosition();
+      
+      // 确保侧边栏初始状态为展开（重要！）
+      this.sidebarCollapsed = false;
+      console.log('侧边栏初始化为展开状态');
       
       // 监听窗口大小变化，调整助手位置
       window.addEventListener('resize', this.handleWindowResize);
@@ -1083,31 +1617,40 @@ export default {
       // 添加全局点击监听器，用于关闭右键菜单
       document.addEventListener('click', this.handleGlobalClick);
       
-      // 清理可能存在的localStorage数据，确保纯前端状态
-      localStorage.removeItem('chatAssistant_userGroups');
-      localStorage.removeItem('chatAssistant_chatHistories');
-      
       // 启动Element UI组件观察器
       this.observeElementUIComponents();
+      
+      // 加载会话列表和分组列表
+      await this.loadChatConversations();
+      await this.loadUserGroups();
       
       // 初始化时强制设置Element UI组件z-index
       this.$nextTick(() => {
         this.forceElementUIZIndex();
-        console.log('组件初始化完成 - 纯前端模式，刷新后数据将重置');
+        console.log('组件初始化完成 - 已连接后端API');
+        console.log('当前侧边栏状态:', this.sidebarCollapsed ? '收起' : '展开');
+        console.log('当前分组数量:', this.userGroups.length);
       });
     },
     beforeDestroy() {
+      // 清理聊天连接
+      this.stopCurrentChat();
+      
       // 清理事件监听器
       window.removeEventListener('resize', this.handleWindowResize);
       document.removeEventListener('mousemove', this.onDrag);
       document.removeEventListener('mouseup', this.stopDrag);
       document.removeEventListener('click', this.handleGlobalClick);
+      
       // 清理隐藏计时器
       this.clearHideTimer();
+      
       // 清理Element UI组件观察器
       if (this._elementUIObserver) {
         this._elementUIObserver.disconnect();
         this._elementUIObserver = null;
       }
+      
+      console.log('智能助手组件已销毁，所有连接已清理');
     }
   }

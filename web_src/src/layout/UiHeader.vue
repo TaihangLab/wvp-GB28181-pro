@@ -86,6 +86,7 @@
         <el-menu-item index="/systemManage/tenantManagement">租户管理</el-menu-item>
         <el-menu-item index="/systemManage/departmentManagement">部门管理</el-menu-item>
         <el-menu-item index="/systemManage/positionManagement">岗位管理</el-menu-item>
+        <el-menu-item index="/systemManage/knowledgeBase">知识库管理</el-menu-item>
       </el-submenu>
 
       <!-- 可视中心菜单 -->

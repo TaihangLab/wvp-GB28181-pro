@@ -52,7 +52,8 @@ visionAIAxios.interceptors.response.use(
                          /\/api\/v1\/ai-tasks\/\d+$/.test(response.config.url) || // 匹配AI任务详情接口
                          /\/api\/v1\/alerts\/\d+$/.test(response.config.url) || // 匹配预警详情接口
                          /\/api\/v1\/llm-skills\//.test(response.config.url) || // 匹配LLM技能相关接口
-                         /\/api\/v1\/llm-skill-review\//.test(response.config.url); // 匹配复判技能相关接口
+                         /\/api\/v1\/llm-skill-review\//.test(response.config.url) || // 匹配复判技能相关接口
+                         /\/api\/v1\/chat\//.test(response.config.url); // 匹配聊天助手相关接口
 
 
 
@@ -867,7 +868,18 @@ export const skillAPI = {
       })
       .catch(error => {
         console.error('批量删除多模态技能失败:', error);
-        throw error;
+        // 提取后端返回的详细错误信息
+        let errorMessage = '批量删除复判技能失败';
+        if (error.response && error.response.data) {
+          if (error.response.data.detail) {
+            errorMessage = error.response.data.detail;
+          } else if (error.response.data.message) {
+            errorMessage = error.response.data.message;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        throw new Error(errorMessage);
       });
   }
 };
@@ -1650,10 +1662,342 @@ export const reviewSkillAPI = {
   }
 };
 
+// ===== 聊天助手相关接口 =====
+const chatAssistantAPI = {
+  /**
+   * 发送聊天消息
+   * @param {Object} chatData 聊天数据
+   * @param {string} chatData.message 用户消息内容
+   * @param {string} [chatData.conversation_id] 会话ID（可选）
+   * @param {string} [chatData.system_prompt] 系统提示词（可选）
+   * @param {boolean} [chatData.stream=true] 是否流式响应
+   * @param {number} [chatData.temperature] 温度参数（可选）
+   * @param {number} [chatData.max_tokens] 最大token数（可选）
+   * @param {number} [chatData.context_length=10] 上下文长度
+   * @param {string} [chatData.model] 指定模型（可选）
+   * @returns {Promise} axios响应
+   */
+  sendChatMessage(chatData) {
+    console.log('发送聊天消息:', chatData);
+    return visionAIAxios.post('/api/v1/chat/chat', {
+      message: chatData.message,
+      conversation_id: chatData.conversation_id || null,
+      system_prompt: chatData.system_prompt || null,
+      stream: chatData.stream !== false, // 默认为true
+      temperature: chatData.temperature || null,
+      max_tokens: chatData.max_tokens || null,
+      context_length: chatData.context_length || 10,
+      model: chatData.model || null
+    });
+  },
+
+  /**
+   * 创建流式聊天连接
+   * @param {Object} chatData 聊天数据
+   * @param {function} onMessage 接收消息回调
+   * @param {function} onError 错误回调
+   * @param {function} onComplete 完成回调
+   * @returns {Promise<Object>} 包含abort方法的控制器对象
+   */
+  async createChatStream(chatData, onMessage, onError, onComplete) {
+    try {
+      console.log('创建流式聊天连接:', chatData);
+      
+      // 创建AbortController用于取消请求
+      const abortController = new AbortController();
+      
+      // 构建JSON请求体（只传入必要的参数）
+      const requestBody = {
+        message: chatData.message,
+        stream: true,
+        system_prompt: chatData.system_prompt,
+        conversation_id: chatData.conversation_id || null
+      };
+
+      // 发起POST请求（使用完整的chat端点）
+      const response = await fetch(`${visionAIAxios.defaults.baseURL}/api/v1/chat/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/plain',
+          // 添加认证头（如果有）
+          ...(localStorage.getItem('token') && {
+            'access-token': localStorage.getItem('token')
+          })
+        },
+        body: JSON.stringify(requestBody),
+        signal: abortController.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP错误! 状态: ${response.status}`);
+      }
+
+      // 获取流式读取器
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+      let buffer = '';
+
+      // 用于存储会话ID的变量
+      let conversationId = chatData.conversation_id;
+
+      // 创建返回的控制器对象
+      const controller = {
+        close: () => {
+          abortController.abort();
+          reader.cancel();
+        }
+      };
+
+      // 开始读取流式数据
+      const readStream = async () => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) {
+              if (onComplete) onComplete(fullResponse, conversationId);
+              break;
+            }
+
+            // 解码数据块
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+
+            // 处理完整的数据行
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // 保留最后不完整的行
+
+            for (const line of lines) {
+              if (line.trim() === '') continue;
+              
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6); // 去掉 "data: " 前缀
+                
+                if (data === '[DONE]') {
+                  if (onComplete) onComplete(fullResponse, conversationId);
+                  return;
+                }
+
+                try {
+                  const parsed = JSON.parse(data);
+                  
+                  // 提取会话ID（如果存在）
+                  if (parsed.conversation_id && !conversationId) {
+                    conversationId = parsed.conversation_id;
+                    console.log('获取到新的会话ID:', conversationId);
+                  }
+                  
+                  // 提取消息内容
+                  if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
+                    const content = parsed.choices[0].delta.content;
+                    fullResponse += content;
+                    if (onMessage) onMessage(content, fullResponse, conversationId);
+                  }
+                } catch (parseError) {
+                  console.error('解析JSON数据错误:', parseError, 'data:', data);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            console.log('流式聊天请求被取消');
+            return;
+          }
+          console.error('读取流式数据错误:', error);
+          if (onError) onError(error);
+        }
+      };
+
+      // 开始读取
+      readStream();
+
+      return controller;
+      
+    } catch (error) {
+      console.error('创建流式聊天连接失败:', error);
+      if (onError) onError(error);
+      throw error;
+    }
+  },
+
+  /**
+   * 获取会话列表
+   * @param {Object} params 查询参数
+   * @param {number} [params.limit=20] 返回会话数量限制
+   * @returns {Promise} axios响应
+   */
+  getChatConversations(params = {}) {
+    console.log('获取会话列表:', params);
+    return visionAIAxios.get('/api/v1/chat/conversations', { 
+      params: {
+        limit: params.limit || 20
+      }
+    });
+  },
+
+  /**
+   * 获取会话消息
+   * @param {string} conversationId 会话ID
+   * @param {Object} params 查询参数
+   * @param {number} [params.limit=50] 返回消息数量限制
+   * @returns {Promise} axios响应
+   */
+  getChatMessages(conversationId, params = {}) {
+    console.log('获取会话消息:', conversationId, params);
+    return visionAIAxios.get(`/api/v1/chat/conversations/${conversationId}/messages`, {
+      params: {
+        limit: params.limit || 50
+      }
+    });
+  },
+
+  /**
+   * 删除会话
+   * @param {string} conversationId 会话ID
+   * @returns {Promise} axios响应
+   */
+  deleteChatConversation(conversationId) {
+    console.log('删除会话:', conversationId);
+    return visionAIAxios.delete(`/api/v1/chat/conversations/${conversationId}`);
+  },
+
+  /**
+   * 清空所有会话
+   * @returns {Promise} axios响应
+   */
+  clearAllChatConversations() {
+    console.log('清空所有会话');
+    return visionAIAxios.delete('/api/v1/chat/conversations');
+  },
+
+  /**
+   * 快速聊天（简化接口）
+   * @param {Object} chatData 聊天数据
+   * @param {string} chatData.message 用户消息内容
+   * @param {boolean} [chatData.stream=false] 是否流式响应
+   * @param {string} [chatData.system_prompt] 系统提示词（可选）
+   * @returns {Promise} axios响应
+   */
+  quickChat(chatData) {
+    console.log('快速聊天:', chatData);
+    const formData = new FormData();
+    formData.append('message', chatData.message);
+    formData.append('stream', chatData.stream || false);
+    if (chatData.system_prompt) {
+      formData.append('system_prompt', chatData.system_prompt);
+    }
+    
+    return visionAIAxios.post('/api/v1/chat/quick', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+
+  /**
+   * 获取可用模型列表
+   * @returns {Promise} axios响应
+   */
+  getChatModels() {
+    console.log('获取聊天模型列表');
+    return visionAIAxios.get('/api/v1/chat/models');
+  },
+
+  /**
+   * 健康检查
+   * @returns {Promise} axios响应
+   */
+  checkChatHealth() {
+    console.log('聊天助手健康检查');
+    return visionAIAxios.get('/api/v1/chat/health');
+  },
+
+  // ==================== 分组管理 ====================
+  
+  /**
+   * 创建分组
+   * @param {string} name - 分组名称 
+   * @returns {Promise}
+   */
+  createGroup(name) {
+    const formData = new FormData();
+    formData.append('name', name);
+    
+    return visionAIAxios.post('/api/v1/chat/groups', formData);
+  },
+  
+  /**
+   * 获取分组列表
+   * @returns {Promise}
+   */
+  getGroups() {
+    return visionAIAxios.get('/api/v1/chat/groups');
+  },
+  
+  /**
+   * 删除分组
+   * @param {string} groupId - 分组ID
+   * @returns {Promise} 
+   */
+  deleteGroup(groupId) {
+    return visionAIAxios.delete(`/api/v1/chat/groups/${groupId}`);
+  },
+  
+  /**
+   * 更新会话分组
+   * @param {string} conversationId - 会话ID
+   * @param {string|null} groupId - 分组ID，null表示移动到无分组
+   * @returns {Promise}
+   */
+  updateConversationGroup(conversationId, groupId) {
+    const formData = new FormData();
+    if (groupId) {
+      formData.append('group_id', groupId);
+    }
+    
+    return visionAIAxios.put(`/api/v1/chat/conversations/${conversationId}/group`, formData);
+  },
+  
+  /**
+   * 获取分组内的对话列表
+   * @param {string} groupId - 分组ID
+   * @param {Object} params - 查询参数
+   * @returns {Promise}
+   */
+  getGroupConversations(groupId, params = {}) {
+    return visionAIAxios.get(`/api/v1/chat/groups/${groupId}/conversations`, { params });
+  },
+  
+  /**
+   * 自动生成对话标题
+   * @param {string} conversationId - 会话ID
+   * @returns {Promise}
+   */
+  autoGenerateTitle(conversationId) {
+    return visionAIAxios.post(`/api/v1/chat/conversations/${conversationId}/auto-title`);
+  },
+  
+  /**
+   * 更新会话标题
+   * @param {string} conversationId - 会话ID
+   * @param {string} title - 新的标题
+   * @returns {Promise}
+   */
+  updateConversationTitle(conversationId, title) {
+    const formData = new FormData();
+    formData.append('title', title);
+    return visionAIAxios.put(`/api/v1/chat/conversations/${conversationId}/title`, formData);
+  }
+};
+
 export default {
   modelAPI,
   skillAPI,
   cameraAPI,
   alertAPI,
-  reviewSkillAPI
+  reviewSkillAPI,
+  chatAssistantAPI
 };
