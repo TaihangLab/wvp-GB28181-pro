@@ -55,8 +55,6 @@ import positionManagement from '../components/visionAI/systemManagement/position
 import profile from '../components/visionAI/systemManagement/profile.vue'
 import parkManagement from '../components/visionAI/ivisualCenter/parkManagement.vue'
 // 知识库管理
-import knowledgeBase from '../components/visionAI/knowledgeBase/index/index.vue'
-import knowledgeBaseDetail from '../components/visionAI/knowledgeBase/info/index.vue'
 
 const originalPush = VueRouter.prototype.push
 VueRouter.prototype.push = function push(location) {
@@ -231,16 +229,6 @@ export default new VueRouter({
           path: '/systemManage/profile',
           name: 'profile',
           component: profile,
-        },
-        {
-          path: '/systemManage/knowledgeBase',
-          name: 'knowledgeBase',
-          component: knowledgeBase,
-        },
-        {
-          path: '/systemManage/knowledgeBase/:id',
-          name: 'knowledgeBaseDetail',
-          component: knowledgeBaseDetail,
         },
         {
           path: '/channelList/:deviceId/:parentChannelId/',
