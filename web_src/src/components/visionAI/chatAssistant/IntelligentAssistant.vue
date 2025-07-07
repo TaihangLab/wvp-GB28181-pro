@@ -38,6 +38,9 @@
             </circle>
             <!-- 问道之路 -->
             <path d="M6 9Q10 11 14 7Q16 9 18 11" stroke="currentColor" stroke-width="0.8" opacity="0.4" stroke-dasharray="2,2"/>
+            <!-- 智慧之光（太阳元素） -->
+            <circle cx="12" cy="6" r="2" fill="currentColor" opacity="0.8"/>
+            <path d="M12 4V8M10 6H14M10.5 4.5L13.5 7.5M13.5 4.5L10.5 7.5" stroke="currentColor" stroke-width="1" opacity="0.6"/>
           </svg>
         </div>
       </div>
@@ -71,6 +74,9 @@
                 <circle cx="18" cy="11" r="1.2" fill="currentColor"/>
                 <!-- 问道之路 -->
                 <path d="M6 9Q10 11 14 7Q16 9 18 11" stroke="currentColor" stroke-width="0.8" opacity="0.4" stroke-dasharray="2,2"/>
+                <!-- 智慧之光（太阳元素） -->
+                <circle cx="12" cy="6" r="2" fill="currentColor" opacity="0.8"/>
+                <path d="M12 4V8M10 6H14M10.5 4.5L13.5 7.5M13.5 4.5L10.5 7.5" stroke="currentColor" stroke-width="1" opacity="0.6"/>
               </svg>
             </div>
           </div>
@@ -101,10 +107,22 @@
           <div class="welcome-header">
             <div class="welcome-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- 简化的太行山图标 -->
-                <path d="M3 18L7 10L12 14L17 8L21 18H3Z" fill="currentColor" fill-opacity="0.2"/>
-                <path d="M3 18L7 10L12 14L17 8L21 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <!-- 智慧之光 -->
+                <!-- 太行山脉轮廓 -->
+                <path d="M2 19L6 9L10 13L14 7L18 11L22 19H2Z" fill="currentColor" fill-opacity="0.15"/>
+                <path d="M2 19L6 9L10 13L14 7L18 11L22 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- 智慧之光点 -->
+                <circle cx="6" cy="9" r="1.2" fill="currentColor">
+                  <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/>
+                </circle>
+                <circle cx="14" cy="7" r="1.2" fill="currentColor">
+                  <animate attributeName="opacity" values="1;0.6;1" dur="2.5s" repeatCount="indefinite"/>
+                </circle>
+                <circle cx="18" cy="11" r="1.2" fill="currentColor">
+                  <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite"/>
+                </circle>
+                <!-- 问道之路 -->
+                <path d="M6 9Q10 11 14 7Q16 9 18 11" stroke="currentColor" stroke-width="0.8" opacity="0.4" stroke-dasharray="2,2"/>
+                <!-- 智慧之光（太阳元素） -->
                 <circle cx="12" cy="6" r="2" fill="currentColor" opacity="0.8"/>
                 <path d="M12 4V8M10 6H14M10.5 4.5L13.5 7.5M13.5 4.5L10.5 7.5" stroke="currentColor" stroke-width="1" opacity="0.6"/>
               </svg>
@@ -157,6 +175,9 @@
                   <circle cx="18" cy="11" r="1.2" fill="currentColor"/>
                   <!-- 问道之路 -->
                   <path d="M6 9Q10 11 14 7Q16 9 18 11" stroke="currentColor" stroke-width="0.8" opacity="0.4" stroke-dasharray="2,2"/>
+                  <!-- 智慧之光（太阳元素） -->
+                  <circle cx="12" cy="6" r="2" fill="currentColor" opacity="0.8"/>
+                  <path d="M12 4V8M10 6H14M10.5 4.5L13.5 7.5M13.5 4.5L10.5 7.5" stroke="currentColor" stroke-width="1" opacity="0.6"/>
                 </svg>
               </div>
             </div>

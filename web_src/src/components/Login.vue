@@ -28,8 +28,17 @@
             <img src="static/logo.png" alt="太行视觉AI平台" class="logo-img">
             <div class="logo-glow"></div>
           </div>
-          <h1 class="platform-title">太行视觉AI平台</h1>
-          <p class="platform-subtitle">Vision AI Intelligence Platform</p>
+          <div class="title-container">
+            <div class="brand-name">
+              <span class="brand-group">太行</span>
+              <span class="brand-dot">·</span>
+              <span class="brand-group">慧眼</span>
+            </div>
+            <div class="title-right">
+              <h1 class="platform-title">太行视觉AI平台</h1>
+              <p class="platform-subtitle"><span class="subtitle-highlight">洞察万象，识图于微</span></p>
+            </div>
+          </div>
         </div>
 
         <!-- 登录表单 -->
@@ -411,11 +420,59 @@ export default {
   50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
 }
 
+.title-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.brand-name {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  color: #00d4ff;
+  font-size: 18px;
+  font-weight: 600;
+  text-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+  border-right: 3px solid rgba(0, 212, 255, 0.4);
+  padding-right: 12px;
+  height: 70px;
+  gap: 4px;
+}
+
+.brand-name .brand-group {
+  writing-mode: vertical-lr;
+  text-orientation: upright;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.brand-name .brand-dot {
+  font-size: 12px;
+  color: #00BFFF;
+  text-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
+  margin: 0;
+  line-height: 1;
+  align-self: center;
+  width: 12px;
+  text-align: center;
+}
+
+.title-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
 .platform-title {
   font-size: 28px;
   font-weight: 600;
   color: #ffffff;
-  margin: 0 0 10px 0;
+  margin: 0;
   letter-spacing: 2px;
   text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
 }
@@ -424,8 +481,15 @@ export default {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.7);
   margin: 0;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.subtitle-highlight {
+  font-size: 16px;
+  font-weight: 500;
+  color: #00d4ff;
+  text-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
 }
 
 /* 表单样式 */
@@ -608,6 +672,23 @@ export default {
   
   .login-form-container {
     padding: 30px 20px;
+  }
+  
+  .title-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .brand-name {
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 3px solid rgba(0, 212, 255, 0.4);
+    padding-right: 0;
+    padding-bottom: 8px;
+    height: auto;
+    width: 100%;
+    justify-content: center;
+    gap: 6px;
   }
   
   .platform-title {
