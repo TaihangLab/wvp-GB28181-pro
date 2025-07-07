@@ -27,7 +27,7 @@
           <el-option label="合规检测" value="合规检测"></el-option>
         </el-select>
 
-          <el-input v-model="searchInput" placeholder="请输入技能名称搜索" class="search-input" @keyup.enter="handleSearch">
+          <el-input v-model="searchInput" placeholder="请输入技能名称搜索" class="search-input" @input="handleSearchInput" @keyup.enter="handleSearch">
             <el-button slot="append" icon="el-icon-search" @click="handleSearch"></el-button>
           </el-input>
 
@@ -58,7 +58,20 @@
 
       <!-- 技能卡片网格 -->
       <div class="skills-container">
-        <div class="skills-grid">
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading-container" v-loading="loading" element-loading-text="正在加载技能列表...">
+          <div class="loading-placeholder"></div>
+        </div>
+        
+        <!-- 空状态 -->
+        <div v-else-if="!loading && skills.length === 0" class="empty-state">
+          <el-empty description="暂无技能数据" image-size="120">
+            <el-button type="primary" @click="createSkill">创建第一个技能</el-button>
+          </el-empty>
+        </div>
+        
+        <!-- 技能网格 -->
+        <div v-else class="skills-grid">
           <div v-for="skill in paginatedSkills" :key="skill.id" 
                class="skill-card"
                @mouseenter="showCardCheckbox(skill.id)"
@@ -77,17 +90,10 @@
             
             <div class="card-header">
               <h3 class="skill-title">{{ skill.name }}</h3>
-                          <div class="skill-id" @mouseenter="showCopyButton(skill.id)" @mouseleave="hideCopyButton(skill.id)">
-              <span class="id-label">ID</span>
-              <span class="id-value">{{ skill.id }}</span>
-              <el-button 
-                v-show="copyButtonVisible[skill.id]" 
-                icon="el-icon-document-copy" 
-                class="copy-btn"
-                size="mini"
-                @click="copyToClipboard(skill.id)">
-              </el-button>
-            </div>
+              <div class="skill-id">
+                <span class="id-label">ID</span>
+                <span class="id-value">{{ skill.id }}</span>
+              </div>
             </div>
 
             <div class="card-content">
@@ -128,7 +134,6 @@
               <el-button size="small" @click="toggleSkillStatus(skill)">
                 {{ skill.status === 'online' ? '下线' : '上线' }}
               </el-button>
-              <el-button size="small" @click="copySkill(skill)">复制</el-button>
               <el-button 
                 size="small" 
                 @click="deleteSkill(skill)"
@@ -168,6 +173,8 @@
 </template>
 
 <script>
+import VisionAIService from '@/components/service/VisionAIService'
+
 export default {
   name: 'MultimodalReview',
   data() {
@@ -183,10 +190,7 @@ export default {
       // 分页
       currentPage: 1,
       pageSize: 12,
-      totalCount: 36,
-
-      // 复制按钮显示状态
-      copyButtonVisible: {},
+      totalCount: 0,
 
       // 选择相关
       selectedSkills: [], // 已选中的技能ID数组
@@ -201,7 +205,14 @@ export default {
       },
 
       // 技能数据
-      skills: [
+      skills: [],
+      loading: false, // 加载状态
+      
+      // 搜索防抖
+      searchDebounceTimer: null,
+
+      // 示例数据（保留作为参考，但不再使用）
+      exampleSkills: [
         {
           id: 'ab189acff35841d38b7f8575a4e5ab5a',
           name: '明火识别',
@@ -467,85 +478,37 @@ export default {
   created() {
     // 初始化数据
     this.loadSkillsData()
-    // 立即同步到 localStorage
-    this.syncToLocalStorage()
   },
   
   mounted() {
-    // 简单直接：每次进入页面自动刷新一次（避免状态污染）
-    if (!sessionStorage.getItem('multimodalReviewLoaded')) {
-      sessionStorage.setItem('multimodalReviewLoaded', 'true')
-      window.location.reload()
-      return
+    // 组件挂载后立即加载数据
+    this.refreshData()
+  },
+  
+  beforeDestroy() {
+    // 清理搜索防抖定时器
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer)
+      this.searchDebounceTimer = null
     }
   },
-  beforeDestroy() {
-    // 页面销毁时清除标志
-    sessionStorage.removeItem('multimodalReviewLoaded')
-  },
   computed: {
-    filteredSkills() {
-      let filtered = this.skills
-
-      // 关键词搜索
-      if (this.searchKeyword) {
-        filtered = filtered.filter(skill =>
-          skill.name.includes(this.searchKeyword) ||
-          skill.description.includes(this.searchKeyword)
-        )
-      }
-
-      // 技能状态过滤
-      if (this.selectedProvider) {
-        filtered = filtered.filter(skill => skill.status === this.selectedProvider)
-      }
-
-      // 分类过滤
-      if (this.selectedCategory) {
-        filtered = filtered.filter(skill =>
-          skill.categories.includes(this.selectedCategory)
-        )
-      }
-
-      // 排序
-      filtered.sort((a, b) => {
-        let comparison = 0
-        
-        if (this.sortType === 'name') {
-          // 按技能名称排序
-          comparison = a.name.localeCompare(b.name, 'zh-CN')
-        } else {
-          // 按创建时间排序（这里用ID作为时间替代，因为ID包含时间戳特征）
-          comparison = a.id.localeCompare(b.id)
-        }
-        
-        // 根据排序方向调整结果
-        return this.sortOrder === 'desc' ? -comparison : comparison
-      })
-
-      // 更新总数
-      this.totalCount = filtered.length
-
-      return filtered
-    },
-
+    // 当前页显示的技能列表（后端分页，直接使用skills数组）
     paginatedSkills() {
-      const start = (this.currentPage - 1) * this.pageSize
-      const end = start + this.pageSize
-      return this.filteredSkills.slice(start, end)
+      return this.skills
     },
 
-    // 是否全部选中
+    // 是否全部选中（基于当前所有数据）
     isAllSelected() {
-      return this.filteredSkills.length > 0 && 
-             this.selectedSkills.length === this.filteredSkills.length &&
-             this.filteredSkills.every(skill => this.selectedSkills.includes(skill.id))
+      return this.skills.length > 0 && 
+             this.selectedSkills.length === this.totalCount &&
+             this.skills.every(skill => this.selectedSkills.includes(skill.id))
     },
 
     // 是否当前页全部选中
     isCurrentPageSelected() {
-      return this.paginatedSkills.length > 0 && 
-             this.paginatedSkills.every(skill => this.selectedSkills.includes(skill.id))
+      return this.skills.length > 0 && 
+             this.skills.every(skill => this.selectedSkills.includes(skill.id))
     },
 
     // 排序类型文本
@@ -557,119 +520,248 @@ export default {
   },
   methods: {
     // 数据管理相关方法
-    loadSkillsData() {
-      // 数据已经在组件内部，直接使用
-      this.totalCount = this.skills.length
-      // 同步到 localStorage
-      this.syncToLocalStorage()
-    },
-
-    // 同步数据到 localStorage
-    syncToLocalStorage() {
-      localStorage.setItem('skillData', JSON.stringify(this.skills))
+    async loadSkillsData() {
+      try {
+        this.loading = true
+        
+        // 构建查询参数，使用后端分页和过滤
+        const params = {
+          page: this.currentPage,
+          limit: this.pageSize
+        }
+        
+        // 状态过滤
+        if (this.selectedProvider === 'online') {
+          params.status = true
+        } else if (this.selectedProvider === 'offline') {
+          params.status = false
+        }
+        
+        // 名称搜索
+        if (this.searchKeyword && this.searchKeyword.trim()) {
+          params.name = this.searchKeyword.trim()
+        }
+        
+        // 标签过滤
+        if (this.selectedCategory && this.selectedCategory.trim()) {
+          params.tag = this.selectedCategory.trim()
+        }
+        
+        console.log('加载复判技能列表，参数:', params)
+        
+        const response = await VisionAIService.reviewSkillAPI.getReviewSkillList(params)
+        
+        // 解析后端返回的数据格式
+        let skillsData = null
+        let totalCount = 0
+        let pageInfo = {}
+        
+        if (response.data && response.data.success && response.data.data) {
+          // 后端新格式：{success: true, data: [...], total: N, page: 1, limit: 10, total_pages: N}
+          skillsData = response.data.data
+          totalCount = response.data.total || 0
+          pageInfo = {
+            page: response.data.page || this.currentPage,
+            limit: response.data.limit || this.pageSize,
+            total_pages: response.data.total_pages || 0
+          }
+        } else if (response.data && Array.isArray(response.data)) {
+          // 兼容：后端直接返回数组的格式
+          skillsData = response.data
+          totalCount = response.data.length
+        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+          // 兼容：标准包装格式 {code: 0, data: [...], total: 0}
+          skillsData = response.data.data
+          totalCount = response.data.total || response.data.data.length
+        } else {
+          console.error('API返回数据格式异常:', response)
+          this.skills = []
+          this.totalCount = 0
+          return
+        }
+        
+        if (skillsData && Array.isArray(skillsData)) {
+          // 转换数据格式以适配前端组件
+          this.skills = skillsData.map(skill => ({
+            id: skill.skill_id, // 使用skill_id作为前端ID
+            name: skill.name,
+            description: skill.description,
+            status: skill.status ? 'online' : 'offline',
+            categories: skill.tags || [],
+            skill_id: skill.skill_id, // 保留原始skill_id用于API调用
+            internal_id: skill.id, // 保留数据库ID
+            created_at: skill.created_at,
+            updated_at: skill.updated_at,
+            version: skill.version
+          }))
+          
+          // 更新总数
+          this.totalCount = totalCount
+          
+          console.log('加载复判技能列表成功，共', totalCount, '个技能，当前页', this.skills.length, '个技能')
+          console.log('分页信息:', pageInfo)
+        } else {
+          console.warn('返回的技能数据为空或格式错误')
+          this.skills = []
+          this.totalCount = 0
+        }
+        
+      } catch (error) {
+        console.error('加载技能列表失败:', error)
+        this.$message.error('加载技能列表失败: ' + (error.message || '未知错误'))
+        this.skills = []
+        this.totalCount = 0
+      } finally {
+        this.loading = false
+      }
     },
 
     // 根据ID获取技能
     getSkillById(id) {
-      return this.skills.find(skill => skill.id === id)
+      return this.skills.find(skill => skill.id === id || skill.skill_id === id)
     },
 
-    // 更新技能
-    updateSkill(skillData) {
-      const index = this.skills.findIndex(skill => skill.id === skillData.id)
-      if (index !== -1) {
-        this.skills.splice(index, 1, { ...skillData })
-        this.syncToLocalStorage()
+    // 更新技能（通过API）
+    async updateSkill(skillData) {
+      try {
+        const skillId = skillData.skill_id || skillData.id
+        if (!skillId) {
+          throw new Error('缺少技能ID')
+        }
+        
+        const updateData = {
+          skill_name: skillData.name,
+          skill_tags: skillData.categories || [],
+          description: skillData.description,
+          prompt_template: skillData.prompt_template || skillData.description
+        }
+        
+        await VisionAIService.reviewSkillAPI.updateReviewSkill(skillId, updateData)
+        
+        // 重新加载数据
+        await this.loadSkillsData()
+        
         this.$message.success(`技能 "${skillData.name}" 已更新`)
         return true
+      } catch (error) {
+        console.error('更新技能失败:', error)
+        this.$message.error('更新技能失败: ' + (error.message || '未知错误'))
+        return false
       }
-      return false
     },
 
-    // 添加新技能
-    addSkill(skillData) {
-      // 确保有ID
-      if (!skillData.id) {
-        skillData.id = this.generateSkillId()
-      }
-      
-      this.skills.unshift(skillData)
-      this.syncToLocalStorage()
-      this.$message.success(`技能 "${skillData.name}" 已创建`)
-      return skillData
-    },
-
-    // 删除技能
-    deleteSkill(skillId) {
-      const index = this.skills.findIndex(skill => skill.id === skillId)
-      if (index !== -1) {
-        const skill = this.skills[index]
+    // 删除技能（通过API）
+    async deleteSkillById(skillId) {
+      try {
+        const skill = this.getSkillById(skillId)
+        if (!skill) {
+          throw new Error('未找到对应技能')
+        }
+        
         // 检查技能状态，已上线的技能不可删除
         if (skill.status === 'online') {
-          console.warn(`技能 "${skill.name}" 已上线，无法删除`)
+          this.$message.warning(`技能 "${skill.name}" 已上线，无法删除`)
           return false
         }
         
-        const deletedSkill = this.skills.splice(index, 1)[0]
-        this.syncToLocalStorage()
-        this.$message.success(`技能 "${deletedSkill.name}" 已删除`)
+        const apiSkillId = skill.skill_id || skillId
+        await VisionAIService.reviewSkillAPI.deleteReviewSkill(apiSkillId)
+        
+        // 重新加载数据
+        await this.loadSkillsData()
+        
+        this.$message.success(`技能 "${skill.name}" 已删除`)
         
         // 清空选择状态
         this.selectedSkills = []
         
         // 检查当前页是否还有数据，如果没有则回到上一页
-        if (this.paginatedSkills.length === 0 && this.currentPage > 1) {
+        if (this.skills.length === 0 && this.currentPage > 1) {
           this.currentPage--
+          await this.loadSkillsData()
         }
         
         return true
+      } catch (error) {
+        console.error('删除技能失败:', error)
+        this.$message.error('删除技能失败: ' + (error.message || '未知错误'))
+        return false
       }
-      return false
     },
 
-    // 批量删除技能
-    deleteSkills(skillIds) {
-      const deletedSkills = []
-      const onlineSkills = []
-      
-      skillIds.forEach(id => {
-        const index = this.skills.findIndex(skill => skill.id === id)
-        if (index !== -1) {
-          const skill = this.skills[index]
-          // 检查技能状态，已上线的技能不可删除
-          if (skill.status === 'online') {
-            onlineSkills.push(skill)
-          } else {
-            deletedSkills.push(this.skills.splice(index, 1)[0])
-          }
+    // 批量删除技能（通过API）
+    async deleteSkills(skillIds) {
+      try {
+        if (!skillIds || skillIds.length === 0) {
+          return []
         }
-      })
-      
-      // 如果有已上线的技能，记录警告
-      if (onlineSkills.length > 0) {
-        const onlineSkillNames = onlineSkills.map(skill => skill.name).join('、')
-        console.warn(`以下技能已上线，无法删除：${onlineSkillNames}`)
-      }
-      
-      if (deletedSkills.length > 0) {
-        this.syncToLocalStorage()
-        this.$message.success(`已删除 ${deletedSkills.length} 个技能`)
+        
+        // 获取技能详情并检查状态
+        const selectedSkills = skillIds.map(id => this.getSkillById(id)).filter(Boolean)
+        const onlineSkills = selectedSkills.filter(skill => skill.status === 'online')
+        
+        if (onlineSkills.length > 0) {
+          const onlineSkillNames = onlineSkills.map(skill => skill.name).join('、')
+          this.$message.warning(`无法删除已上线的技能：${onlineSkillNames}。请先将这些技能下线后再删除。`)
+          return []
+        }
+        
+        // 转换为API使用的skill_id
+        const apiSkillIds = selectedSkills.map(skill => skill.skill_id || skill.id)
+        
+        const response = await VisionAIService.reviewSkillAPI.batchDeleteReviewSkills(apiSkillIds)
+        
+        // 重新加载数据
+        await this.loadSkillsData()
         
         // 清空选择状态
         this.selectedSkills = []
         
         // 检查当前页是否还有数据，如果没有则回到上一页
-        if (this.paginatedSkills.length === 0 && this.currentPage > 1) {
+        if (this.skills.length === 0 && this.currentPage > 1) {
           this.currentPage--
+          await this.loadSkillsData()
         }
+        
+        if (response.data && response.data.success) {
+          // 修复数据解析逻辑，处理后端响应格式
+          const resultData = response.data.data || response.data
+          const deletedCount = resultData.deleted_count || 0
+          this.$message.success(`已成功删除 ${deletedCount} 个技能`)
+        }
+        
+        return selectedSkills
+      } catch (error) {
+        console.error('批量删除技能失败:', error)
+        this.$message.error('批量删除技能失败: ' + (error.message || '未知错误'))
+        return []
       }
-      
-      return deletedSkills
     },
 
-    // 生成技能ID
-    generateSkillId() {
-      return 'skill_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    // 切换技能状态（通过API）
+    async toggleSkillStatus(skill) {
+      try {
+        const skillId = skill.skill_id || skill.id
+        const actionText = skill.status === 'online' ? '下线' : '上线'
+        
+        if (skill.status === 'online') {
+          // 下线技能
+          await VisionAIService.reviewSkillAPI.unpublishReviewSkill(skillId)
+        } else {
+          // 上线技能
+          await VisionAIService.reviewSkillAPI.publishReviewSkill(skillId)
+        }
+        
+        // 重新加载数据
+        await this.loadSkillsData()
+        
+        this.$message.success(`${skill.name} 已${actionText}`)
+        return true
+      } catch (error) {
+        console.error(`${actionText}技能失败:`, error)
+        this.$message.error(`${actionText}技能失败: ` + (error.message || '未知错误'))
+        return false
+      }
     },
 
     // 头部操作
@@ -679,19 +771,9 @@ export default {
       })
     },
 
-    batchImport() {
+    async batchImport() {
       if (this.selectedSkills.length === 0) {
         this.$message.warning('请先选择要删除的技能')
-        return
-      }
-
-      // 检查选中的技能中是否有已上线的技能
-      const selectedSkillData = this.skills.filter(skill => this.selectedSkills.includes(skill.id))
-      const onlineSkills = selectedSkillData.filter(skill => skill.status === 'online')
-      
-      if (onlineSkills.length > 0) {
-        const onlineSkillNames = onlineSkills.map(skill => skill.name).join('、')
-        this.$message.warning(`无法删除已上线的技能：${onlineSkillNames}。请先将这些技能下线后再删除。`)
         return
       }
 
@@ -699,61 +781,89 @@ export default {
         confirmButtonText: '确定删除',
         cancelButtonText: '取消',
         type: 'warning'
-      }).then(() => {
+      }).then(async () => {
         // 执行批量删除
-        this.deleteSkills(this.selectedSkills)
+        await this.deleteSkills(this.selectedSkills)
       }).catch(() => {
         this.$message.info('已取消删除')
       })
     },
 
-    handleSearch() {
+    // 实时搜索输入处理（防抖）
+    handleSearchInput() {
+      // 清除之前的定时器
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer)
+      }
+      
+      // 设置新的防抖定时器
+      this.searchDebounceTimer = setTimeout(() => {
+        this.handleSearchDebounced()
+      }, 500) // 500ms防抖延迟
+    },
+
+    // 防抖搜索执行
+    async handleSearchDebounced() {
+      const newKeyword = this.searchInput.trim()
+      // 只有当搜索关键词真正改变时才重新搜索
+      if (newKeyword !== this.searchKeyword) {
+        this.searchKeyword = newKeyword
+        this.currentPage = 1
+        await this.loadSkillsData()
+      }
+    },
+
+    // 立即搜索（按回车或点击搜索按钮）
+    async handleSearch() {
+      // 清除防抖定时器
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer)
+        this.searchDebounceTimer = null
+      }
+      
       this.searchKeyword = this.searchInput.trim()
       this.currentPage = 1
+      await this.loadSkillsData()
     },
 
-    handleFilter() {
-      // 筛选条件改变时重置到第一页
+    async handleFilter() {
+      // 筛选条件改变时重置到第一页并重新加载数据
       this.currentPage = 1
+      await this.loadSkillsData()
     },
 
-    refreshData() {
-      // 重置所有搜索和筛选条件
-      this.searchInput = ''
-      this.searchKeyword = ''
-      this.selectedProvider = ''
-      this.selectedCategory = ''
-      
-      // 重置排序
-      this.sortType = 'time'
-      this.sortOrder = 'desc'
-      
-      // 重置分页
-      this.currentPage = 1
-      this.pageSize = 12
-      
-      // 清空选择状态
-      this.selectedSkills = []
-      this.cardHoverStates = {}
-      this.copyButtonVisible = {}
-      
-      // 隐藏tooltip
-      this.tooltipVisible = false
-      this.tooltipContent = ''
-      
-      // 模拟重新加载数据的过程
-      const loading = this.$loading({
-        lock: true,
-        text: '正在刷新数据...',
-        spinner: 'el-icon-loading',
-        background: 'rgba(0, 0, 0, 0.7)'
-      })
-      
-      // 模拟网络请求延迟
-      setTimeout(() => {
-        loading.close()
+    async refreshData() {
+      try {
+        // 重置所有搜索和筛选条件
+        this.searchInput = ''
+        this.searchKeyword = ''
+        this.selectedProvider = ''
+        this.selectedCategory = ''
+        
+        // 重置排序
+        this.sortType = 'time'
+        this.sortOrder = 'desc'
+        
+        // 重置分页
+        this.currentPage = 1
+        this.pageSize = 12
+        
+        // 清空选择状态
+        this.selectedSkills = []
+        this.cardHoverStates = {}
+        
+        // 隐藏tooltip
+        this.tooltipVisible = false
+        this.tooltipContent = ''
+        
+        // 重新加载数据
+        await this.loadSkillsData()
+        
         this.$message.success('数据已刷新')
-      }, 800)
+      } catch (error) {
+        console.error('刷新数据失败:', error)
+        this.$message.error('刷新数据失败')
+      }
     },
 
     // 排序切换
@@ -797,89 +907,7 @@ export default {
       })
     },
 
-    toggleSkillStatus(skill) {
-      const newStatus = skill.status === 'online' ? 'offline' : 'online'
-      const updatedSkill = { ...skill, status: newStatus }
-      
-      // 更新技能状态
-      if (this.updateSkill(updatedSkill)) {
-        this.$message.success(`${skill.name} 已${newStatus === 'online' ? '上线' : '下线'}`)
-      } else {
-        this.$message.error('状态更新失败')
-      }
-    },
-
-    copySkill(skill) {
-      // 先显示确认提示框
-      this.$confirm(
-        `复制后将生成一个新的多模态大技能，技能名称后缀自动+1，请确认操作`,
-        '复制多模态大模型复判提示',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning',
-          customClass: 'copy-skill-dialog',
-          showClose: true,
-          showCancelButton: true,
-          closeOnClickModal: false,
-          closeOnPressEscape: false
-        }
-      ).then(() => {
-        // 用户确认后执行复制操作
-        const newSkillName = this.generateCopySkillName(skill.name)
-        
-        // 创建新技能对象
-        const newSkill = {
-          ...skill,
-          id: this.generateSkillId(), // 生成新的ID
-          name: newSkillName,
-          status: 'offline' // 复制的技能默认为未上线状态
-        }
-        
-        // 添加技能
-        const addedSkill = this.addSkill(newSkill)
-        
-        if (addedSkill) {
-          this.$message.success(`技能 "${skill.name}" 已复制为 "${newSkillName}"`)
-        } else {
-          this.$message.error('复制失败，请重试')
-        }
-      }).catch(() => {
-        this.$message.info('已取消复制')
-      })
-    },
-
-    // 生成复制技能的名称
-    generateCopySkillName(originalName) {
-      // 检查名称是否已经有数字后缀（支持多种格式：技能名1、技能名-1、技能名_1、技能名 1等）
-      const numberSuffixMatch = originalName.match(/^(.+?)[-_\s]*(\d+)$/)
-      
-      if (numberSuffixMatch) {
-        // 如果已有数字后缀，递增数字
-        const baseName = numberSuffixMatch[1].trim()
-        const currentNumber = parseInt(numberSuffixMatch[2])
-        return this.findAvailableSkillName(baseName, currentNumber + 1)
-      } else {
-        // 如果没有数字后缀，添加 "1"
-        return this.findAvailableSkillName(originalName.trim(), 1)
-      }
-    },
-
-    // 查找可用的技能名称（避免重复）
-    findAvailableSkillName(baseName, startNumber) {
-      let counter = startNumber
-      let newName = `${baseName}${counter}`
-      
-      // 检查名称是否已存在
-      while (this.skills.some(skill => skill.name === newName)) {
-        counter++
-        newName = `${baseName}${counter}`
-      }
-      
-      return newName
-    },
-
-    deleteSkill(skill) {
+    async deleteSkill(skill) {
       // 检查技能状态，已上线的技能不可删除
       if (skill.status === 'online') {
         this.$message.warning('已上线的技能不可删除，请先下线后再删除')
@@ -890,63 +918,31 @@ export default {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
-      }).then(() => {
+      }).then(async () => {
         // 删除技能
-        if (!this.deleteSkill(skill.id)) {
-          this.$message.error('删除失败')
-        }
+        await this.deleteSkillById(skill.id)
       }).catch(() => {
         this.$message.info('已取消删除')
       })
     },
 
     // 分页
-    handleSizeChange(val) {
+    async handleSizeChange(val) {
       this.pageSize = val
       this.currentPage = 1
+      await this.loadSkillsData()
     },
 
-    handleCurrentChange(val) {
+    async handleCurrentChange(val) {
       this.currentPage = val
+      await this.loadSkillsData()
     },
 
     goToPage() {
       // 跳转到指定页面逻辑
     },
 
-    // 复制功能
-    showCopyButton(skillId) {
-      this.$set(this.copyButtonVisible, skillId, true)
-    },
 
-    hideCopyButton(skillId) {
-      this.$set(this.copyButtonVisible, skillId, false)
-    },
-
-    async copyToClipboard(text) {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text)
-          this.$message.success('ID已复制到剪贴板')
-        } else {
-          // 兼容旧浏览器
-          const textArea = document.createElement('textarea')
-          textArea.value = text
-          textArea.style.position = 'fixed'
-          textArea.style.left = '-999999px'
-          textArea.style.top = '-999999px'
-          document.body.appendChild(textArea)
-          textArea.focus()
-          textArea.select()
-          document.execCommand('copy')
-          document.body.removeChild(textArea)
-          this.$message.success('ID已复制到剪贴板')
-        }
-      } catch (err) {
-        console.error('复制失败:', err)
-        this.$message.error('复制失败，请手动复制')
-      }
-    },
 
     // Tooltip相关方法
     showTooltip(event, content) {
@@ -1031,19 +1027,22 @@ export default {
         // 如果已全选，则取消全选
         this.selectedSkills = []
       } else {
-        // 选择所有过滤后的技能
-        this.selectedSkills = this.filteredSkills.map(skill => skill.id)
+        // 注意：由于使用后端分页，这里的"全选"实际上是选择当前页的所有技能
+        // 真正的全选功能需要获取所有数据，但这会影响性能
+        // 暂时保持选择当前页的所有技能
+        this.selectedSkills = this.skills.map(skill => skill.id)
+        this.$message.info('由于使用分页加载，当前只能选择本页的所有技能')
       }
     },
 
     selectCurrentPage() {
       if (this.isCurrentPageSelected) {
         // 如果当前页已全选，则取消当前页选择
-        const currentPageIds = this.paginatedSkills.map(skill => skill.id)
+        const currentPageIds = this.skills.map(skill => skill.id)
         this.selectedSkills = this.selectedSkills.filter(id => !currentPageIds.includes(id))
       } else {
         // 选择当前页所有技能
-        const currentPageIds = this.paginatedSkills.map(skill => skill.id)
+        const currentPageIds = this.skills.map(skill => skill.id)
         currentPageIds.forEach(id => {
           if (!this.selectedSkills.includes(id)) {
             this.selectedSkills.push(id)
@@ -1344,20 +1343,21 @@ export default {
 
 .skills-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 18px;
 }
 
 .skill-card {
   background: white;
   border-radius: 12px;
-  padding: 18px;
+  padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  aspect-ratio: 16/7;
+  aspect-ratio: 4/3;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  max-height: 280px;
   border: 1px solid #f3f4f6;
   position: relative;
   overflow: hidden;
@@ -1437,22 +1437,22 @@ export default {
 }
 
 .card-header {
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   flex-shrink: 0;
 }
 
 .skill-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   color: #111827;
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .skill-id {
-  font-size: 12px;
+  font-size: 11px;
   background: transparent;
   padding: 0;
   border-radius: 0;
@@ -1470,7 +1470,7 @@ export default {
   background-color: rgba(59, 130, 246, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .id-value {
@@ -1478,44 +1478,17 @@ export default {
   font-weight: 400;
   flex: 1;
   margin-right: 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.copy-btn {
-  padding: 2px 4px !important;
-  min-height: 20px !important;
-  height: 20px !important;
-  width: 20px !important;
-  min-width: 20px !important;
-  border: 1px solid rgba(59, 130, 246, 0.1) !important;
-  background: rgba(59, 130, 246, 0.05) !important;
-  color: rgba(59, 130, 246, 0.4) !important;
-  border-radius: 3px !important;
-  transition: all 0.2s ease !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-left: auto !important;
-  flex-shrink: 0 !important;
-}
 
-.copy-btn:hover {
-  border-color: rgba(59, 130, 246, 0.2) !important;
-  color: rgba(59, 130, 246, 0.7) !important;
-  background: rgba(59, 130, 246, 0.1) !important;
-  transform: scale(1.05) !important;
-}
-
-.copy-btn:active {
-  transform: scale(0.95) !important;
-}
-
-.copy-btn .el-icon-document-copy {
-  font-size: 12px !important;
-}
 
 .card-content {
   flex: 1;
-  margin-bottom: 3px;
+  margin-bottom: 8px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1524,16 +1497,19 @@ export default {
 
 .skill-description {
   color: #6b7280;
-  font-size: 14px;
-  line-height: 1.4;
-  margin: 0 0 6px 0;
-  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
   flex-shrink: 0;
   position: relative;
   cursor: pointer;
+  max-height: 39px;
 }
 
 .skill-tooltip {
@@ -1562,10 +1538,10 @@ export default {
 .skill-info {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
   flex-shrink: 0;
   margin-top: auto;
-  margin-bottom: 2px;
+  margin-bottom: 8px;
 }
 
 .info-row {
@@ -1618,20 +1594,19 @@ export default {
 
 .card-actions {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   flex-wrap: wrap;
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .card-actions .el-button {
   flex: 1;
-  min-width: 50px;
-  font-size: 11px;
-  padding: 5px 8px;
+  min-width: 55px;
+  font-size: 12px;
+  padding: 6px 8px;
   border-radius: 4px;
-  height: 24px;
-  margin-bottom: -5px;
+  height: 28px;
   background: white !important;
   border: 1px solid #dcdfe6 !important;
   color: #606266 !important;
@@ -1763,109 +1738,49 @@ export default {
   border-color: #3b82f6 !important;
 }
 
-/* 自定义复制技能确认对话框样式 */
-.copy-skill-dialog .el-message-box {
-  border-radius: 12px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-  background: white !important;
-  min-width: 420px !important;
+
+
+/* 加载状态和空状态样式 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  width: 100%;
 }
 
-.copy-skill-dialog .el-message-box__header {
-  padding: 20px 20px 10px 20px !important;
-  border-bottom: none !important;
-  position: relative !important;
+.loading-placeholder {
+  width: 100%;
+  height: 400px;
 }
 
-.copy-skill-dialog .el-message-box__title {
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  color: #303133 !important;
-  line-height: 22px !important;
-  margin-left: 32px !important;
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  width: 100%;
+  padding: 40px;
 }
 
-.copy-skill-dialog .el-message-box__content {
-  padding: 10px 20px 20px 52px !important;
-  color: #606266 !important;
-  font-size: 14px !important;
-  line-height: 20px !important;
+.empty-state >>> .el-empty__description {
+  color: #909399;
+  font-size: 14px;
+  margin-bottom: 20px;
 }
 
-.copy-skill-dialog .el-message-box__message {
-  margin-left: 0 !important;
-}
-
-.copy-skill-dialog .el-message-box__status {
-  position: absolute !important;
-  top: 20px !important;
-  left: 20px !important;
-  margin: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 22px !important;
-  height: 22px !important;
-  background-color: #faad14 !important;
-  border-radius: 50% !important;
-  box-shadow: 0 2px 4px rgba(250, 173, 20, 0.3) !important;
-}
-
-.copy-skill-dialog .el-message-box__status .el-icon-warning {
-  color: white !important;
-  font-size: 14px !important;
-  margin: 0 !important;
-}
-
-.copy-skill-dialog .el-message-box__btns {
-  padding: 10px 20px 20px 20px !important;
-  text-align: right !important;
-}
-
-.copy-skill-dialog .el-message-box__btns .el-button {
-  padding: 8px 20px !important;
-  border-radius: 6px !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  margin-left: 12px !important;
-}
-
-.copy-skill-dialog .el-message-box__btns .el-button--default {
-  color: #606266 !important;
-  border-color: #dcdfe6 !important;
-  background-color: #ffffff !important;
-}
-
-.copy-skill-dialog .el-message-box__btns .el-button--default:hover {
-  color: #3b82f6 !important;
-  border-color: #3b82f6 !important;
-  background-color: #ffffff !important;
-}
-
-.copy-skill-dialog .el-message-box__btns .el-button--primary {
-  background-color: #409eff !important;
-  border-color: #409eff !important;
-  color: #ffffff !important;
-}
-
-.copy-skill-dialog .el-message-box__btns .el-button--primary:hover {
-  background-color: #66b1ff !important;
-  border-color: #66b1ff !important;
-}
-
-.copy-skill-dialog .el-message-box__close {
-  color: #909399 !important;
-  font-size: 16px !important;
-  top: 15px !important;
-  right: 15px !important;
-}
-
-.copy-skill-dialog .el-message-box__close:hover {
-  color: #606266 !important;
+.empty-state >>> .el-empty__image {
+  margin-bottom: 20px;
 }
 
 /* 响应式设计 */
-@media (max-width: 1400px) {
+@media (max-width: 1600px) {
+  .skills-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1280px) {
   .skills-grid {
     grid-template-columns: repeat(3, 1fr);
   }

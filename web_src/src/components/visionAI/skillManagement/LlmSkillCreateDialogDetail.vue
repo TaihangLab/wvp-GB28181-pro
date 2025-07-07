@@ -1146,10 +1146,10 @@
               } : null
             }
             
-            console.log('正在更新多模态技能:', this.skillInfo.id, skillData)
+            console.log('正在更新多模态技能:', this.skillInfo.skillId, skillData)
             
             // 调用API更新技能
-            const response = await skillAPI.updateLlmSkill(this.skillInfo.id, skillData)
+            const response = await skillAPI.updateLlmSkill(this.skillInfo.skillId, skillData)
             
             if (response.data && response.data.success) {
               this.$message.success('技能更新成功！')
@@ -1258,7 +1258,7 @@
             throw new Error('创建技能失败')
           }
           
-          const createdSkillId = createResponse.data.data.id
+          const createdSkillId = createResponse.data.data.skill_id
           
           // 第二步：发布技能
           this.$message.info('技能创建成功，正在发布...')

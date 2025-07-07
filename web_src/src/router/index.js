@@ -56,6 +56,7 @@ import departmentManagement from '../components/visionAI/systemManagement/depart
 import positionManagement from '../components/visionAI/systemManagement/positionManagement.vue'
 import profile from '../components/visionAI/systemManagement/profile.vue'
 import parkManagement from '../components/visionAI/ivisualCenter/parkManagement.vue'
+// 知识库管理
 
 const originalPush = VueRouter.prototype.push
 VueRouter.prototype.push = function push(location) {

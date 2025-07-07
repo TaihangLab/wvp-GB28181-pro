@@ -13,7 +13,17 @@
       <!-- Logo区域 -->
       <div class="logo-container">
         <img src="static/logo.png" alt="Logo" class="logo-image"/>
-        <span class="logo-text">太行视觉AI平台</span>
+        <div class="logo-text-container">
+          <div class="logo-brand-name">
+            <span class="brand-group">太行</span>
+            <span class="brand-dot">·</span>
+            <span class="brand-group">慧眼</span>
+          </div>
+          <div class="logo-text-right">
+            <span class="logo-text">太行视觉AI平台</span>
+            <span class="logo-subtitle"><span class="logo-subtitle-highlight">洞察万象，识图于微</span></span>
+          </div>
+        </div>
       </div>
 
       <!-- 监控预警菜单 -->
@@ -86,6 +96,7 @@
         <el-menu-item index="/systemManage/tenantManagement">租户管理</el-menu-item>
         <el-menu-item index="/systemManage/departmentManagement">部门管理</el-menu-item>
         <el-menu-item index="/systemManage/positionManagement">岗位管理</el-menu-item>
+        <el-menu-item index="/systemManage/knowledgeBase">知识库管理</el-menu-item>
       </el-submenu>
 
       <!-- 可视中心菜单 -->
@@ -280,6 +291,7 @@ export default {
   border-right: 1px solid rgba(75, 216, 255, 0.2);
   position: relative;
   z-index: 2;
+  min-width: 280px;
 }
 
 .logo-image {
@@ -295,6 +307,54 @@ export default {
   filter: drop-shadow(0 0 10px rgba(75, 216, 255, 0.6));
 }
 
+.logo-text-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  line-height: 1.2;
+  gap: 12px;
+}
+
+.logo-brand-name {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  color: #4BD8FF;
+  font-size: 14px;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(75, 216, 255, 0.6);
+  border-right: 2px solid rgba(75, 216, 255, 0.3);
+  padding-right: 8px;
+  height: 42px;
+  gap: 3px;
+}
+
+.brand-group {
+  writing-mode: vertical-lr;
+  text-orientation: upright;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.brand-dot {
+  font-size: 8px;
+  color: #00BFFF;
+  text-shadow: 0 0 10px rgba(0, 191, 255, 0.8);
+  margin: 0;
+  line-height: 1;
+  align-self: center;
+  width: 8px;
+  text-align: center;
+}
+
+.logo-text-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
 .logo-text {
   color: #4BD8FF;
   font-size: 18px;
@@ -303,6 +363,53 @@ export default {
   letter-spacing: 0.5px;
   text-shadow: 0 0 15px rgba(75, 216, 255, 0.6);
   position: relative;
+  margin-bottom: 2px;
+}
+
+.logo-subtitle {
+  color: #CCD6F6;
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  text-shadow: 0 0 8px rgba(204, 214, 246, 0.4);
+  opacity: 0.8;
+  transition: all 0.3s ease;
+}
+
+.logo-subtitle-highlight {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4BD8FF;
+  text-shadow: 0 0 12px rgba(75, 216, 255, 0.6);
+  opacity: 1;
+}
+
+.logo-container:hover .logo-brand-name {
+  color: #00BFFF;
+  text-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
+  border-right-color: rgba(0, 191, 255, 0.6);
+}
+
+.logo-container:hover .brand-group {
+  color: #00BFFF;
+  text-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
+}
+
+.logo-container:hover .brand-dot {
+  color: #FFFFFF;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.9);
+}
+
+.logo-container:hover .logo-subtitle {
+  opacity: 1;
+  color: #4BD8FF;
+  text-shadow: 0 0 10px rgba(75, 216, 255, 0.5);
+}
+
+.logo-container:hover .logo-subtitle-highlight {
+  color: #00BFFF;
+  text-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
 }
 
 .logo-text::after {
@@ -530,6 +637,39 @@ export default {
 
   .logo-text {
     display: none;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .logo-container {
+    min-width: auto;
+    padding: 0 15px;
+  }
+  
+  .logo-text-container {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .logo-brand-name {
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 2px solid rgba(75, 216, 255, 0.3);
+    padding-right: 0;
+    padding-bottom: 4px;
+    height: auto;
+    width: 100%;
+    justify-content: center;
+    gap: 4px;
+  }
+  
+  .logo-text {
+    font-size: 14px;
+    display: block;
+  }
+  
+  .logo-subtitle-highlight {
+    font-size: 11px;
   }
 }
 

@@ -200,9 +200,7 @@
                     <i class="el-icon-warning-outline empty-icon"></i>
                     <div class="empty-text">暂无分析结果，请先配置参数并上传验证数据</div>
                   </div>
-                  <div v-else class="analysis-result">
-                    {{ analysisResult }}
-                  </div>
+                  <div v-else class="analysis-result">{{analysisResult}}</div>
                 </div>
               </div>
             </div>
@@ -247,6 +245,8 @@
 </template>
 
 <script>
+import VisionAIService from '@/components/service/VisionAIService'
+
 export default {
   name: 'MultimodalReviewCreate',
   data() {
@@ -353,77 +353,86 @@ export default {
       }
     },
 
-    // 从 localStorage 获取所有技能数据
-    getSkillsFromStorage() {
-      const skillsData = localStorage.getItem('skillData')
-      return skillsData ? JSON.parse(skillsData) : []
-    },
-
-    // 根据ID获取技能
-    getSkillById(id) {
-      const skills = this.getSkillsFromStorage()
-      return skills.find(skill => skill.id === id)
-    },
-
-    // 更新技能到localStorage
-    updateSkillToStorage(skillData) {
-      const skills = this.getSkillsFromStorage()
-      const index = skills.findIndex(skill => skill.id === skillData.id)
-      if (index !== -1) {
-        skills[index] = { ...skillData }
-        localStorage.setItem('skillData', JSON.stringify(skills))
-        return true
+    // 根据ID获取技能（通过API）
+    async getSkillById(skillId) {
+      try {
+        const response = await VisionAIService.reviewSkillAPI.getReviewSkillDetail(skillId)
+        console.log('获取技能详情响应:', response.data)
+        
+        // 修复数据解析逻辑，处理后端统一响应格式
+        let skillData = null
+        
+        // 后端的获取技能详情接口直接返回技能对象
+        if (response.data && response.data.skill_id) {
+          skillData = response.data
+        } else if (response.data && response.data.data) {
+          skillData = response.data.data
+        } else if (response.data && response.data.id) {
+          skillData = response.data
+        }
+        
+        if (skillData) {
+          // 转换数据格式
+          return {
+            id: skillData.skill_id || skillData.id,
+            name: skillData.name || skillData.skill_name,
+            description: skillData.description,
+            status: skillData.status ? 'online' : 'offline',
+            categories: skillData.tags || skillData.skill_tags || [],
+            skill_id: skillData.skill_id || skillData.id,
+            internal_id: skillData.id,
+            created_at: skillData.created_at,
+            updated_at: skillData.updated_at,
+            version: skillData.version,
+            prompt_template: skillData.prompt_template,
+            system_prompt: skillData.system_prompt
+          }
+        }
+        return null
+      } catch (error) {
+        console.error('获取技能详情失败:', error)
+        throw error
       }
-      return false
     },
 
-    // 添加技能到localStorage
-    addSkillToStorage(skillData) {
-      const skills = this.getSkillsFromStorage()
-      // 确保有ID
-      if (!skillData.id) {
-        skillData.id = this.generateSkillId()
-      }
-      skills.unshift(skillData)
-      localStorage.setItem('skillData', JSON.stringify(skills))
-      return skillData
-    },
-
-    // 生成技能ID
-    generateSkillId() {
-      return 'skill_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-    },
-
-    // 加载技能数据
-    loadSkillData(skillId) {
-      // 从 localStorage 加载技能数据
-      const skill = this.getSkillById(skillId)
-      
-      if (skill) {
-        this.skillData = { ...skill }
-        this.skillForm = {
-          name: skill.name,
-          categories: skill.categories || [], // 保持所有标签
-          description: skill.description
-        }
+    // 加载技能数据（通过API）
+    async loadSkillData(skillId) {
+      try {
+        const skill = await this.getSkillById(skillId)
         
-        // 检查如果技能已上线，且路由模式是编辑，则强制切换到查看模式
-        if (skill.status === 'online' && this.currentMode === 'edit') {
-          this.currentMode = 'view'
-          this.$message.warning('已上线的技能不可编辑，已自动切换到查看模式')
+        if (skill) {
+          this.skillData = { ...skill }
+          this.skillForm = {
+            name: skill.name,
+            categories: skill.categories || [],
+            description: skill.description
+          }
+          
+          // 检查如果技能已上线，且路由模式是编辑，则强制切换到查看模式
+          if (skill.status === 'online' && this.currentMode === 'edit') {
+            this.currentMode = 'view'
+            this.$message.warning('已上线的技能不可编辑，已自动切换到查看模式')
+          }
+          
+          // 如果是查看模式，设置一个示例分析结果
+          if (this.isViewMode) {
+            this.analysisResult = '该技能已配置完成，能够有效识别图像中的目标对象，置信度达到95%以上。'
+          }
+          
+          // 强制触发视图更新
+          this.$nextTick(() => {
+            this.$forceUpdate()
+          })
+        } else {
+          this.$message.error('未找到对应的技能信息')
+          // 返回到列表页
+          this.$router.push('/skillManage/multimodalReview')
         }
-        
-        // 如果是查看模式，设置一个示例分析结果
-        if (this.isViewMode) {
-          this.analysisResult = '该技能已配置完成，能够有效识别图像中的目标对象，置信度达到95%以上。'
-        }
-        
-        // 强制触发视图更新
-        this.$nextTick(() => {
-          this.$forceUpdate()
-        })
-      } else {
-        this.$message.error('未找到对应的技能信息')
+      } catch (error) {
+        console.error('加载技能数据失败:', error)
+        this.$message.error('加载技能数据失败: ' + (error.message || '未知错误'))
+        // 返回到列表页
+        this.$router.push('/skillManage/multimodalReview')
       }
     },
 
@@ -477,40 +486,48 @@ export default {
       })
     },
 
-    // 切换技能状态
-    toggleSkillStatus() {
-      const newStatus = this.skillData.status === 'online' ? 'offline' : 'online'
-      const updatedSkill = { ...this.skillData, status: newStatus }
-      
-      // 更新技能状态
-      if (this.updateSkillToStorage(updatedSkill)) {
-        this.skillData.status = newStatus
-        this.$message.success(`技能已${newStatus === 'online' ? '上线' : '下线'}`)
-      } else {
-        this.$message.error('状态更新失败')
-      }
-    },
 
-    saveDraft() {
+
+    async saveDraft() {
       if (!this.validateForm()) return
       
-      // 更新技能数据
-      const success = this.updateSkillData()
-      
-      if (success) {
-        this.$message.success('技能已保存为草稿')
+            try {
+        console.log('开始执行保存草稿操作...')
         
-        // 如果是编辑模式，切换回查看模式
-        if (this.isEditMode) {
-          this.currentMode = 'view'
-        } else {
-          // 如果是创建模式，返回列表页
-          this.$router.push('/skillManage/multimodalReview')
+        // 确保不设置上线状态
+        if (this.skillForm.status === 'online') {
+          delete this.skillForm.status
         }
+        
+        // 更新技能数据（草稿状态）
+        const success = await this.updateSkillData()
+        
+        console.log('保存草稿操作结果:', success)
+        
+        if (success) {
+          this.$message.success('技能已保存为草稿')
+          
+          // 如果是编辑模式，切换回查看模式
+          if (this.isEditMode) {
+            console.log('编辑模式，切换到查看模式')
+            this.currentMode = 'view'
+            // 重新加载数据以确保状态同步
+            await this.loadSkillData(this.currentSkillId)
+          } else {
+            // 如果是创建模式，返回列表页
+            console.log('创建模式完成，准备跳转到列表页')
+            this.$router.push('/skillManage/multimodalReview')
+          }
+        } else {
+          this.$message.error('保存失败，请检查输入数据')
+        }
+      } catch (error) {
+        console.error('保存草稿失败:', error)
+        this.$message.error('保存失败: ' + (error.message || '未知错误'))
       }
     },
 
-    saveAndPublish() {
+    async saveAndPublish() {
       if (!this.validateForm()) return
       
       const actionText = this.isEditMode ? '保存修改并上线' : '保存并上线'
@@ -519,72 +536,187 @@ export default {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'info'
-      }).then(() => {
-        // 设置为上线状态并保存
-        this.skillForm.status = 'online'
-        const success = this.updateSkillData()
-        
-        if (success) {
-          this.$message.success(`技能已${actionText}`)
+      }).then(async () => {
+        try {
+          console.log('开始执行保存并发布操作...')
           
-          // 如果是编辑模式，切换回查看模式
-          if (this.isEditMode) {
-            this.currentMode = 'view'
+          // 设置为上线状态并保存
+          const success = await this.updateSkillData(true)
+          
+          console.log('保存并发布操作结果:', success)
+          
+          if (success) {
+            this.$message.success(`技能已${actionText}`)
+            
+            // 如果是编辑模式，切换回查看模式
+            if (this.isEditMode) {
+              console.log('编辑模式，切换到查看模式')
+              this.currentMode = 'view'
+              // 重新加载数据以确保状态同步
+              await this.loadSkillData(this.currentSkillId)
+            } else {
+              // 如果是创建模式，返回列表页
+              console.log('创建并发布模式完成，准备跳转到列表页')
+              this.$router.push('/skillManage/multimodalReview')
+            }
           } else {
-            // 如果是创建模式，返回列表页
-            this.$router.push('/skillManage/multimodalReview')
+            this.$message.error(`${actionText}失败，请检查输入数据`)
           }
+        } catch (error) {
+          console.error('保存并发布失败:', error)
+          this.$message.error('操作失败: ' + (error.message || '未知错误'))
         }
       }).catch(() => {
         this.$message.info('已取消操作')
       })
     },
 
-    // 更新技能数据
-    updateSkillData() {
-      // 准备更新的技能数据
-      const updatedSkill = {
-        ...this.skillData,
-        name: this.skillForm.name.trim(),
-        description: this.skillForm.description.trim(),
-        categories: [...(this.skillForm.categories || [])],
-        status: this.skillForm.status || this.skillData.status || 'offline'
-      }
-      
-      // 确保 ID 存在
-      if (!updatedSkill.id) {
-        updatedSkill.id = this.generateSkillId()
-        this.currentSkillId = updatedSkill.id
-      }
-      
-      let success = false
-      
-      if (this.isCreateMode || !this.currentSkillId) {
-        // 创建新技能
-        const newSkill = this.addSkillToStorage(updatedSkill)
-        if (newSkill) {
-          this.skillData = { ...newSkill }
-          this.currentSkillId = newSkill.id
-          success = true
+    // 更新技能数据（通过API）
+    async updateSkillData(shouldPublish = false) {
+      try {
+        // 准备更新的技能数据
+        const skillData = {
+          skill_name: this.skillForm.name.trim(),
+          description: this.skillForm.description.trim(),
+          skill_tags: [...(this.skillForm.categories || [])],
+          prompt_template: this.skillForm.description.trim() // 前端没有单独的提示词字段，使用描述作为提示词
         }
-      } else {
-        // 更新现有技能
-        success = this.updateSkillToStorage(updatedSkill)
+        
+        let success = false
+        let skillId = null
+        
+        if (this.isCreateMode || !this.currentSkillId) {
+          // 创建新技能
+          console.log('创建新技能:', skillData)
+          const response = await VisionAIService.reviewSkillAPI.createReviewSkill(skillData)
+          
+          // 检查响应数据结构
+          console.log('创建技能响应:', response.data)
+          
+          // 根据后端实际响应格式进行解析
+          if (response.data && response.data.skill) {
+            // 后端返回格式：{ success: true, message: "...", skill: {...} }
+            const newSkill = response.data.skill
+            this.skillData = {
+              id: newSkill.skill_id,
+              name: newSkill.name,
+              description: newSkill.description,
+              status: newSkill.status ? 'online' : 'offline',
+              categories: newSkill.tags || [],
+              skill_id: newSkill.skill_id,
+              internal_id: newSkill.id,
+              created_at: newSkill.created_at,
+              version: newSkill.version
+            }
+            this.currentSkillId = newSkill.skill_id
+            skillId = newSkill.skill_id
+            success = true
+          } else if (response.data && response.data.data) {
+            const newSkill = response.data.data
+            this.skillData = {
+              id: newSkill.skill_id,
+              name: newSkill.name,
+              description: newSkill.description,
+              status: newSkill.status ? 'online' : 'offline',
+              categories: newSkill.tags || [],
+              skill_id: newSkill.skill_id,
+              internal_id: newSkill.id,
+              created_at: newSkill.created_at,
+              version: newSkill.version
+            }
+            this.currentSkillId = newSkill.skill_id
+            skillId = newSkill.skill_id
+            success = true
+          } else if (response.data && response.data.skill_id) {
+            // 兼容不同的响应格式
+            const newSkill = response.data
+            this.skillData = {
+              id: newSkill.skill_id,
+              name: newSkill.name,
+              description: newSkill.description,
+              status: newSkill.status ? 'online' : 'offline',
+              categories: newSkill.tags || [],
+              skill_id: newSkill.skill_id,
+              internal_id: newSkill.id,
+              created_at: newSkill.created_at,
+              version: newSkill.version
+            }
+            this.currentSkillId = newSkill.skill_id
+            skillId = newSkill.skill_id
+            success = true
+          } else {
+            // 如果响应状态码成功，但数据结构不符合预期，也认为是成功的
+            if (response.status === 200 || response.status === 201) {
+              console.log('创建技能成功，但响应数据结构不符合预期，尝试使用响应数据')
+              // 尝试直接使用响应数据
+              if (response.data && response.data.id) {
+                this.currentSkillId = response.data.id
+                skillId = response.data.id
+                success = true
+              }
+            }
+          }
+        } else {
+          // 更新现有技能
+          skillId = this.skillData.skill_id || this.currentSkillId
+          console.log('更新现有技能:', skillId, skillData)
+          const response = await VisionAIService.reviewSkillAPI.updateReviewSkill(skillId, skillData)
+          
+          console.log('更新技能响应:', response.data, 'status:', response.status)
+          
+          // 检查响应是否成功
+          if (response.status === 200 || response.status === 201) {
+            // 重新加载技能数据
+            await this.loadSkillData(skillId)
+            success = true
+          } else {
+            console.error('更新技能失败，状态码:', response.status)
+          }
+        }
+        
+        // 发布技能（如果需要上线）
+        if (success && (shouldPublish || this.skillForm.status === 'online') && skillId) {
+          console.log('准备发布技能:', skillId, '发布标记:', shouldPublish, '表单状态:', this.skillForm.status)
+          try {
+            const publishResponse = await VisionAIService.reviewSkillAPI.publishReviewSkill(skillId)
+            console.log('发布技能响应:', publishResponse.data)
+            
+            // 检查发布是否成功
+            if (publishResponse.data && publishResponse.data.success) {
+              this.skillData.status = 'online'
+              console.log('技能发布成功，状态已更新为online')
+            } else {
+              console.error('技能发布失败:', publishResponse.data)
+              throw new Error('技能发布失败')
+            }
+          } catch (publishError) {
+            console.error('发布技能时出错:', publishError)
+            throw publishError
+          }
+        }
+        
         if (success) {
-          this.skillData = { ...updatedSkill }
+          console.log('技能数据保存成功，skillId:', skillId)
+        } else {
+          console.log('技能数据保存失败')
         }
+        return success
+      } catch (error) {
+        console.error('保存技能数据失败:', error)
+        
+        // 提供更详细的错误信息
+        let errorMessage = '保存失败'
+        if (error.response && error.response.data && error.response.data.detail) {
+          errorMessage = error.response.data.detail
+        } else if (error.response && error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+        
+        this.$message.error(errorMessage)
+        return false
       }
-      
-      // 强制更新视图
-      if (success) {
-        this.$nextTick(() => {
-          this.$forceUpdate()
-        })
-      } else {
-        this.$message.error('保存失败，请重试')
-      }
-      
-      return success
     },
 
     validateForm() {
@@ -681,7 +813,7 @@ export default {
       }
     },
 
-    startAnalysis() {
+    async startAnalysis() {
       if (!this.canAnalyze) {
         this.$message.warning('请先填写完整信息并上传验证文件')
         return
@@ -689,12 +821,92 @@ export default {
 
       this.analyzing = true
       
-      // 模拟分析过程
-      setTimeout(() => {
-        this.analyzing = false
-        this.analysisResult = '分析完成：检测到明火区域，置信度95.2%，位置坐标(125, 89)，建议立即采取安全措施。'
-        this.$message.success('分析完成')
-      }, 3000)
+      try {
+        let imageFile = null
+        
+        if (this.fileList.length > 0) {
+          const fileItem = this.fileList[0]
+          
+          if (fileItem.raw) {
+            // 用户上传的文件，直接使用raw属性
+            imageFile = fileItem.raw
+          } else if (fileItem.url) {
+            // 示例图片，需要通过URL获取文件数据
+            try {
+              const response = await fetch(fileItem.url)
+              if (!response.ok) {
+                throw new Error(`无法加载示例图片: ${response.status}`)
+              }
+              const blob = await response.blob()
+              // 创建File对象
+              imageFile = new File([blob], fileItem.name, { type: blob.type || 'image/jpeg' })
+            } catch (fetchError) {
+              console.error('获取示例图片失败:', fetchError)
+              throw new Error('无法加载示例图片，请重新选择图片')
+            }
+          }
+        }
+        
+        if (!imageFile) {
+          throw new Error('未找到图片文件，请重新上传')
+        }
+        
+        // 获取用户提示词（使用技能描述作为提示词）
+        const userPrompt = this.skillForm.description.trim()
+        if (!userPrompt) {
+          throw new Error('请先填写技能描述')
+        }
+        
+        console.log('开始分析图片:', {
+          fileName: imageFile.name,
+          fileSize: imageFile.size,
+          fileType: imageFile.type,
+          userPrompt: userPrompt
+        })
+        
+        // 调用预览测试API
+        const response = await VisionAIService.reviewSkillAPI.previewTestReviewSkill(imageFile, userPrompt)
+        
+        if (response.data && response.data.success) {
+          const testData = response.data.data || response.data
+          
+          // 格式化显示结果
+          const reviewResult = testData.review_result || '无复判结果'
+          const analysisResult = testData.analysis_result || {}
+          
+          // 构建显示内容
+          let displayText = `复判结果: ${reviewResult}\n`
+          
+          // 格式化分析结果
+          if (typeof analysisResult === 'object' && analysisResult !== null) {
+            displayText += '详细分析:\n'
+            // 遍历所有键值对
+            Object.keys(analysisResult).forEach(key => {
+              const value = analysisResult[key]
+              if (typeof value === 'boolean') {
+                displayText += `• ${key}: ${value}\n`
+              } else {
+                displayText += `• ${key}: ${value}\n`
+              }
+            })
+          } else {
+            displayText += `详细分析: ${analysisResult}`
+          }
+          
+          this.analysisResult = displayText
+          this.$message.success('AI分析完成')
+          
+        } else {
+          throw new Error(response.data && response.data.message ? response.data.message : '分析失败')
+        }
+        
+      } catch (error) {
+        console.error('预览测试失败:', error)
+        this.analysisResult = `分析失败：${error.message || '未知错误'}`
+                this.$message.error('分析失败: ' + (error.message || '未知错误'))
+        } finally {
+          this.analyzing = false
+        }
     },
 
     showDescriptionExample() {
@@ -1572,9 +1784,8 @@ export default {
   border-radius: 6px;
   background: #fafafa;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px 16px 16px;
+  flex-direction: column;
+  padding: 16px;
   margin-top: 8px;
   overflow-y: auto;
 }
@@ -1583,7 +1794,9 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
+  flex: 1;
 }
 
 .empty-icon {
@@ -1601,6 +1814,13 @@ export default {
   font-size: 14px;
   color: #303133;
   line-height: 1.6;
+  white-space: pre-wrap;
+  text-align: left;
+  padding: 12px 16px;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+  font-family: 'Microsoft YaHei', 'PingFang SC', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* 技能描述示例滑出窗口样式 */
