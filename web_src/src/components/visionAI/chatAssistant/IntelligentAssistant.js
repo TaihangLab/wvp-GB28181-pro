@@ -64,6 +64,8 @@ export default {
         apiError: null, // API错误信息
         retryCount: 0, // 重试次数
         maxRetries: 3, // 最大重试次数
+        isGenerating: false, // 是否正在生成回复（可以被用户停止）
+        userStoppedGeneration: false, // 用户是否手动停止了生成
       }
     },
         methods: {
@@ -207,18 +209,26 @@ export default {
             this.chatHistories[chatIndex].messages = [...this.messages];
             this.chatHistories[chatIndex].last_message_time = new Date().toISOString();
             
-            // 根据第一条用户消息生成标题
-            const firstUserMessage = this.messages.find(msg => msg.type === 'user');
-            if (firstUserMessage) {
-              const title = firstUserMessage.content.substring(0, 30) + (firstUserMessage.content.length > 30 ? '...' : '');
-              this.chatHistories[chatIndex].title = title;
-            }
+            // 不再自动生成标题，由后端负责
+            // 前端只保持现有标题不变
           }
         }
         console.log('本地会话状态已更新');
       },
       async loadChatHistory(chatId) {
         try {
+          // 如果正在加载的就是当前会话且正在生成中，不要覆盖
+          if (chatId === this.currentChatId && this.isGenerating) {
+            console.log('当前会话正在生成中，跳过加载历史消息');
+            return;
+          }
+          
+          // 如果当前正在生成且要切换到不同会话，先停止并保存当前生成
+          if (this.isGenerating && chatId !== this.currentChatId) {
+            console.log('正在生成时切换会话，先停止当前生成');
+            await this.stopGenerationBeforeSwitch();
+          }
+          
           // 先保存当前聊天
           this.saveCurrentChat();
           
@@ -252,7 +262,8 @@ export default {
             content: msg.content,
             time: this.formatTimestamp(msg.timestamp || new Date().toISOString()),
             displayContent: msg.content,
-            isTyping: false
+            isTyping: false,
+            message_id: msg.message_id || this.generateMessageId() // 保持消息ID一致性
           }));
           
           this.currentChatId = chatId;
@@ -347,8 +358,24 @@ export default {
         if (!this.currentChatId) {
           return '新的对话';
         }
-        const currentChat = this.chatHistories.find(c => c.id === this.currentChatId);
+        // 使用 conversation_id 字段进行匹配，确保一致性
+        const currentChat = this.chatHistories.find(c => c.conversation_id === this.currentChatId);
         return currentChat ? currentChat.title : '新的对话';
+      },
+      
+      /**
+       * 更新当前会话的选中状态
+       */
+      updateCurrentChatSelection() {
+        if (this.currentChatId && this.chatHistories.length > 0) {
+          // 根据 conversation_id 查找当前会话的索引
+          this.currentChatIndex = this.chatHistories.findIndex(c => c.conversation_id === this.currentChatId);
+          console.log('更新当前会话选中状态:', {
+            currentChatId: this.currentChatId,
+            currentChatIndex: this.currentChatIndex,
+            totalChats: this.chatHistories.length
+          });
+        }
       },
       getExitAnimationStyle() {
         if (!this.isExitingFullScreen) {
@@ -453,7 +480,7 @@ export default {
         this.startHideTimer();
       },
       async sendMessage() {
-        if (!this.inputMessage.trim() || this.isTypingResponse || this.isConnecting) return;
+        if (!this.inputMessage.trim() || this.isTypingResponse || this.isConnecting || this.isGenerating) return;
         
         // 用户开始发送消息时，关闭欢迎提示
         if (this.showWelcomeMessage) {
@@ -463,7 +490,8 @@ export default {
         const userMessage = {
           type: 'user',
           content: this.inputMessage,
-          time: this.getCurrentTime()
+          time: this.getCurrentTime(),
+          message_id: this.generateMessageId() // 添加消息ID
         };
         
         this.messages.push(userMessage);
@@ -474,6 +502,8 @@ export default {
         // 显示打字指示器
         this.isTypingResponse = true;
         this.isConnecting = true;
+        this.isGenerating = false; // 初始化，连接成功后会设置为true
+        this.userStoppedGeneration = false; // 重置用户停止标志
         this.apiError = null;
         
         const typingMessage = {
@@ -516,7 +546,8 @@ export default {
             content: '',
             time: this.getCurrentTime(),
             displayContent: '',
-            isTyping: false
+            isTyping: false,
+            message_id: this.generateMessageId()
           };
           
           // 移除打字指示器
@@ -524,17 +555,27 @@ export default {
           this.messages.push(assistantMessage);
           this.isTypingResponse = false;
           this.isConnecting = false;
+          this.isGenerating = true; // 开始生成，用户可以停止
           this.scrollToBottom();
           
           // 创建流式连接
           this.currentEventSource = await VisionAIService.chatAssistantAPI.createChatStream(
             chatData,
             // onMessage回调 - 接收流式数据
-            (chunk, fullResponse, conversationId) => {
-              // 如果获取到新的会话ID，更新当前会话ID
+            async (chunk, fullResponse, conversationId) => {
+              // 如果获取到新的会话ID，立即更新UI状态
               if (conversationId && !this.currentChatId) {
                 this.currentChatId = conversationId;
                 console.log('设置新的会话ID:', this.currentChatId);
+                
+                // 后端现在自动保存消息，前端不需要再手动保存
+                console.log('后端已自动保存消息，前端跳过手动保存');
+                
+                // 立即加载会话列表以显示新会话
+                await this.loadChatConversations();
+                
+                // 设置当前会话为选中状态
+                this.updateCurrentChatSelection();
               }
               
               assistantMessage.displayContent = fullResponse;
@@ -557,24 +598,34 @@ export default {
               assistantMessage.displayContent = fullResponse;
               this.isTypingResponse = false;
               this.isConnecting = false;
+              this.isGenerating = false; // 生成完成
               this.currentEventSource = null;
               this.retryCount = 0;
+              
+              // 后端现在自动保存消息，前端不需要再手动保存
+              console.log('后端已自动保存用户消息和助手消息');
               
               // 保存当前聊天（主要是本地状态管理）
               this.saveCurrentChat();
               this.scrollToBottom();
               
-              // 重新加载会话列表以显示新会话
+              // 如果还没有会话ID，这里可能是第一次获取
+              if (!this.currentChatId && conversationId) {
+                this.currentChatId = conversationId;
+                console.log('onComplete中设置会话ID:', this.currentChatId);
+              }
+              
+              // 确保会话列表是最新的（可能在onMessage中已经加载过了）
               await this.loadChatConversations();
               
-              // 如果是新对话的第一条消息，自动生成标题
-              if (this.messages.length === 2) { // 用户消息 + 助手回复
+              // 如果是新对话（只有2条消息：用户+助手），自动生成标题
+              if (this.messages.length === 2 && this.currentChatId) {
                 try {
                   const response = await VisionAIService.chatAssistantAPI.autoGenerateTitle(this.currentChatId);
-                  if (response.data && response.data.success) {
+                  if (response.data && (response.data.success || response.data.code === 0)) {
                     // 再次更新对话列表以显示新标题
                     await this.loadChatConversations();
-                    console.log('自动生成标题成功:', response.data.data.title);
+                    console.log('自动生成标题成功');
                   }
                 } catch (error) {
                   console.warn('自动生成标题失败:', error);
@@ -604,6 +655,7 @@ export default {
       handleChatError(error, assistantMessage = null) {
         this.isTypingResponse = false;
         this.isConnecting = false;
+        this.isGenerating = false; // 出错时停止生成
         this.apiError = error;
         
         // 关闭当前连接
@@ -683,12 +735,189 @@ export default {
         }
         this.isTypingResponse = false;
         this.isConnecting = false;
+        this.isGenerating = false;
         
         // 移除打字指示器
         const lastMessage = this.messages[this.messages.length - 1];
         if (lastMessage && lastMessage.isTyping) {
           this.messages.pop();
         }
+      },
+
+      /**
+       * 用户手动停止生成（类似ChatGPT的停止按钮）
+       */
+      stopGeneration() {
+        console.log('用户手动停止生成');
+        this.userStoppedGeneration = true;
+        this.stopCurrentChat();
+        
+        // 在当前消息末尾添加停止标识
+        const lastMessage = this.messages[this.messages.length - 1];
+        if (lastMessage && lastMessage.type === 'assistant' && !lastMessage.isTyping) {
+          // 如果回复内容不为空，保留已生成的内容
+          if (lastMessage.content && lastMessage.content.trim()) {
+            lastMessage.content += '\n\n[已停止生成]';
+            lastMessage.displayContent = lastMessage.content;
+          } else {
+            // 如果没有内容，显示停止消息
+            lastMessage.content = '[生成已停止]';
+            lastMessage.displayContent = lastMessage.content;
+          }
+        }
+        
+        // 保存当前会话状态
+        this.saveCurrentChat();
+      },
+      
+      /**
+       * 用户手动停止生成（模仿Cursor的停止机制）
+       */
+      async stopGeneration() {
+        console.log('用户手动停止生成');
+        this.userStoppedGeneration = true;
+        
+        // 停止当前聊天连接
+        this.stopCurrentChat();
+        
+        // 获取当前助手消息的内容和ID
+        const lastMessage = this.messages[this.messages.length - 1];
+        let currentContent = '';
+        let messageId = '';
+        
+        if (lastMessage && lastMessage.type === 'assistant') {
+          currentContent = lastMessage.displayContent || lastMessage.content || '';
+          messageId = lastMessage.message_id || this.generateMessageId();
+          
+          // 立即更新前端显示
+          if (!currentContent) {
+            lastMessage.displayContent = '[生成已停止]';
+            lastMessage.content = '[生成已停止]';
+          } else {
+            // 添加停止标识
+            if (!currentContent.includes('[已停止生成]')) {
+              lastMessage.displayContent = currentContent + '\n\n[已停止生成]';
+            }
+          }
+          lastMessage.isTyping = false;
+        }
+        
+        // 调用Cursor风格的停止API
+        if (this.currentChatId && messageId) {
+          try {
+            console.log('调用停止API，保存部分内容:', {
+              conversationId: this.currentChatId,
+              messageId: messageId,
+              contentLength: currentContent.length
+            });
+            
+            const response = await VisionAIService.chatAssistantAPI.stopGeneration(
+              this.currentChatId,
+              messageId,
+              currentContent
+            );
+            
+            console.log('停止API响应:', response.data);
+            
+            if (response.data && (response.data.success || response.data.code === 0)) {
+              console.log('停止生成并保存成功');
+              
+              // 重新加载会话内容以获取最新状态
+              await this.loadChatHistory(this.currentChatId);
+              await this.loadChatConversations();
+              
+              // 如果是新对话的第一轮，尝试生成标题
+              if (this.messages.length === 2) {
+                try {
+                  const titleResponse = await VisionAIService.chatAssistantAPI.autoGenerateTitle(this.currentChatId);
+                  if (titleResponse.data && (titleResponse.data.success || titleResponse.data.code === 0)) {
+                    await this.loadChatConversations();
+                    console.log('停止后自动生成标题成功');
+                  }
+                } catch (error) {
+                  console.warn('停止后自动生成标题失败:', error);
+                }
+              }
+            } else {
+              console.warn('停止API调用失败:', response.data);
+            }
+            
+          } catch (error) {
+            console.error('调用停止API失败:', error);
+            // 即使API失败，也保持前端状态正常
+          }
+        }
+        
+        // 保存当前会话状态（本地）
+        this.saveCurrentChat();
+        this.scrollToBottom();
+        console.log('生成已停止，用户可以继续输入');
+      },
+
+      /**
+       * 切换会话前停止当前生成（不更新UI显示）
+       */
+      async stopGenerationBeforeSwitch() {
+        console.log('切换会话前停止生成');
+        this.userStoppedGeneration = true;
+        
+        // 停止当前聊天连接
+        this.stopCurrentChat();
+        
+        // 获取当前助手消息的内容和ID，但不更新UI显示
+        const lastMessage = this.messages[this.messages.length - 1];
+        let currentContent = '';
+        let messageId = '';
+        
+        if (lastMessage && lastMessage.type === 'assistant') {
+          currentContent = lastMessage.displayContent || lastMessage.content || '';
+          messageId = lastMessage.message_id || this.generateMessageId();
+        }
+        
+        // 调用停止API保存部分内容
+        if (this.currentChatId && messageId) {
+          try {
+            console.log('切换前调用停止API，保存部分内容:', {
+              conversationId: this.currentChatId,
+              messageId: messageId,
+              contentLength: currentContent.length
+            });
+            
+            const response = await VisionAIService.chatAssistantAPI.stopGeneration(
+              this.currentChatId,
+              messageId,
+              currentContent
+            );
+            
+            if (response.data && (response.data.success || response.data.code === 0)) {
+              console.log('切换前停止生成并保存成功');
+              
+              // 更新会话列表（不重新加载当前会话，因为要切换了）
+              await this.loadChatConversations();
+              
+              // 如果是新对话的第一轮，尝试生成标题
+              if (this.messages.length === 2) {
+                try {
+                  const titleResponse = await VisionAIService.chatAssistantAPI.autoGenerateTitle(this.currentChatId);
+                  if (titleResponse.data && (titleResponse.data.success || titleResponse.data.code === 0)) {
+                    await this.loadChatConversations();
+                    console.log('切换前自动生成标题成功');
+                  }
+                } catch (error) {
+                  console.warn('切换前自动生成标题失败:', error);
+                }
+              }
+            } else {
+              console.warn('切换前停止API调用失败:', response.data);
+            }
+            
+          } catch (error) {
+            console.error('切换前调用停止API失败:', error);
+            // 即使API失败，也继续切换流程
+          }
+        }
+        
+        console.log('切换前停止完成，准备切换会话');
       },
       typeWriter(message, text) {
         let index = 0;
@@ -729,6 +958,13 @@ export default {
       getCurrentTime() {
         const now = new Date();
         return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      },
+      
+      /**
+       * 生成消息ID
+       */
+      generateMessageId() {
+        return 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       },
       scrollToBottom() {
         this.$nextTick(() => {
@@ -1096,7 +1332,7 @@ export default {
       
       // 编辑聊天标题
       editChatTitle() {
-        const chat = this.chatHistories.find(c => c.id === this.selectedChatId);
+        const chat = this.chatHistories.find(c => c.conversation_id === this.selectedChatId);
         if (chat) {
           // 确保prompt对话框z-index正确
           this.$nextTick(() => {
@@ -1167,10 +1403,10 @@ export default {
         console.log('selectedChatId:', this.selectedChatId);
         console.log('chatHistories:', this.chatHistories);
         
-        const chat = this.chatHistories.find(c => c.id === this.selectedChatId);
+        const chat = this.chatHistories.find(c => c.conversation_id === this.selectedChatId);
         console.log('找到的聊天记录:', chat);
         
-        this.selectedGroupForMove = chat ? chat.groupId : null;
+        this.selectedGroupForMove = chat ? chat.group_id : null;
         
         console.log('显示移动到分组对话框，当前分组ID：', this.selectedGroupForMove);
         console.log('可用分组数量：', this.userGroups.length);
@@ -1342,6 +1578,9 @@ export default {
           
           // 强制触发Vue重新渲染
           this.$forceUpdate();
+          
+          // 更新当前会话的选中状态
+          this.updateCurrentChatSelection();
           
         } catch (error) {
           console.error('加载会话列表失败:', error);
