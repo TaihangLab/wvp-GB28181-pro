@@ -2285,6 +2285,41 @@ const chatAssistantAPI = {
     const formData = new FormData();
     formData.append('title', title);
     return visionAIAxios.put(`/api/v1/chat/conversations/${conversationId}/title`, formData);
+  },
+
+  /**
+   * 保存消息到会话（用于手动停止等场景）
+   * @param {string} conversationId - 会话ID
+   * @param {string} role - 消息角色：user、assistant、system
+   * @param {string} content - 消息内容
+   * @param {string} [messageId] - 消息ID（可选）
+   * @returns {Promise}
+   */
+  saveMessageToConversation(conversationId, role, content, messageId = null) {
+    const formData = new FormData();
+    formData.append('role', role);
+    formData.append('content', content);
+    if (messageId) {
+      formData.append('message_id', messageId);
+    }
+    
+    return visionAIAxios.post(`/api/v1/chat/conversations/${conversationId}/save-message`, formData);
+  },
+
+  /**
+   * 停止生成并保存部分内容（模仿Cursor的停止机制）
+   * @param {string} conversationId - 会话ID
+   * @param {string} messageId - 助手消息ID
+   * @param {string} partialContent - 已生成的部分内容
+   * @returns {Promise}
+   */
+  stopGeneration(conversationId, messageId, partialContent = '') {
+    console.log('停止生成并保存:', conversationId, messageId, partialContent.length);
+    const formData = new FormData();
+    formData.append('message_id', messageId);
+    formData.append('partial_content', partialContent);
+    
+    return visionAIAxios.post(`/api/v1/chat/conversations/${conversationId}/stop-generation`, formData);
   }
 };
 

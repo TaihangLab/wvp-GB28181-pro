@@ -210,9 +210,21 @@
             placeholder="请输入你的问题..."
             @keyup.enter.native="sendMessage"
             class="message-input"
+            :disabled="isGenerating"
           >
             <template slot="append">
+              <!-- 停止按钮（正在生成时显示） -->
               <el-button 
+                v-if="isGenerating"
+                @click="stopGeneration" 
+                class="stop-button"
+                type="danger"
+              >
+                <i class="el-icon-video-pause"></i>
+              </el-button>
+              <!-- 发送按钮（默认状态） -->
+              <el-button 
+                v-else
                 @click="sendMessage" 
                 :disabled="!inputMessage.trim()"
                 class="send-button"
@@ -300,19 +312,19 @@
             <div class="chats-list">
               <div 
                 v-for="chat in getFilteredChats()" 
-                :key="chat.id"
+                :key="chat.conversation_id"
                 class="chat-history-item"
-                :class="{ 'active': chat.id === currentChatId }"
-                @click="loadChatHistory(chat.id)"
-                @mouseenter="showChatActions(chat.id)"
+                :class="{ 'active': chat.conversation_id === currentChatId }"
+                @click="loadChatHistory(chat.conversation_id)"
+                @mouseenter="showChatActions(chat.conversation_id)"
                 @mouseleave="hideChatActions"
               >
                 <div class="chat-info">
                   <div class="chat-title">{{ chat.title }}</div>
                   <div class="chat-time">{{ formatChatTime(chat.updatedAt) }}</div>
                 </div>
-                <div class="chat-actions" v-show="hoveredChatId === chat.id">
-                  <div class="chat-more-btn" @click.stop="showChatMenu(chat.id, $event)">
+                <div class="chat-actions" v-show="hoveredChatId === chat.conversation_id">
+                  <div class="chat-more-btn" @click.stop="showChatMenu(chat.conversation_id, $event)">
                     <i class="el-icon-more"></i>
                   </div>
                 </div>
@@ -446,14 +458,26 @@
                 v-model="inputMessage"
                 placeholder="有什么我可以帮您的吗？"
                 @keyup.enter.native="sendMessage"
-    
                 class="fullscreen-message-input"
                 type="textarea"
                 :autosize="{ minRows: 1, maxRows: 4 }"
                 resize="none"
+                :disabled="isGenerating"
               >
               </el-input>
+              <!-- 停止按钮（正在生成时显示） -->
               <el-button 
+                v-if="isGenerating"
+                @click="stopGeneration" 
+                class="fullscreen-stop-button"
+                circle
+                type="danger"
+              >
+                <i class="el-icon-video-pause"></i>
+              </el-button>
+              <!-- 发送按钮（默认状态） -->
+              <el-button 
+                v-else
                 @click="sendMessage" 
                 :disabled="!inputMessage.trim()"
                 class="fullscreen-send-button"

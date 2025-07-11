@@ -702,6 +702,18 @@
     color: #9ca3af;
   }
   
+  /* 禁用状态的输入框样式 */
+  .message-input.is-disabled >>> .el-input__inner {
+    background-color: #f7fafc !important;
+    color: #a0aec0 !important;
+    cursor: not-allowed !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  .message-input.is-disabled >>> .el-input__inner::placeholder {
+    color: #cbd5e0 !important;
+  }
+  
   .send-button {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
@@ -719,6 +731,20 @@
   .send-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* 停止按钮样式 */
+  .stop-button {
+    background: #f56c6c !important;
+    border-color: #f56c6c !important;
+    color: white !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .stop-button:hover {
+    background: #f23030 !important;
+    border-color: #f23030 !important;
+    transform: scale(1.05);
   }
   
   /* 全屏聊天样式 - 现代化设计 */
@@ -1285,6 +1311,8 @@
     border-color: rgba(102, 126, 234, 0.2);
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
   }
+
+
   
   .chat-info {
     flex: 1;
@@ -1757,6 +1785,18 @@
     color: #9ca3af;
     font-size: 16px;
   }
+
+  /* 全屏模式禁用状态的输入框样式 */
+  .fullscreen-message-input.is-disabled >>> .el-textarea__inner {
+    background-color: #f7fafc !important;
+    color: #a0aec0 !important;
+    cursor: not-allowed !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  .fullscreen-message-input.is-disabled >>> .el-textarea__inner::placeholder {
+    color: #cbd5e0 !important;
+  }
   
   /* 确保点击容器时聚焦到输入框 */
   .fullscreen-input-wrapper:not(:focus-within) {
@@ -1797,6 +1837,28 @@
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+  }
+
+  /* 全屏停止按钮样式 */
+  .fullscreen-stop-button {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: #f56c6c !important;
+    border-color: #f56c6c !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(245, 108, 108, 0.25);
+    transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .fullscreen-stop-button:hover {
+    background: #f23030 !important;
+    border-color: #f23030 !important;
+    transform: translateY(-50%) scale(1.05);
+    box-shadow: 0 4px 16px rgba(242, 48, 48, 0.35);
   }
   
   .fullscreen-send-button:active:not(:disabled) {
