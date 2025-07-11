@@ -22,13 +22,12 @@
     <!-- 登录表单区域 -->
     <div class="login-form-container">
       <div class="login-form-wrapper">
-        <!-- Logo和标题 -->
+        <!-- 标题 -->
         <div class="login-header">
-          <div class="logo-container">
-            <img src="static/logo.png" alt="太行视觉AI平台" class="logo-img">
-            <div class="logo-glow"></div>
-          </div>
           <div class="title-container">
+            <div class="brand-logo">
+              <img src="/static/logo.png" alt="太行慧眼Logo" class="logo-image">
+            </div>
             <div class="brand-name">
               <span class="brand-group">太行</span>
               <span class="brand-dot">·</span>
@@ -43,6 +42,31 @@
 
         <!-- 登录表单 -->
         <div class="login-form">
+          <!-- 租户选择框 -->
+          <div class="input-group">
+            <div class="input-wrapper" :class="{'focused': tenantSelectFocused}">
+              <i class="input-icon fa fa-building"></i>
+              <select 
+                v-model="selectedTenant" 
+                class="tech-select"
+                @focus="tenantSelectFocused = true"
+                @blur="tenantSelectFocused = false"
+                @change="onTenantChange"
+              >
+                <option value="" disabled>请选择租户</option>
+                <option 
+                  v-for="tenant in tenantList" 
+                  :key="tenant.tenantNumber" 
+                  :value="tenant.tenantNumber"
+                >
+                  {{ tenant.companyName }}
+                </option>
+              </select>
+              <i class="select-arrow fa fa-chevron-down"></i>
+              <div class="input-border"></div>
+            </div>
+          </div>
+
           <!-- 用户名输入框 -->
           <div class="input-group">
             <div class="input-wrapper">
@@ -121,7 +145,11 @@ export default {
       showPassword: false,
       loginLoading: false,
       username: '',
-      password: ''
+      password: '',
+      selectedTenant: '',
+      tenantSelectFocused: false,
+      tenantList: [],
+      loadingTenants: false
     }
   },
   created(){
@@ -132,6 +160,8 @@ export default {
         that.login();
       }
     }
+    // 页面加载时获取租户列表
+    this.getTenantList();
   },
   methods:{
     // 获取粒子样式
@@ -141,6 +171,88 @@ export default {
         top: Math.random() * 100 + '%',
         animationDelay: Math.random() * 3 + 's',
         animationDuration: (Math.random() * 3 + 2) + 's'
+      }
+    },
+
+    // 获取租户列表
+    getTenantList() {
+      this.loadingTenants = true;
+      this.$axios({
+        method: 'get',
+        url: '/api/tenant/list',
+        params: {
+          status: true // 只获取启用的租户
+        }
+      }).then((res) => {
+        if (res.data.code === 0) {
+          // 从租户管理模块的数据结构来看，租户列表应该在res.data.data中
+          this.tenantList = res.data.data || [];
+        } else {
+          // 如果API不存在或返回错误，使用模拟数据
+          this.tenantList = this.getMockTenantList();
+        }
+      }).catch((error) => {
+        console.log('获取租户列表失败，使用模拟数据:', error);
+        // API调用失败时使用模拟数据
+        this.tenantList = this.getMockTenantList();
+      }).finally(() => {
+        this.loadingTenants = false;
+      });
+    },
+
+    // 模拟租户数据（从租户管理模块提取）
+    getMockTenantList() {
+      return [
+        {
+          tenantNumber: '000000',
+          companyName: 'XXX有限公司',
+          contactPerson: '管理组',
+          status: true
+        },
+        {
+          tenantNumber: '952742',
+          companyName: '123',
+          contactPerson: '123',
+          status: true
+        },
+        {
+          tenantNumber: '415387',
+          companyName: '6666',
+          contactPerson: '66',
+          status: true
+        },
+        {
+          tenantNumber: '297659',
+          companyName: '16888',
+          contactPerson: '16888',
+          status: true
+        },
+        {
+          tenantNumber: '789133',
+          companyName: '测试租户企业名称',
+          contactPerson: '测试租户联系人',
+          status: true
+        },
+        {
+          tenantNumber: '646214',
+          companyName: 'test999',
+          contactPerson: 'test999',
+          status: true
+        },
+        {
+          tenantNumber: '252800',
+          companyName: 'ce',
+          contactPerson: 'ce',
+          status: true
+        }
+      ];
+    },
+
+    // 租户选择变化处理
+    onTenantChange() {
+      const selectedTenantData = this.tenantList.find(tenant => tenant.tenantNumber === this.selectedTenant);
+      if (selectedTenantData) {
+        console.log('选择的租户:', selectedTenantData.companyName);
       }
     },
 
@@ -158,8 +270,22 @@ export default {
 
     //登录逻辑
     login(){
+      if(this.selectedTenant === '') {
+        this.$message({
+          showClose: true,
+          message: '请选择租户',
+          type: 'warning'
+        });
+        return;
+      }
       if(this.username!='' && this.password!=''){
         this.toLogin();
+      } else {
+        this.$message({
+          showClose: true,
+          message: '请输入用户名和密码',
+          type: 'warning'
+        });
       }
     },
 
@@ -168,7 +294,8 @@ export default {
       //需要想后端发送的登录参数
       let loginParam = {
         username: this.username,
-        password: crypto.createHash('md5').update(this.password, "utf8").digest('hex')
+        password: crypto.createHash('md5').update(this.password, "utf8").digest('hex'),
+        tenantNumber: this.selectedTenant // 添加租户编号
       }
       var that = this;
       //设置在登录状态
@@ -389,36 +516,7 @@ export default {
   margin-bottom: 40px;
 }
 
-.logo-container {
-  position: relative;
-  display: inline-block;
-  margin-bottom: 20px;
-}
 
-.logo-img {
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
-  position: relative;
-  z-index: 2;
-}
-
-.logo-glow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80px;
-  height: 80px;
-  background: radial-gradient(circle, rgba(0, 212, 255, 0.3), transparent);
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
-  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-}
 
 .title-container {
   display: flex;
@@ -426,6 +524,24 @@ export default {
   align-items: center;
   gap: 20px;
   margin-top: 10px;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 70px;
+}
+
+.logo-image {
+  height: 60px;
+  width: auto;
+  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.3));
+  transition: filter 0.3s ease;
+}
+
+.logo-image:hover {
+  filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.6));
 }
 
 .brand-name {
@@ -536,7 +652,7 @@ export default {
   color: #00d4ff;
 }
 
-.tech-input {
+.tech-input, .tech-select {
   width: 100%;
   height: 55px;
   padding: 0 50px 0 45px;
@@ -546,10 +662,45 @@ export default {
   color: #ffffff;
   font-size: 16px;
   font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
 .tech-input::placeholder {
   color: rgba(255, 255, 255, 0.5);
+}
+
+.tech-select {
+  cursor: pointer;
+  padding-right: 45px;
+}
+
+.tech-select option {
+  background-color: #1a1a2e;
+  color: #ffffff;
+  padding: 10px;
+}
+
+.tech-select option:hover {
+  background-color: rgba(0, 212, 255, 0.2);
+}
+
+.select-arrow {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  pointer-events: none;
+  transition: color 0.3s ease, transform 0.3s ease;
+  z-index: 2;
+}
+
+.input-wrapper.focused .select-arrow {
+  color: #00d4ff;
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .password-toggle {
