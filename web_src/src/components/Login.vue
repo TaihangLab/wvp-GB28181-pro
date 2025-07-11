@@ -25,10 +25,8 @@
         <!-- 标题 -->
         <div class="login-header">
           <div class="title-container">
-            <div class="brand-logo">
-              <img src="/static/logo.png" alt="太行慧眼Logo" class="logo-image">
-            </div>
             <div class="brand-name">
+              <img src="/static/logo.png" alt="太行logo" class="brand-logo">
               <span class="brand-group">太行</span>
               <span class="brand-dot">·</span>
               <span class="brand-group">慧眼</span>
@@ -526,24 +524,6 @@ export default {
   margin-top: 10px;
 }
 
-.brand-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 70px;
-}
-
-.logo-image {
-  height: 60px;
-  width: auto;
-  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.3));
-  transition: filter 0.3s ease;
-}
-
-.logo-image:hover {
-  filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.6));
-}
-
 .brand-name {
   display: flex;
   flex-direction: row;
@@ -557,6 +537,20 @@ export default {
   padding-right: 12px;
   height: 70px;
   gap: 4px;
+}
+
+.brand-logo {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  margin-right: 8px;
+  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.5));
+  transition: all 0.3s ease;
+}
+
+.brand-logo:hover {
+  filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.8));
+  transform: scale(1.05);
 }
 
 .brand-name .brand-group {
@@ -840,6 +834,12 @@ export default {
     width: 100%;
     justify-content: center;
     gap: 6px;
+  }
+  
+  .brand-logo {
+    width: 40px;
+    height: 40px;
+    margin-right: 6px;
   }
   
   .platform-title {
