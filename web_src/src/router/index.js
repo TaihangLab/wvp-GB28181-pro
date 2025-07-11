@@ -49,6 +49,8 @@ import edgeBox from '../components/visionAI/edgeManagement/edgeBox.vue'
 import applicationSettings from '../components/visionAI/systemManagement/applicationSettings.vue'
 import userManagement from '../components/visionAI/systemManagement/userManagement.vue'
 import roleManagement from '../components/visionAI/systemManagement/roleManagement.vue'
+import roleAssignment from '../components/visionAI/systemManagement/roleAssignment.vue'
+import userAssignment from '../components/visionAI/systemManagement/userAssignment.vue'
 import tenantManagement from '../components/visionAI/systemManagement/tenantManagement.vue'
 import departmentManagement from '../components/visionAI/systemManagement/departmentManagement.vue'
 import positionManagement from '../components/visionAI/systemManagement/positionManagement.vue'
@@ -209,6 +211,16 @@ export default new VueRouter({
           path: '/systemManage/roleManagement',
           name: 'roleManagement',
           component: roleManagement,
+        },
+              {
+        path: '/systemManage/roleAssignment/:userId/:userName',
+        name: 'RoleAssignment',
+        component: roleAssignment,
+        },
+        {
+          path: '/visionAI/systemManagement/userAssignment',
+          name: 'userAssignment',
+          component: userAssignment,
         },
         {
           path: '/systemManage/tenantManagement',

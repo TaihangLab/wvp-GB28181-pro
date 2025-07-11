@@ -87,16 +87,15 @@
           <div class="table-operations">
             <div class="left-buttons">
               <el-button type="primary" icon="el-icon-plus" size="small" @click="addUser">新增</el-button>
-              <el-button icon="el-icon-edit" size="small" @click="batchEdit">修改</el-button>
               <el-button icon="el-icon-delete" size="small" @click="batchDelete">删除</el-button>
               <el-dropdown @command="handleMoreAction" class="more-dropdown">
                 <el-button size="small">
                   更多<i class="el-icon-arrow-down el-icon--right"></i>
                 </el-button>
                 <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item command="export">导出</el-dropdown-item>
-                  <el-dropdown-item command="import">导入</el-dropdown-item>
-                  <el-dropdown-item command="resetPassword">重置密码</el-dropdown-item>
+                  <el-dropdown-item command="downloadTemplate">下载模板</el-dropdown-item>
+                  <el-dropdown-item command="importData">导入数据</el-dropdown-item>
+                  <el-dropdown-item command="exportData">导出数据</el-dropdown-item>
                 </el-dropdown-menu>
               </el-dropdown>
             </div>
@@ -119,6 +118,11 @@
             <el-table-column prop="userNickname" label="用户昵称" min-width="150" align="center"></el-table-column>
             <el-table-column prop="department" label="部门" min-width="80" align="center"></el-table-column>
             <el-table-column prop="phoneNumber" label="手机号码" min-width="120" align="center"></el-table-column>
+            <el-table-column prop="role" label="角色" min-width="100" align="center">
+              <template slot-scope="scope">
+                <span>{{ scope.row.role === 'admin' ? '管理员' : scope.row.role === 'user' ? '普通用户' : scope.row.role === 'guest' ? '访客' : scope.row.role }}</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="status" label="状态" width="80" align="center">
               <template slot-scope="scope">
                 <el-switch
@@ -130,21 +134,13 @@
               </template>
             </el-table-column>
             <el-table-column prop="createTime" label="创建时间" min-width="140" align="center"></el-table-column>
-            <el-table-column label="操作" min-width="130" fixed="right" align="center">
+            <el-table-column label="操作" min-width="240" fixed="right" align="center">
               <template slot-scope="scope">
                 <div class="operation-buttons">
-                  <el-button type="text" class="edit-btn" @click="editUser(scope.row)" title="编辑">
-                    <i class="el-icon-edit"></i>
-                  </el-button>
-                  <el-button type="text" class="delete-btn" @click="deleteUser(scope.row)" title="删除">
-                    <i class="el-icon-delete"></i>
-                  </el-button>
-                  <el-button type="text" class="key-btn" @click="resetPassword(scope.row)" title="重置密码">
-                    <i class="el-icon-key"></i>
-                  </el-button>
-                  <el-button type="text" class="more-btn" @click="showUserMore(scope.row)" title="更多">
-                    <i class="el-icon-more"></i>
-                  </el-button>
+                  <el-button type="text" class="edit-btn" @click="editUser(scope.row)">编辑</el-button>
+                  <el-button type="text" class="delete-btn" @click="deleteUser(scope.row)">删除</el-button>
+                  <el-button type="text" class="reset-btn" @click="resetPassword(scope.row)">重置</el-button>
+                  <el-button type="text" class="assign-role-btn" @click="assignRole(scope.row)">分配角色</el-button>
                 </div>
               </template>
             </el-table-column>
@@ -161,7 +157,7 @@
               @size-change="handleSizeChange"
               @current-change="handleCurrentChange">
             </el-pagination>
-          </div>
+    </div>
         </div>
       </div>
     </div>
@@ -170,54 +166,107 @@
     <el-dialog
       :title="dialogTitle"
       :visible.sync="userDialogVisible"
-      width="600px">
-      <el-form :model="userForm" :rules="userRules" ref="userForm" label-width="100px">
-        <el-form-item label="用户名称" prop="userName" required>
-          <el-input v-model="userForm.userName" placeholder="请输入用户名称"></el-input>
-        </el-form-item>
-        <el-form-item label="用户昵称" prop="userNickname">
-          <el-input v-model="userForm.userNickname" placeholder="请输入用户昵称"></el-input>
-        </el-form-item>
-        <el-form-item label="手机号码" prop="phoneNumber" required>
-          <el-input v-model="userForm.phoneNumber" placeholder="请输入手机号码"></el-input>
-        </el-form-item>
-        <el-form-item label="邮箱地址" prop="email">
-          <el-input v-model="userForm.email" placeholder="请输入邮箱地址"></el-input>
-        </el-form-item>
-        <el-form-item label="所属部门" prop="departmentId" required>
-          <el-cascader
-            v-model="userForm.departmentId"
-            :options="departmentOptions"
-            :props="cascaderProps"
-            placeholder="请选择所属部门"
-            style="width: 100%">
-          </el-cascader>
-        </el-form-item>
-        <el-form-item label="用户密码" :prop="currentUser ? '' : 'password'" :required="!currentUser">
-          <el-input
-            v-model="userForm.password"
-            :placeholder="currentUser ? '留空则不修改密码' : '请输入用户密码'"
-            type="password"
-            show-password>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="用户状态">
-          <el-switch
-            v-model="userForm.status"
-            active-text="启用"
-            inactive-text="禁用"
-            active-color="#3b82f6"
-            inactive-color="#9ca3af">
-          </el-switch>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input
-            v-model="userForm.remark"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入备注信息">
-          </el-input>
-        </el-form-item>
+      width="700px">
+      <el-form :model="userForm" :rules="userRules" ref="userForm" label-width="80px">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="用户昵称" prop="userNickname" required>
+              <el-input v-model="userForm.userNickname" placeholder="请输入用户昵称"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="归属部门" prop="departmentId">
+              <el-cascader
+                v-model="userForm.departmentId"
+                :options="departmentOptions"
+                :props="cascaderProps"
+                placeholder="请选择归属部门"
+                style="width: 100%">
+              </el-cascader>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="手机号码" prop="phoneNumber">
+              <el-input v-model="userForm.phoneNumber" placeholder="请输入手机号码"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="邮箱" prop="email">
+              <el-input v-model="userForm.email" placeholder="请输入邮箱"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="用户名称" prop="userName" required>
+              <el-input v-model="userForm.userName" placeholder="请输入用户名称"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="用户密码" :prop="currentUser ? '' : 'password'" :required="!currentUser">
+              <el-input
+                v-model="userForm.password"
+                :placeholder="currentUser ? '留空则不修改密码' : '请输入用户密码'"
+                type="password"
+                show-password>
+              </el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="用户性别" prop="gender">
+              <el-select v-model="userForm.gender" placeholder="请选择" style="width: 100%;">
+                <el-option label="男" value="male"></el-option>
+                <el-option label="女" value="female"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="状态" prop="status">
+              <el-radio-group v-model="userForm.status">
+                <el-radio :label="true">正常</el-radio>
+                <el-radio :label="false">停用</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="岗位" prop="position">
+              <el-select v-model="userForm.position" placeholder="请选择" style="width: 100%;">
+                <el-option label="开发工程师" value="developer"></el-option>
+                <el-option label="测试工程师" value="tester"></el-option>
+                <el-option label="产品经理" value="pm"></el-option>
+                <el-option label="UI设计师" value="designer"></el-option>
+                <el-option label="运维工程师" value="ops"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="角色" prop="role" required>
+              <el-select v-model="userForm.role" placeholder="请选择" style="width: 100%;">
+                <el-option label="管理员" value="admin"></el-option>
+                <el-option label="普通用户" value="user"></el-option>
+                <el-option label="访客" value="guest"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="备注" prop="remark">
+              <el-input
+                v-model="userForm.remark"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入内容">
+              </el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button @click="userDialogVisible = false">取消</el-button>
@@ -237,6 +286,29 @@
       <span slot="footer" class="dialog-footer">
         <el-button @click="deleteDialogVisible = false">取消</el-button>
         <el-button type="danger" @click="confirmDelete">确定删除</el-button>
+      </span>
+    </el-dialog>
+
+    <!-- 重置密码对话框 -->
+    <el-dialog
+      title="提示"
+      :visible.sync="resetPasswordDialogVisible"
+      width="400px">
+      <div class="reset-password-content">
+        <div class="reset-password-message">
+          请输入"{{ resetPasswordUser ? resetPasswordUser.userName : '' }}"的新密码
+        </div>
+        <el-input
+          v-model="newPassword"
+          type="password"
+          placeholder=""
+          show-password
+          style="margin-top: 15px;">
+        </el-input>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="resetPasswordDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmResetPassword">确定</el-button>
       </span>
     </el-dialog>
   </div>
@@ -314,7 +386,10 @@ export default {
         email: '',
         departmentId: [],
         password: '',
+        gender: '',
         status: true,
+        position: '',
+        role: '',
         remark: ''
       },
       
@@ -323,23 +398,28 @@ export default {
         userName: [
           { required: true, message: '请输入用户名称', trigger: 'blur' }
         ],
+        userNickname: [
+          { required: true, message: '请输入用户昵称', trigger: 'blur' }
+        ],
         phoneNumber: [
-          { required: true, message: '请输入手机号码', trigger: 'blur' },
           { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
         ],
         email: [
           { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
         ],
-        departmentId: [
-          { required: true, message: '请选择所属部门', trigger: 'change' }
+        role: [
+          { required: true, message: '请选择角色', trigger: 'change' }
         ]
       },
       
       // 对话框
       userDialogVisible: false,
       deleteDialogVisible: false,
+      resetPasswordDialogVisible: false,
       dialogTitle: '新增用户',
       currentUser: null,
+      resetPasswordUser: null,
+      newPassword: '',
       
       // 级联选择器配置
       cascaderProps: {
@@ -451,7 +531,10 @@ export default {
           departmentId: 3,
           phoneNumber: '15888888888',
           email: 'admin@xxx.com',
+          gender: 'male',
           status: true,
+          position: 'developer',
+          role: 'admin',
           createTime: '2025-06-06 16:28:45',
           remark: '管理员账户'
         },
@@ -463,7 +546,10 @@ export default {
           departmentId: 4,
           phoneNumber: '',
           email: 'test@xxx.com',
+          gender: 'female',
           status: true,
+          position: 'pm',
+          role: 'user',
           createTime: '2025-06-06 16:28:45',
           remark: ''
         },
@@ -475,7 +561,10 @@ export default {
           departmentId: 8,
           phoneNumber: '',
           email: '',
+          gender: 'male',
           status: true,
+          position: 'tester',
+          role: 'guest',
           createTime: '2025-06-06 16:28:45',
           remark: ''
         },
@@ -487,7 +576,10 @@ export default {
           departmentId: null,
           phoneNumber: '',
           email: '',
+          gender: '',
           status: true,
+          position: '',
+          role: 'user',
           createTime: '2025-07-02 15:04:32',
           remark: ''
         },
@@ -499,7 +591,10 @@ export default {
           departmentId: null,
           phoneNumber: '',
           email: '',
+          gender: '',
           status: true,
+          position: '',
+          role: 'user',
           createTime: '2025-07-03 17:46:32',
           remark: ''
         },
@@ -511,7 +606,10 @@ export default {
           departmentId: null,
           phoneNumber: '',
           email: '',
+          gender: '',
           status: true,
+          position: '',
+          role: 'user',
           createTime: '2025-07-03 17:48:21',
           remark: ''
         },
@@ -523,7 +621,10 @@ export default {
           departmentId: null,
           phoneNumber: '',
           email: '',
+          gender: '',
           status: true,
+          position: '',
+          role: 'user',
           createTime: '2025-07-03 18:06:22',
           remark: ''
         },
@@ -535,7 +636,10 @@ export default {
           departmentId: null,
           phoneNumber: '',
           email: '',
+          gender: '',
           status: true,
+          position: '',
+          role: 'user',
           createTime: '2025-07-03 18:30:12',
           remark: ''
         },
@@ -547,7 +651,10 @@ export default {
           departmentId: null,
           phoneNumber: '',
           email: '',
+          gender: '',
           status: true,
+          position: '',
+          role: 'user',
           createTime: '2025-07-03 18:32:54',
           remark: ''
         },
@@ -559,7 +666,10 @@ export default {
           departmentId: null,
           phoneNumber: '',
           email: '',
+          gender: '',
           status: true,
+          position: '',
+          role: 'user',
           createTime: '2025-07-03 18:36:14',
           remark: ''
         }
@@ -633,7 +743,10 @@ export default {
         email: '',
         departmentId: [],
         password: '',
+        gender: '',
         status: true,
+        position: '',
+        role: '',
         remark: ''
       }
       this.userDialogVisible = true
@@ -646,7 +759,10 @@ export default {
       this.userForm = {
         ...row,
         departmentId: row.departmentId ? [row.departmentId] : [],
-        password: ''
+        password: '',
+        gender: row.gender || '',
+        position: row.position || '',
+        role: row.role || ''
       }
       this.userDialogVisible = true
     },
@@ -707,21 +823,6 @@ export default {
       }, 800)
     },
     
-    // 批量编辑
-    batchEdit() {
-      if (this.selectedRows.length === 0) {
-        this.$message({
-          message: '请选择要编辑的用户',
-          type: 'warning'
-        })
-        return
-      }
-      this.$message({
-        message: '批量编辑功能开发中',
-        type: 'info'
-      })
-    },
-    
     // 批量删除
     batchDelete() {
       if (this.selectedRows.length === 0) {
@@ -748,68 +849,81 @@ export default {
     // 处理更多操作
     handleMoreAction(command) {
       switch (command) {
-        case 'export':
-          this.exportUsers()
+        case 'downloadTemplate':
+          this.downloadTemplate()
           break
-        case 'import':
-          this.importUsers()
+        case 'importData':
+          this.importData()
           break
-        case 'resetPassword':
-          this.batchResetPassword()
+        case 'exportData':
+          this.exportData()
           break
       }
     },
     
-    // 导出用户
-    exportUsers() {
+    // 下载模板
+    downloadTemplate() {
       this.$message({
-        message: '用户信息导出成功',
+        message: '模板下载成功',
         type: 'success'
       })
     },
     
-    // 导入用户
-    importUsers() {
+    // 导入数据
+    importData() {
       this.$message({
-        message: '导入功能开发中',
+        message: '导入数据功能开发中',
         type: 'info'
       })
     },
     
-    // 批量重置密码
-    batchResetPassword() {
-      if (this.selectedRows.length === 0) {
-        this.$message({
-          message: '请选择要重置密码的用户',
-          type: 'warning'
-        })
-        return
-      }
+    // 导出数据
+    exportData() {
       this.$message({
-        message: '批量重置密码功能开发中',
-        type: 'info'
+        message: '数据导出成功',
+        type: 'success'
       })
     },
     
     // 重置密码
     resetPassword(row) {
-      this.$confirm('确定要重置该用户的密码吗？', '确认重置', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
+      this.resetPasswordUser = row
+      this.newPassword = ''
+      this.resetPasswordDialogVisible = true
+    },
+
+    // 确认重置密码
+    confirmResetPassword() {
+      if (!this.newPassword || this.newPassword.trim() === '') {
+        this.$message({
+          message: '请输入新密码',
+          type: 'warning'
+        })
+        return
+      }
+      
+      this.loading = true
+      setTimeout(() => {
         this.$message({
           message: '密码重置成功',
           type: 'success'
         })
-      }).catch(() => {})
+        this.resetPasswordDialogVisible = false
+        this.newPassword = ''
+        this.resetPasswordUser = null
+        this.loading = false
+      }, 800)
     },
     
-    // 显示用户更多操作
-    showUserMore(row) {
-      this.$message({
-        message: '更多操作功能开发中',
-        type: 'info'
+    // 分配角色
+    assignRole(row) {
+      // 跳转到分配角色页面，传递用户信息
+      this.$router.push({
+        name: 'RoleAssignment',
+        params: {
+          userId: row.id,
+          userName: row.userName
+        }
       })
     },
     
@@ -833,16 +947,18 @@ export default {
 <style scoped>
 /* 整体容器 */
 .user-management-container {
-  padding: 20px;
+  padding: 20px 20px 5px 20px;
   background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
-  min-height: calc(100vh - 100px);
+  min-height: calc(100vh - 90px);
+  height: calc(100vh - 90px);
+  overflow: hidden;
 }
 
 /* 主要布局 */
 .content-layout {
   display: flex;
   gap: 20px;
-  height: calc(100vh - 140px);
+  height: calc(100vh - 100px);
   min-height: 600px;
 }
 
@@ -928,12 +1044,13 @@ export default {
 
 /* 搜索区卡片 */
 .filter-section {
-  margin-bottom: 20px;
-  padding: 18px 24px;
+  margin-bottom: 12px;
+  padding: 14px 18px;
   background: #f5f7fa;
   border-radius: 12px;
   border: 1px solid #ebeef5;
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.05);
+  flex-shrink: 0;
 }
 
 .search-form .el-form-item {
@@ -1010,15 +1127,18 @@ export default {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 500px;
+  height: 100%;
 }
 
 /* 操作按钮区 */
 .table-operations {
-  padding: 18px 24px;
+  padding: 14px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #ebeef5;
+  flex-shrink: 0;
 }
 
 .left-buttons {
@@ -1081,6 +1201,13 @@ export default {
 .custom-table {
   flex: 1;
   overflow: hidden;
+  min-height: 500px;
+  height: calc(100% - 120px);
+}
+
+.custom-table >>> .el-table__body-wrapper {
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
 }
 
 .custom-table >>> .el-table__cell {
@@ -1133,26 +1260,24 @@ export default {
 .operation-buttons {
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: nowrap;
 }
 
-.operation-buttons .el-button {
-  padding: 4px !important;
-  width: 26px !important;
-  height: 26px !important;
+.edit-btn, .reset-btn, .delete-btn, .assign-role-btn {
+  padding: 2px 8px !important;
+  font-size: 11px !important;
   border-radius: 4px !important;
-  font-size: 14px !important;
+  font-weight: 500 !important;
   transition: all 0.3s ease !important;
   background: #f5f7fa !important;
   border-color: #e4e7ed !important;
   color: #606266 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  height: 24px !important;
+  min-width: 50px !important;
 }
 
-.operation-buttons .el-button:hover {
+.edit-btn:hover, .reset-btn:hover, .delete-btn:hover, .assign-role-btn:hover {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
   border-color: #3b82f6 !important;
   color: #1e3a8a !important;
@@ -1162,11 +1287,12 @@ export default {
 
 /* 表格行高调整 */
 .custom-table >>> .el-table__body-wrapper .el-table__row {
-  height: 50px;
+  height: 48px;
 }
 
 .custom-table >>> .el-table__body-wrapper .el-table__row td {
-  padding: 8px 0;
+  padding: 12px 0;
+  vertical-align: middle;
 }
 
 .custom-table >>> .el-table__header-wrapper .el-table__header th {
@@ -1178,9 +1304,11 @@ export default {
 .pagination-container {
   display: flex;
   justify-content: center;
-  padding: 20px;
+  padding: 10px 20px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-top: 1px solid #ebeef5;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .pagination-container >>> .el-pagination {
@@ -1386,6 +1514,18 @@ export default {
   margin-right: 10px;
 }
 
+/* 重置密码弹框样式 */
+.reset-password-content {
+  padding: 10px 0;
+}
+
+.reset-password-message {
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.5;
+  margin-bottom: 5px;
+}
+
 /* 开关样式 */
 .user-management-container >>> .el-switch {
   margin: 0 auto;
@@ -1403,9 +1543,9 @@ export default {
     width: 100%;
     min-width: 100%;
     height: 300px;
-    margin-bottom: 20px;
-  }
-  
+  margin-bottom: 20px;
+}
+
   .right-panel {
     margin-top: 0;
   }
