@@ -49,7 +49,7 @@
 
 <script>
 import VueEasyTree from "@wchbrad/vue-easy-tree";
-import groupEdit from './../dialog/groupEdit'
+import groupEdit from '../visionAI/deviceManagement/managementPages/dialogs/groupEdit.vue'
 import gbDeviceSelect from './../dialog/GbDeviceSelect'
 import GbChannelSelect from "../dialog/GbChannelSelect.vue";
 

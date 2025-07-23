@@ -220,7 +220,7 @@
 <script>
 import channelCode from './../dialog/channelCode'
 import ChooseCivilCode from "../dialog/chooseCivilCode.vue";
-import ChooseGroup from "../dialog/chooseGroup.vue";
+import ChooseGroup from "../visionAI/deviceManagement/managementPages/dialogs/chooseGroup.vue";
 
 export default {
   name: "CommonChannelEdit",

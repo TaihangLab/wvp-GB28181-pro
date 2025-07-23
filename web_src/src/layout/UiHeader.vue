@@ -110,36 +110,7 @@
         <el-menu-item index="/visualCenter/parkManagement">园区封闭管理平台</el-menu-item>
       </el-submenu>
 
-      <!-- WVP菜单 - 已隐藏流媒体中心 -->
-      <el-submenu index="/videoMonitor" popper-class="modern-submenu" v-if="false">
-        <template slot="title">
-          <i class="el-icon-video-play"></i>
-          <span>流媒体中心</span>
-        </template>
-        <el-menu-item index="/console">控制台</el-menu-item>
-        <el-menu-item index="/live">分屏监控</el-menu-item>
-        <el-menu-item index="/deviceList">国标设备</el-menu-item>
-        <el-menu-item index="/streamPushList">推流列表</el-menu-item>
-        <el-menu-item index="/streamProxyList">拉流代理</el-menu-item>
-        <el-menu-item index="/recordPlan">录制计划</el-menu-item>
-        <el-menu-item index="/cloudRecord">云端录像</el-menu-item>
-        <el-menu-item index="/mediaServerManger">节点管理</el-menu-item>
-        <el-menu-item index="/platformList/15/1">国标级联</el-menu-item>
 
-        <el-submenu index="/channel" popper-append-to-body popper-class="modern-submenu nested-submenu">
-          <template slot="title">通道管理</template>
-          <el-menu-item index="/channel/region">行政区划</el-menu-item>
-          <el-menu-item index="/channel/group">业务分组</el-menu-item>
-        </el-submenu>
-
-        <el-menu-item v-if="editUser" index="/userManager">
-          <span>用户管理</span>
-        </el-menu-item>
-
-        <el-menu-item index="/operations">
-          <span>运维中心</span>
-        </el-menu-item>
-      </el-submenu>
 
       <!-- 用户菜单 -->
       <el-submenu index="" class="user-menu" popper-class="modern-submenu">

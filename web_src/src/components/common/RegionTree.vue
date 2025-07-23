@@ -48,7 +48,7 @@
 
 <script>
 import VueEasyTree from "@wchbrad/vue-easy-tree";
-import regionEdit from './../dialog/regionEdit'
+import regionEdit from '../visionAI/deviceManagement/managementPages/dialogs/regionEdit.vue'
 import gbDeviceSelect from './../dialog/GbDeviceSelect'
 import GbChannelSelect from "../dialog/GbChannelSelect.vue";
 
