@@ -11,18 +11,18 @@ module.exports = {
     assetsPublicPath: '/',
     proxyTable: {
       '/debug': {
-        target: 'http://192.168.1.107:18080',
+        target: 'http://192.168.1.106:8000',
         changeOrigin: true,
         pathRewrite: {
-          '^/debug': '/'
+          '^/debug': '/api/v1/wvp'
         }
       },
       '/static/snap': {
-        target: 'http://192.168.1.107:18080',
+        target: 'http://192.168.1.106:8000',
         changeOrigin: true,
-        // pathRewrite: {
-        //   '^/static/snap': '/static/snap'
-        // }
+        pathRewrite: {
+          '^/static/snap': '/api/v1/wvp/static/snap'
+        }
       },
 
     },

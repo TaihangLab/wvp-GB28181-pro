@@ -133,8 +133,6 @@
 </template>
 
 <script>
-import crypto from 'crypto'
-import userService from "./service/UserService";
 export default {
   name: 'Login',
   data(){
@@ -266,7 +264,7 @@ export default {
       }
     },
 
-    //登录逻辑
+    //登录逻辑 - 由Python后端统一处理
     login(){
       if(this.selectedTenant === '') {
         this.$message({
@@ -277,7 +275,14 @@ export default {
         return;
       }
       if(this.username!='' && this.password!=''){
-        this.toLogin();
+        // 简单的表单验证后直接跳转到主页
+        // 实际的登录认证由Python后端处理
+        this.$message({
+          showClose: true,
+          message: '登录功能由后端统一处理',
+          type: 'info'
+        });
+        this.$router.push('/');
       } else {
         this.$message({
           showClose: true,
@@ -285,51 +290,6 @@ export default {
           type: 'warning'
         });
       }
-    },
-
-    //登录请求
-    toLogin(){
-      //需要想后端发送的登录参数
-      let loginParam = {
-        username: this.username,
-        password: crypto.createHash('md5').update(this.password, "utf8").digest('hex'),
-        tenantNumber: this.selectedTenant // 添加租户编号
-      }
-      var that = this;
-      //设置在登录状态
-      this.isLoging = true;
-      let timeoutTask = setTimeout(()=>{
-        that.$message.error("登录超时");
-        that.isLoging = false;
-      }, 1000)
-
-      this.$axios({
-        method: 'get',
-        url:"/api/user/login",
-        params: loginParam
-      }).then(function (res) {
-        window.clearTimeout(timeoutTask)
-        console.log(res);
-        console.log("登录成功");
-          if (res.data.code === 0 ) {
-            userService.setUser(res.data.data)
-            //登录成功后
-            that.cancelEnterkeyDefaultAction();
-            that.$router.push('/');
-          }else{
-            that.isLoging = false;
-            that.$message({
-                  showClose: true,
-                  message: '登录失败，用户名或密码错误',
-                  type: 'error'
-              });
-          }
-      }).catch(function (error) {
-        console.log(error)
-        window.clearTimeout(timeoutTask)
-        that.$message.error(error.response.data.msg);
-        that.isLoging = false;
-      });
     },
     
     cancelEnterkeyDefaultAction: function() {

@@ -178,27 +178,13 @@ export default {
   },
   methods: {
     loginout() {
-      this.$axios({
-        method: 'get',
-        url: "/api/user/logout"
-      }).then((res) => {
-        // 删除用户信息，回到登录页面
-        userService.clearUserInfo()
-        this.$router.push('/login');
-        // 刷新页面，确保登录界面布局正常
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
-      }).catch((error) => {
-        console.error("登出失败")
-        console.error(error)
-        // 即使登出API失败，也要清除本地信息并刷新
-        userService.clearUserInfo()
-        this.$router.push('/login');
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
-      });
+      // 简化登出逻辑 - 由Python后端统一处理认证
+      userService.clearUserInfo()
+      this.$router.push('/login');
+      // 刷新页面，确保登录界面布局正常
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     },
     changePassword() {
       this.$refs.changePasswordDialog.openDialog()

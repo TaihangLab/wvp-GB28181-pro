@@ -47,33 +47,15 @@ Vue.use(dataV);
 
 axios.defaults.baseURL = (process.env.NODE_ENV === 'development') ? process.env.BASE_API : (window.baseUrl ? window.baseUrl : "");
 axios.defaults.withCredentials = true;
-// api 返回401自动回登陆页面
+// 简化的axios拦截器 - 认证由Python后端统一处理
 axios.interceptors.response.use((response) => {
-  // 对响应数据做点什么
-  let token = response.headers["access-token"];
-  if (token) {
-    userService.setToken(token)
-  }
+  // 只处理响应数据，不处理认证
   return response;
 }, (error) => {
-  // 对响应错误做点什么
-  if (error.response.status === 401) {
-    console.log("Received 401 Response")
-    router.push('/login');
-  }
+  // 简化错误处理
+  console.log("API请求错误:", error);
   return Promise.reject(error);
 });
-axios.interceptors.request.use(
-  config => {
-    if (userService.getToken() != null && config.url !== "/api/user/login") {
-      config.headers['access-token'] = `${userService.getToken()}`;
-    }
-    return config;
-  },
-  error => {
-    return Promise.reject(error);
-  }
-);
 
 Vue.prototype.$axios = axios;
 Vue.prototype.$cookies.config(60 * 30);
