@@ -1501,7 +1501,7 @@ export default {
   line-height: 1.5;
   margin: 0 0 12px 0;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 2 !important;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;

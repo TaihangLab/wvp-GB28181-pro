@@ -56,6 +56,8 @@ import departmentManagement from '../components/visionAI/systemManagement/depart
 import positionManagement from '../components/visionAI/systemManagement/positionManagement.vue'
 import profile from '../components/visionAI/systemManagement/profile.vue'
 import parkManagement from '../components/visionAI/ivisualCenter/parkManagement.vue'
+import knowledgeBase from '../components/visionAI/systemManagement/knowledgeBase.vue'
+import knowledgeBaseDetail from '../components/visionAI/systemManagement/knowledgeBaseDetail.vue'
 // 知识库管理
 
 const originalPush = VueRouter.prototype.push
@@ -236,6 +238,16 @@ export default new VueRouter({
           path: '/systemManage/positionManagement',
           name: 'positionManagement',
           component: positionManagement,
+        },
+        {
+          path: '/systemManage/knowledgeBase',
+          name: 'knowledgeBase',
+          component: knowledgeBase,
+        },
+        {
+          path: '/system/knowledge-detail',
+          name: 'knowledgeBaseDetail',
+          component: knowledgeBaseDetail,
         },
         {
           path: '/systemManage/profile',
