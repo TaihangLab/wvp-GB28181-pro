@@ -2,27 +2,17 @@
 export default {
 
   /**
-   * 存储用户信息
-   * @param username
-   * @param token
+   * 存储用户信息 - 保留用于页面显示
    */
   setUser(user){
     localStorage.setItem("wvp-user", JSON.stringify(user));
   },
 
   /**
-   * 获取用户
+   * 获取用户信息 - 保留用于页面显示
    */
   getUser(){
-    return JSON.parse(localStorage.getItem("wvp-user"));
-  },
-
-
-  /**
-   * 获取登录token
-   */
-  getToken(){
-    return localStorage.getItem("wvp-token");
+    return JSON.parse(localStorage.getItem("wvp-user")) || {};
   },
 
   /**
@@ -30,13 +20,14 @@ export default {
    */
   clearUserInfo(){
     localStorage.removeItem("wvp-user");
-    localStorage.removeItem("wvp-token");
   },
-  /**
-   * 更新token
-   * @param header
-   */
+
+  // 以下方法保留兼容性，但实际认证由Python后端处理
+  getToken(){
+    return null; // 不再使用前端token
+  },
+
   setToken(token) {
-    localStorage.setItem("wvp-token", token);
+    // 空实现，保持兼容性
   }
 }

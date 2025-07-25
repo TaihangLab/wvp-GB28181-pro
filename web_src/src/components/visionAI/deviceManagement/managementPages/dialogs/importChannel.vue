@@ -53,7 +53,7 @@ export default {
       headers: {
         "access-token": userService.getToken()
       },
-      uploadUrl: process.env.NODE_ENV === 'development'? `http://127.0.0.1:8080/debug/api/push/upload`: (window.baseUrl ? window.baseUrl : "") + `/api/push/upload`,
+      uploadUrl: process.env.NODE_ENV === 'development'? `/debug/api/push/upload`: (window.baseUrl ? window.baseUrl : "") + `/api/push/upload`,
     };
   },
   methods: {
