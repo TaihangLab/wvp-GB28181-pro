@@ -153,6 +153,113 @@
           </div>
         </div>
 
+        <!-- 预设回答页面 -->
+        <div v-else-if="activeMenu === 'preset'" class="preset-section">
+          <!-- 操作栏 -->
+          <div class="toolbar tech-toolbar">
+            <div class="left-actions">
+              <el-button type="primary" icon="el-icon-plus" size="small" @click="addPresetAnswer" class="tech-primary-btn">
+                批量录入新问题
+              </el-button>
+              <el-button icon="el-icon-refresh" size="small" @click="refreshPresetAnswers" class="tech-refresh-btn">
+                刷新
+              </el-button>
+              <el-button icon="el-icon-download" size="small" @click="downloadTemplate" class="tech-download-btn">
+                下载模板
+              </el-button>
+              <el-button icon="el-icon-view" size="small" @click="viewInGrid" class="tech-view-btn">
+                切换网格视图
+              </el-button>
+            </div>
+            
+            <div class="right-info">
+              <div class="stats tech-stats">
+                <span class="stat-item">
+                  <span class="label">共计</span>
+                  <span class="value tech-value">{{ totalPresetAnswers }}</span>
+                </span>
+                <span class="stat-item">
+                  <span class="label">已训练</span>
+                  <span class="value tech-value-success">{{ enabledPresetCount }}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 预设回答表格 -->
+          <div class="table-container tech-table-container">
+            <el-table
+              :data="presetAnswerData"
+              v-loading="presetLoading"
+              :border="false"
+              class="tech-table"
+              style="width: 100%"
+              table-layout="fixed"
+              size="medium">
+              
+              <el-table-column prop="question" label="问题" width="320" align="left" show-overflow-tooltip>
+                <template slot-scope="scope">
+                  <div class="question-cell">
+                    <el-tag size="mini" :type="getQuestionTagType(scope.row.question)" class="question-tag">
+                      {{ getQuestionCategory(scope.row.question) }}
+                    </el-tag>
+                    <span class="question-text">{{ scope.row.question }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              
+              <el-table-column prop="answer" label="答案" width="600" align="left" show-overflow-tooltip>
+                <template slot-scope="scope">
+                  <div class="answer-cell">
+                    <span class="answer-text">{{ scope.row.answer }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              
+              <el-table-column prop="trainedStatus" label="切配状态" width="100" align="center">
+                <template slot-scope="scope">
+                  <el-tag 
+                    size="mini" 
+                    :type="scope.row.trainedStatus ? 'success' : 'warning'"
+                    class="tech-status-tag">
+                    {{ scope.row.trainedStatus ? '已训练' : '未训练' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              
+              <el-table-column label="操作" width="100" align="center">
+                <template slot-scope="scope">
+                  <div class="operation-buttons tech-operations">
+                    <el-button type="text" class="tech-edit-btn" @click="editPresetAnswer(scope.row)" title="编辑">
+                      编辑
+                    </el-button>
+                    <el-button type="text" class="tech-delete-btn" @click="deletePresetAnswer(scope.row)" title="删除">
+                      删除
+                    </el-button>
+                  </div>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <!-- 分页 -->
+            <div class="pagination-container tech-pagination">
+              <div class="pagination-info">
+                <span>共 {{ totalPresetAnswers }} 条记录</span>
+              </div>
+              <el-pagination
+                @size-change="handlePresetSizeChange"
+                @current-change="handlePresetCurrentChange"
+                :current-page="presetCurrentPage"
+                :page-sizes="[10, 20, 50, 100]"
+                :page-size="presetPageSize"
+                layout="sizes, prev, pager, next, jumper"
+                :total="totalPresetAnswers"
+                class="tech-pagination-controls">
+              </el-pagination>
+            </div>
+          </div>
+        </div>
+
         <!-- 其他菜单页面的占位 -->
         <div v-else class="placeholder-section">
           <el-empty :description="`${getCurrentMenuLabel()}功能开发中`"></el-empty>
@@ -191,6 +298,7 @@ export default {
         { key: 'documents', label: '文档列表', icon: 'el-icon-document' },
         { key: 'import', label: '数据导入', icon: 'el-icon-upload2' },
         { key: 'search', label: '向量搜索', icon: 'el-icon-search' },
+        { key: 'preset', label: '预设回答', icon: 'el-icon-chat-dot-round' },
         { key: 'settings', label: '设置', icon: 'el-icon-setting' }
       ],
       
@@ -211,6 +319,89 @@ export default {
       // 日志弹框相关
       logDialogVisible: false,
       currentLogContent: '',
+      
+      // 预设回答相关
+      presetAnswerData: [],
+      presetLoading: false,
+      presetCurrentPage: 1,
+      presetPageSize: 10,
+      totalPresetAnswers: 123,
+      enabledPresetCount: 103,
+      disabledPresetCount: 20,
+      
+      // 预设回答示例数据
+      mockPresetAnswers: [
+        {
+          id: 1,
+          question: '重点企业扶本人才奖励政策',
+          answer: '营业某况政清单（T1）事项名称企业业务人才奖励政策助方名企业申请政府依据《山西...',
+          trainedStatus: true,
+          category: 'policy'
+        },
+        {
+          id: 2,
+          question: '社保开户怎么办理',
+          answer: '根据《国家税务总局山西省税务局 山西省财政厅山西省人力资源和社会保障厅 中国人民...',
+          trainedStatus: true,
+          category: 'procedure'
+        },
+        {
+          id: 3,
+          question: '社保开户怎么办理',
+          answer: '根据《国家税务总局山西省税务局 山西省财政厅山西省人力资源和社会保障厅 中国人民...',
+          trainedStatus: true,
+          category: 'procedure'
+        },
+        {
+          id: 4,
+          question: '社保开户怎么办理',
+          answer: '根据《国家税务总局山西省税务局 山西省财政厅山西省人力资源和社会保障厅 中国人民...',
+          trainedStatus: true,
+          category: 'procedure'
+        },
+        {
+          id: 5,
+          question: '检验检测机构资质认定（合计算认证）',
+          answer: '办理地点：太原市龙藏街15号山西省政务服务大楼四 办理时间：周一至周五上午8...',
+          trainedStatus: true,
+          category: 'certification'
+        },
+        {
+          id: 6,
+          question: '检验检测机构资质认定（合计算认证）扩项',
+          answer: '办理地点：太原市龙藏街15号山西省政务服务大楼四 办理时间：周一至周五上午8...',
+          trainedStatus: true,
+          category: 'certification'
+        },
+        {
+          id: 7,
+          question: '计量票据票式批准（试行地政策）（名称变更）',
+          answer: '办理地点：太原市龙藏街15号山西省政务服务大楼四 办理时间：周一至周五上午8...',
+          trainedStatus: true,
+          category: 'approval'
+        },
+        {
+          id: 8,
+          question: '计量票据票式批准',
+          answer: '办理地点：太原市龙藏街15号山西省政务服务大楼四 办理时间：周一至周五上午8...',
+          trainedStatus: true,
+          category: 'approval'
+        },
+        {
+          id: 9,
+          question: '计量标准器具检定（新建）',
+          answer: '办理地点：太原市龙藏街15号山西省政务服务大楼四 办理时间：周一至周五上午8...',
+          trainedStatus: true,
+          category: 'inspection'
+        },
+        {
+          id: 10,
+          question: '计量标准器具检定（复查）',
+          answer: '办理地点：太原市龙藏街15号山西省政务服务大楼四 办理时间：周一至周五上午8...',
+          trainedStatus: true,
+          category: 'inspection'
+        }
+      ],
       
       // 示例数据
       mockDocuments: [
@@ -343,6 +534,8 @@ export default {
       this.activeMenu = menuKey
       if (menuKey === 'documents') {
         this.loadDocuments()
+      } else if (menuKey === 'preset') {
+        this.loadPresetAnswers()
       }
     },
     
@@ -465,6 +658,100 @@ export default {
     // 返回知识库列表页
     goBack() {
       this.$router.push('/systemManage/knowledgeBase')
+    },
+    
+    // 预设回答相关方法
+    // 加载预设回答数据
+    async loadPresetAnswers() {
+      try {
+        this.presetLoading = true
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 800))
+        
+        this.presetAnswerData = this.mockPresetAnswers.slice(
+          (this.presetCurrentPage - 1) * this.presetPageSize,
+          this.presetCurrentPage * this.presetPageSize
+        )
+        
+      } catch (error) {
+        console.error('加载预设回答列表失败:', error)
+        this.$message.error('加载预设回答列表失败')
+      } finally {
+        this.presetLoading = false
+      }
+    },
+    
+    // 获取问题标签类型
+    getQuestionTagType(question) {
+      const categoryMap = {
+        '重点企业': 'primary',
+        '社保': 'success',
+        '检验检测': 'warning',
+        '计量': 'info'
+      }
+      
+      for (let key in categoryMap) {
+        if (question.includes(key)) {
+          return categoryMap[key]
+        }
+      }
+      return 'default'
+    },
+    
+    // 获取问题分类
+    getQuestionCategory(question) {
+      if (question.includes('重点企业') || question.includes('人才')) return '重点企业扶持'
+      if (question.includes('社保')) return '社保开户'
+      if (question.includes('检验检测')) return '检验检测资质认定'
+      if (question.includes('计量')) return '计量票据'
+      return '其他'
+    },
+    
+    // 预设回答操作方法
+    addPresetAnswer() {
+      this.$message.info('批量录入新问题功能开发中...')
+    },
+    
+    refreshPresetAnswers() {
+      this.loadPresetAnswers()
+      this.$message.success('预设回答列表已刷新')
+    },
+    
+    downloadTemplate() {
+      this.$message.info('下载模板功能开发中...')
+    },
+    
+    viewInGrid() {
+      this.$message.info('切换网格视图功能开发中...')
+    },
+    
+    editPresetAnswer(row) {
+      this.$message.info(`编辑预设回答: ${row.question}`)
+    },
+    
+    deletePresetAnswer(row) {
+      this.$confirm(`确认删除预设回答 "${row.question}" 吗？`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.$message.success('删除成功')
+        this.loadPresetAnswers()
+      }).catch(() => {
+        this.$message.info('已取消删除')
+      })
+    },
+    
+    // 预设回答分页方法
+    handlePresetSizeChange(size) {
+      this.presetPageSize = size
+      this.presetCurrentPage = 1
+      this.loadPresetAnswers()
+    },
+    
+    handlePresetCurrentChange(page) {
+      this.presetCurrentPage = page
+      this.loadPresetAnswers()
     }
   }
 }
@@ -981,6 +1268,296 @@ export default {
     word-wrap: break-word !important;
     overflow-x: auto !important;
   }
+
+/* 预设回答页面简洁白色主题样式 */
+.tech-toolbar {
+  background: #ffffff !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.tech-toolbar .left-actions .el-button {
+  margin-right: 8px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+}
+
+.tech-primary-btn {
+  background: #3b82f6 !important;
+  border: 1px solid #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  border-radius: 4px !important;
+}
+
+.tech-primary-btn:hover {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.tech-refresh-btn,
+.tech-download-btn,
+.tech-view-btn {
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #6b7280 !important;
+  border-radius: 4px !important;
+}
+
+.tech-refresh-btn:hover,
+.tech-download-btn:hover,
+.tech-view-btn:hover {
+  background: #f9fafb !important;
+  border-color: #9ca3af !important;
+  color: #374151 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.tech-stats {
+  display: flex !important;
+  gap: 20px !important;
+}
+
+.tech-stats .stat-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  border: none !important;
+}
+
+.tech-stats .stat-item .label {
+  color: #6b7280 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.tech-value {
+  color: #374151 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+.tech-value-success {
+  color: #059669 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+.tech-table-container {
+  background: #ffffff !important;
+  border: 1px solid #e4e7ed !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  max-width: 100% !important;
+}
+
+.tech-table >>> .el-table {
+  background: #ffffff !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+  min-width: 1120px !important;
+}
+
+.tech-table >>> .el-table__body-wrapper {
+  overflow-x: auto !important;
+  width: 100% !important;
+}
+
+.tech-table >>> .el-table__header-wrapper {
+  overflow-x: auto !important;
+  width: 100% !important;
+}
+
+.tech-table >>> .el-table__header-wrapper th {
+  background: #f5f7fa !important;
+  color: #303133 !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid #ebeef5 !important;
+  text-align: center !important;
+}
+
+.tech-table >>> .el-table__row {
+  transition: none !important;
+}
+
+.tech-table >>> .el-table__row:hover {
+  background: #f5f7fa !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.question-cell {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 0 !important;
+}
+
+.question-tag {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 500 !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  flex-shrink: 0 !important;
+  box-shadow: none !important;
+}
+
+.question-text {
+  color: #3b82f6 !important;
+  font-weight: 400 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  word-break: break-all !important;
+  white-space: normal !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.answer-cell {
+  padding: 8px 0 !important;
+  width: 100% !important;
+}
+
+.answer-text {
+  color: #606266 !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  word-break: break-all !important;
+  white-space: normal !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+}
+
+.tech-status-tag {
+  background: #67c23a !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  border-radius: 4px !important;
+}
+
+.tech-status-tag.el-tag--warning {
+  background: #e6a23c !important;
+  box-shadow: none !important;
+}
+
+.tech-operations {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.tech-edit-btn {
+  background: transparent !important;
+  color: #3b82f6 !important;
+  border: none !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  transition: all 0.3s ease !important;
+  box-shadow: none !important;
+}
+
+.tech-edit-btn:hover {
+  background: #f0f9ff !important;
+  color: #2563eb !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.tech-delete-btn {
+  background: transparent !important;
+  color: #ef4444 !important;
+  border: none !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  transition: all 0.3s ease !important;
+  box-shadow: none !important;
+}
+
+.tech-delete-btn:hover {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.tech-pagination {
+  background: #ffffff !important;
+  border-top: 1px solid #ebeef5 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 16px 20px !important;
+}
+
+.pagination-info {
+  color: #606266 !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+}
+
+.tech-pagination-controls >>> .el-pagination .el-pager li {
+  background: #ffffff !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  font-weight: 400 !important;
+  transition: none !important;
+}
+
+.tech-pagination-controls >>> .el-pagination .el-pager li:hover {
+  background: #f5f7fa !important;
+  border-color: #c0c4cc !important;
+  color: #409eff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.tech-pagination-controls >>> .el-pagination .el-pager li.active {
+  background: #409eff !important;
+  border-color: #409eff !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.tech-pagination-controls >>> .el-pagination button {
+  background: #ffffff !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+  transition: none !important;
+}
+
+.tech-pagination-controls >>> .el-pagination button:hover {
+  background: #f5f7fa !important;
+  border-color: #c0c4cc !important;
+  color: #409eff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.tech-pagination-controls >>> .el-select .el-input .el-input__inner {
+  background: #ffffff !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #606266 !important;
+}
 
   /* 响应式设计 */
   @media screen and (max-width: 1200px) {
