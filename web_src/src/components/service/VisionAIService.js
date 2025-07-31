@@ -1050,10 +1050,159 @@ export const skillAPI = {
         }
         throw new Error(errorMessage);
       });
-  }
-};
+  },
 
-// 摄像头服务API
+     /**
+    * 创建多模态大模型任务
+    * @param {Object} taskData - 任务数据
+    * @param {string} taskData.name - 任务名称
+    * @param {string} [taskData.description] - 任务描述
+    * @param {string} taskData.skill_id - 技能类业务ID
+    * @param {number} [taskData.camera_id] - 摄像头ID
+    * @param {number} [taskData.frame_rate=30] - 帧率（每分钟处理次数）
+    * @param {boolean} [taskData.status=true] - 是否启用
+    * @param {number} [taskData.alert_level=0] - 预警等级 (0:默认, 1:最高, 2:高, 3:中, 4:低)
+    * @param {Object} [taskData.running_period] - 运行时段配置
+    * @returns {Promise} 包含创建结果的Promise对象
+    */
+  createLlmTask(taskData) {
+    // 验证必要参数
+    if (!taskData.name || !taskData.skill_id) {
+      console.error('创建大模型任务失败: 缺少必要参数', {
+        name: taskData.name,
+        skill_id: taskData.skill_id
+      });
+      return Promise.reject(new Error('缺少必要参数: 任务名称和技能ID必须提供'));
+    }
+
+         // 数据格式处理
+     const data = {
+       name: taskData.name,
+       description: taskData.description || '',
+       skill_id: taskData.skill_id,
+       camera_id: taskData.camera_id || null,
+       frame_rate: taskData.frame_rate || 30,
+       status: taskData.status !== undefined ? taskData.status : true,
+       alert_level: taskData.alert_level !== undefined ? taskData.alert_level : 0,
+       running_period: taskData.running_period || null
+     };
+
+    console.log('创建大模型任务请求数据:', data);
+
+         return visionAIAxios.post('/api/v1/llm-skills/tasks', data)
+       .then(response => {
+         console.log('创建大模型任务成功:', response.data);
+         return response;
+       })
+       .catch(error => {
+         console.error('创建大模型任务失败:', error);
+         throw error;
+       });
+   },
+
+   /**
+    * 删除多模态大模型任务
+    * @param {number} taskId - 任务ID
+    * @returns {Promise} 包含删除结果的Promise对象
+    */
+   deleteLlmTask(taskId) {
+     if (!taskId) {
+       console.error('删除大模型任务失败: 缺少任务ID');
+       return Promise.reject(new Error('缺少任务ID'));
+     }
+
+     console.log('删除大模型任务:', taskId);
+
+     return visionAIAxios.delete(`/api/v1/llm-skills/tasks/${taskId}`)
+       .then(response => {
+         console.log('删除大模型任务成功:', response.data);
+         return response;
+       })
+       .catch(error => {
+         console.error('删除大模型任务失败:', error);
+         throw error;
+       });
+   },
+
+   /**
+    * 获取多模态大模型任务列表
+    * @param {Object} params - 查询参数
+    * @param {number} [params.page=1] - 当前页码，从1开始
+    * @param {number} [params.limit=100] - 每页记录数，最大100条
+    * @param {string} [params.skill_id] - 技能类业务ID过滤
+    * @param {boolean} [params.status] - 状态过滤
+    * @param {string} [params.name] - 名称搜索
+    * @returns {Promise} 包含任务列表的Promise对象
+    */
+   getLlmTaskList(params = {}) {
+     // 处理查询参数
+     const apiParams = { ...params };
+
+     // 设置默认分页参数
+     if (!apiParams.page) {
+       apiParams.page = 1;
+     }
+     if (!apiParams.limit) {
+       apiParams.limit = 100; // 默认获取更多数据以便前端过滤
+     }
+
+     console.log('获取大模型任务列表API调用参数:', apiParams);
+
+     return visionAIAxios.get('/api/v1/llm-skills/tasks', { params: apiParams })
+       .then(response => {
+         console.log('获取大模型任务列表成功:', response.data);
+         return response;
+       })
+       .catch(error => {
+         console.error('获取大模型任务列表失败:', error);
+         throw error;
+       });
+   },
+
+   /**
+    * 更新多模态大模型任务
+    * @param {number} taskId - 任务ID
+    * @param {Object} taskData - 任务数据
+    * @param {string} [taskData.name] - 任务名称
+    * @param {string} [taskData.description] - 任务描述
+    * @param {number} [taskData.camera_id] - 摄像头ID
+    * @param {number} [taskData.frame_rate] - 帧率（每分钟处理次数）
+    * @param {boolean} [taskData.status] - 是否启用
+    * @param {number} [taskData.alert_level] - 预警等级 (0:默认, 1:最高, 2:高, 3:中, 4:低)
+    * @param {Object} [taskData.running_period] - 运行时段配置
+    * @returns {Promise} 包含更新结果的Promise对象
+    */
+   updateLlmTask(taskId, taskData) {
+     if (!taskId) {
+       console.error('更新大模型任务失败: 缺少任务ID');
+       return Promise.reject(new Error('缺少任务ID'));
+     }
+
+     // 只发送需要更新的字段
+     const data = {};
+     if (taskData.name !== undefined) data.name = taskData.name;
+     if (taskData.description !== undefined) data.description = taskData.description;
+     if (taskData.camera_id !== undefined) data.camera_id = taskData.camera_id;
+     if (taskData.frame_rate !== undefined) data.frame_rate = taskData.frame_rate;
+     if (taskData.status !== undefined) data.status = taskData.status;
+     if (taskData.alert_level !== undefined) data.alert_level = taskData.alert_level;
+     if (taskData.running_period !== undefined) data.running_period = taskData.running_period;
+
+     console.log('更新大模型任务请求数据:', { taskId, data });
+
+     return visionAIAxios.put(`/api/v1/llm-skills/tasks/${taskId}`, data)
+       .then(response => {
+         console.log('更新大模型任务成功:', response.data);
+         return response;
+       })
+       .catch(error => {
+         console.error('更新大模型任务失败:', error);
+         throw error;
+       });
+   }
+ };
+
+ // 摄像头服务API
 export const cameraAPI = {
   /**
    * 获取视觉AI平台中已添加的摄像头列表
