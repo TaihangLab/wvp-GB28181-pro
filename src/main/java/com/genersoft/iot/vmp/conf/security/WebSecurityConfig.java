@@ -106,6 +106,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         defaultExcludes.add("/api/push/getsnap/**");
         defaultExcludes.add("/api/common/channel/getsnap/**");
         defaultExcludes.add("/index/hook/abl/**");
+        defaultExcludes.add("/api/jt1078/playback/download");
+        defaultExcludes.add("/api/jt1078/snap");
 
 
 

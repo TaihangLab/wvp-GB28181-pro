@@ -4013,6 +4013,7 @@
 }
 
 .config-skill-btn,
+.config-llm-skill-btn,
 .view-detail-btn {
   padding: 2px 8px !important;
   font-size: 11px !important;
@@ -4026,12 +4027,25 @@
   min-width: 50px !important;
 }
 
+/* 大模型技能配置按钮特殊样式 */
+.config-llm-skill-btn {
+  border: 1px solid #722ED1 !important;
+  color: #722ED1 !important;
+}
+
 .config-skill-btn:hover,
 .view-detail-btn:hover {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
   color: white !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+.config-llm-skill-btn:hover {
+  background: linear-gradient(135deg, #722ED1 0%, #531dab 100%) !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(114, 46, 209, 0.3) !important;
 }
 
 /* ========================================

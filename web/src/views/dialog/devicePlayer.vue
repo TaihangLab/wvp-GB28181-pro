@@ -6,6 +6,7 @@
       v-el-drag-dialog
       title="视频播放"
       top="0"
+      append-to-body
       :close-on-click-modal="false"
       :visible.sync="showVideoDialog"
       @close="close()"
@@ -618,7 +619,7 @@ export default {
       // 获取推流鉴权Key
       this.$store.dispatch('user/getUserInfo')
         .then((data) => {
-          if (data == null) {
+          if (data === null) {
             this.broadcastStatus = -1
             return
           }

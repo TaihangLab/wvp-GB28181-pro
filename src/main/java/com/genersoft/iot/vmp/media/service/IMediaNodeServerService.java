@@ -14,9 +14,13 @@ import java.util.Map;
 public interface IMediaNodeServerService {
     int createRTPServer(MediaServer mediaServer, String streamId, long ssrc, Integer port, Boolean onlyAuto, Boolean disableAudio, Boolean reUsePort, Integer tcpMode);
 
-    void closeRtpServer(MediaServer mediaServer, String streamId);
-
     void closeRtpServer(MediaServer mediaServer, String streamId, CommonCallback<Boolean> callback);
+
+
+    int createJTTServer(MediaServer mediaServer, String streamId, Integer port, Boolean disableVideo, Boolean disableAudio, Integer tcpMode);
+
+    void closeJTTServer(MediaServer mediaServer, String streamId, CommonCallback<Boolean> callback);
+
 
     void closeStreams(MediaServer mediaServer, String app, String stream);
 
@@ -38,7 +42,7 @@ public interface IMediaNodeServerService {
 
     Boolean connectRtpServer(MediaServer mediaServer, String address, int port, String stream);
 
-    void getSnap(MediaServer mediaServer, String streamUrl, int timeoutSec, int expireSec, String path, String fileName);
+    void getSnap(MediaServer mediaServer, String app, String stream, int timeoutSec, int expireSec, String path, String fileName);
 
     MediaInfo getMediaInfo(MediaServer mediaServer, String app, String stream);
 
@@ -62,9 +66,11 @@ public interface IMediaNodeServerService {
 
     void startSendRtpStream(MediaServer mediaServer, SendRtpInfo sendRtpItem);
 
+    Integer startSendRtpTalk(MediaServer mediaServer, SendRtpInfo sendRtpItem, Integer timeout);
+
     Long updateDownloadProcess(MediaServer mediaServer, String app, String stream);
 
-    StreamInfo startProxy(MediaServer mediaServer, StreamProxy streamProxy);
+    void startProxy(MediaServer mediaServer, StreamProxy streamProxy);
 
     void stopProxy(MediaServer mediaServer, String streamKey);
 

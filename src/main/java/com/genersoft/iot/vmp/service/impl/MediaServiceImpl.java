@@ -7,14 +7,21 @@ import com.genersoft.iot.vmp.common.VideoManagerConstants;
 import com.genersoft.iot.vmp.conf.UserSetting;
 import com.genersoft.iot.vmp.conf.exception.ControllerException;
 import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
+import com.genersoft.iot.vmp.gb28181.bean.SendRtpInfo;
 import com.genersoft.iot.vmp.gb28181.bean.SsrcTransaction;
 import com.genersoft.iot.vmp.gb28181.service.IDeviceChannelService;
 import com.genersoft.iot.vmp.gb28181.service.IInviteStreamService;
 import com.genersoft.iot.vmp.gb28181.session.SipInviteSessionManager;
+import com.genersoft.iot.vmp.gb28181.transmit.cmd.ISIPCommander;
+import com.genersoft.iot.vmp.gb28181.transmit.cmd.ISIPCommanderForPlatform;
+import com.genersoft.iot.vmp.jt1078.bean.JTMediaStreamType;
+import com.genersoft.iot.vmp.jt1078.service.Ijt1078PlayService;
+import com.genersoft.iot.vmp.jt1078.service.Ijt1078Service;
 import com.genersoft.iot.vmp.media.bean.MediaServer;
 import com.genersoft.iot.vmp.media.bean.ResultForOnPublish;
 import com.genersoft.iot.vmp.media.zlm.dto.StreamAuthorityInfo;
 import com.genersoft.iot.vmp.service.IMediaService;
+import com.genersoft.iot.vmp.service.ISendRtpServerService;
 import com.genersoft.iot.vmp.service.IRecordPlanService;
 import com.genersoft.iot.vmp.service.IUserService;
 import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
@@ -30,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -61,6 +69,16 @@ public class MediaServiceImpl implements IMediaService {
     private SipInviteSessionManager sessionManager;
 
     @Autowired
+    private Ijt1078Service ijt1078Service;
+
+    @Autowired
+    private Ijt1078PlayService jt1078PlayService;
+
+    @Autowired
+    private ISendRtpServerService sendRtpServerService;
+
+
+    @Autowired
     private IRecordPlanService recordPlanService;
 
     @Override
@@ -81,8 +99,14 @@ public class MediaServiceImpl implements IMediaService {
     @Override
     public ResultForOnPublish authenticatePublish(MediaServer mediaServer, String app, String stream, String params) {
         // 推流鉴权的处理
-        if (!"rtp".equals(app)) {
+        if (!"rtp".equals(app) && !"1078".equals(app) ) {
             if ("talk".equals(app) && stream.endsWith("_talk")) {
+                ResultForOnPublish result = new ResultForOnPublish();
+                result.setEnable_mp4(false);
+                result.setEnable_audio(true);
+                return result;
+            }
+            if ("jt_talk".equals(app) && stream.endsWith("_talk")) {
                 ResultForOnPublish result = new ResultForOnPublish();
                 result.setEnable_mp4(false);
                 result.setEnable_audio(true);
@@ -221,21 +245,33 @@ public class MediaServiceImpl implements IMediaService {
             result = userSetting.getStreamOnDemand();
             // 国标流， 点播/录像回放/录像下载
             InviteInfo inviteInfo = inviteStreamService.getInviteInfoByStream(null, stream);
-            // 点播
-            if (inviteInfo != null && inviteInfo.getStatus() == InviteSessionStatus.ok) {
-                // 录像下载
-                if (inviteInfo.getType() == InviteSessionType.DOWNLOAD) {
-                    return false;
-                }
-                DeviceChannel deviceChannel = deviceChannelService.getOneForSourceById(inviteInfo.getChannelId());
-                if (deviceChannel == null) {
-                    return false;
+            if (inviteInfo != null) {
+                if (inviteInfo.getStatus() == InviteSessionStatus.ok){
+                    // 录像下载
+                    if (inviteInfo.getType() == InviteSessionType.DOWNLOAD) {
+                        return false;
+                    }
+                    DeviceChannel deviceChannel = deviceChannelService.getOneForSourceById(inviteInfo.getChannelId());
+                    if (deviceChannel == null) {
+                        return false;
+                    }
                 }
                 return result;
+            }
+        }else if ("1078".equals(app)) {
+            // 判断是否是1078播放类型
+            JTMediaStreamType jtMediaStreamType = ijt1078Service.checkStreamFromJt(stream);
+            if (jtMediaStreamType != null) {
+                String[] streamParamArray = stream.split("_");
+                if (jtMediaStreamType.equals(JTMediaStreamType.PLAY)) {
+                    jt1078PlayService.stopPlay(streamParamArray[0], Integer.parseInt(streamParamArray[1]));
+                }else if (jtMediaStreamType.equals(JTMediaStreamType.PLAYBACK)) {
+                    jt1078PlayService.stopPlayback(streamParamArray[0], Integer.parseInt(streamParamArray[1]));
+                }
             }else {
                 return false;
             }
-        } else if ("talk".equals(app) || "broadcast".equals(app)) {
+        }else if ("talk".equals(app) || "broadcast".equals(app)) {
             return false;
         } else {
             // 非国标流 推流/拉流代理
@@ -260,5 +296,6 @@ public class MediaServiceImpl implements IMediaService {
                 return false;
             }
         }
+        return result;
     }
 }

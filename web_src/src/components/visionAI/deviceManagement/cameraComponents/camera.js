@@ -199,6 +199,10 @@ export default {
       // 设备详情对话框
       deviceDetailDialogVisible: false,
       deviceDetailData: null,
+
+      // 大模型技能配置相关（移除状态，改用 ref 调用）
+      // configLlmVisible: false, // 已移除
+      // currentSelectedCamera: null, // 已移除
     };
   },
 
@@ -395,6 +399,44 @@ export default {
     handleCameraManagement() {
       // 跳转到摄像头管理页面
       this.$router.push({ name: 'CameraManagementMain' });
+    },
+
+
+
+    // 处理单个摄像头配置大模型技能
+    handleConfigLlmSkillForCamera(row) {
+      console.log('配置大模型技能，摄像头:', row);
+      
+      // 构建摄像头数据
+      const cameraData = {
+        id: row.id,
+        name: row.name,
+        status: row.status,
+        location: row.location,
+        camera_type: row.camera_type
+      };
+
+      // 直接调用 configLlm 组件的 open 方法
+      if (this.$refs.configLlm) {
+        this.$refs.configLlm.open(cameraData);
+      } else {
+        this.$message.error('配置组件未正确加载');
+      }
+    },
+
+    // 处理大模型技能配置成功
+    handleLlmConfigSuccess() {
+      console.log('大模型技能配置成功');
+      this.$message.success('大模型技能配置成功');
+      // 刷新摄像头列表
+      this.fetchCameraList();
+      // 配置弹窗会自己关闭，这里不需要额外处理
+    },
+
+    // 处理大模型技能配置关闭
+    handleLlmConfigClosed() {
+      console.log('大模型技能配置弹窗已关闭');
+      // 弹窗关闭后的清理工作（如果需要）
     },
     
     // 处理查看详情

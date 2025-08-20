@@ -105,11 +105,13 @@
                 <span v-else>-</span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="220" align="center">
+            <el-table-column label="操作" width="280" align="center">
               <template slot-scope="{ row }">
                 <div class="operation-buttons">
                   <el-button type="text" size="mini" icon="el-icon-setting" class="config-skill-btn"
                     @click="handleConfigSkill(row)">配置技能</el-button>
+                  <el-button type="text" size="mini" icon="el-icon-magic-stick" class="config-llm-skill-btn"
+                    @click="handleConfigLlmSkillForCamera(row)">配置大模型技能</el-button>
                   <el-button type="text" size="mini" icon="el-icon-view" class="view-detail-btn"
                     @click="handleViewDetails(row)">查看详情</el-button>
                 </div>
@@ -773,13 +775,27 @@
           <el-button @click="deviceDetailDialogVisible = false">关 闭</el-button>
         </span>
       </el-dialog>
+
+      <!-- 配置大模型技能组件 -->
+      <config-llm
+        ref="configLlm"
+        @config-success="handleLlmConfigSuccess"
+        @closed="handleLlmConfigClosed"
+      />
     </div>
   </div>
 </template>
 
 <script>
 import cameraComponent from './cameraComponents/camera.js'
-export default cameraComponent
+import ConfigLlm from './cameraComponents/configLlm.vue'
+
+export default {
+  ...cameraComponent,
+  components: {
+    ConfigLlm
+  }
+}
 </script>
 
 <style scoped>
