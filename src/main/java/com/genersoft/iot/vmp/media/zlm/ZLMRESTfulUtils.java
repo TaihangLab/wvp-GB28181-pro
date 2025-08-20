@@ -331,6 +331,10 @@ public class ZLMRESTfulUtils {
         return sendPost(mediaServerItem, "startSendRtpPassive",param, callback);
     }
 
+    public JSONObject startSendRtpTalk(MediaServer mediaServerItem, Map<String, Object> param, RequestCallback callback) {
+        return sendPost(mediaServerItem, "startSendRtpTalk",param, callback);
+    }
+
     public JSONObject stopSendRtp(MediaServer mediaServerItem, Map<String, Object> param) {
         return sendPost(mediaServerItem, "stopSendRtp",param, null);
     }
@@ -378,6 +382,7 @@ public class ZLMRESTfulUtils {
         param.put("url", streamUrl);
         param.put("timeout_sec", timeout_sec);
         param.put("expire_sec", expire_sec);
+        param.put("async", 1);
         sendGetForImg(mediaServerItem, "getSnap", param, targetPath, fileName);
     }
 

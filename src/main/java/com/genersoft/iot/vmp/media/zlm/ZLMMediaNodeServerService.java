@@ -38,16 +38,21 @@ public class ZLMMediaNodeServerService implements IMediaNodeServerService {
 
     @Override
     public int createRTPServer(MediaServer mediaServer, String streamId, long ssrc, Integer port, Boolean onlyAuto, Boolean disableAudio, Boolean reUsePort, Integer tcpMode) {
-        return zlmServerFactory.createRTPServer(mediaServer, streamId, ssrc, port, onlyAuto, reUsePort, tcpMode);
-    }
-
-    @Override
-    public void closeRtpServer(MediaServer mediaServer, String streamId) {
-        zlmServerFactory.closeRtpServer(mediaServer, streamId);
+        return zlmServerFactory.createRTPServer(mediaServer, "rtp", streamId, ssrc, port, onlyAuto, disableAudio, reUsePort, tcpMode);
     }
 
     @Override
     public void closeRtpServer(MediaServer mediaServer, String streamId, CommonCallback<Boolean> callback) {
+        zlmServerFactory.closeRtpServer(mediaServer, streamId, callback);
+    }
+
+    @Override
+    public int createJTTServer(MediaServer mediaServer, String streamId, Integer port, Boolean disableVideo, Boolean disableAudio, Integer tcpMode) {
+        return zlmServerFactory.createRTPServer(mediaServer, "1078", streamId, 0, port, disableVideo, disableAudio, false, tcpMode);
+    }
+
+    @Override
+    public void closeJTTServer(MediaServer mediaServer, String streamId, CommonCallback<Boolean> callback) {
         zlmServerFactory.closeRtpServer(mediaServer, streamId, callback);
     }
 
@@ -250,7 +255,13 @@ public class ZLMMediaNodeServerService implements IMediaNodeServerService {
     }
 
     @Override
-    public void getSnap(MediaServer mediaServer, String streamUrl, int timeoutSec, int expireSec, String path, String fileName) {
+    public void getSnap(MediaServer mediaServer, String app, String stream, int timeoutSec, int expireSec, String path, String fileName) {
+        String streamUrl;
+        if (mediaServer.getRtspPort() != 0) {
+            streamUrl = String.format("rtsp://127.0.0.1:%s/%s/%s", mediaServer.getRtspPort(), "rtp", stream);
+        } else {
+            streamUrl = String.format("http://127.0.0.1:%s/%s/%s.live.mp4", mediaServer.getHttpPort(), "rtp", stream);
+        }
         zlmresTfulUtils.getSnap(mediaServer, streamUrl, timeoutSec, expireSec, path, fileName);
     }
 
@@ -364,6 +375,7 @@ public class ZLMMediaNodeServerService implements IMediaNodeServerService {
         param.put("only_audio", sendRtpItem.isOnlyAudio() ? "1" : "0");
         param.put("is_udp", sendRtpItem.isTcp() ? "0" : "1");
         param.put("recv_stream_id", sendRtpItem.getReceiveStream());
+        param.put("enable_origin_recv_limit", "1");
         if (timeout  != null) {
             param.put("close_delay_ms", timeout);
         }
@@ -399,6 +411,7 @@ public class ZLMMediaNodeServerService implements IMediaNodeServerService {
         param.put("use_ps", sendRtpItem.isUsePs() ? "1" : "0");
         param.put("only_audio", sendRtpItem.isOnlyAudio() ? "1" : "0");
         param.put("is_udp", sendRtpItem.isTcp() ? "0" : "1");
+        param.put("enable_origin_recv_limit", "1");
         if (!sendRtpItem.isTcp()) {
             // udp模式下开启rtcp保活
             param.put("udp_rtcp_timeout", sendRtpItem.isRtcp() ? "500" : "0");
@@ -415,6 +428,29 @@ public class ZLMMediaNodeServerService implements IMediaNodeServerService {
     }
 
     @Override
+    public Integer startSendRtpTalk(MediaServer mediaServer, SendRtpInfo sendRtpItem, Integer timeout) {
+        Map<String, Object> param = new HashMap<>(12);
+        param.put("vhost","__defaultVhost__");
+        param.put("app", sendRtpItem.getApp());
+        param.put("stream", sendRtpItem.getStream());
+        param.put("ssrc", sendRtpItem.getSsrc());
+        param.put("pt", sendRtpItem.getPt());
+        param.put("type", sendRtpItem.isUsePs() ? "1" : "0");
+        param.put("only_audio", sendRtpItem.isOnlyAudio() ? "1" : "0");
+        param.put("recv_stream_id", sendRtpItem.getReceiveStream());
+        param.put("enable_origin_recv_limit", "1");
+        JSONObject jsonObject = zlmServerFactory.startSendRtpTalk(mediaServer, param, null);
+        if (jsonObject == null || jsonObject.getInteger("code") != 0 ) {
+            log.error("启动监听TCP被动推流失败: {}, 参数：{}", jsonObject.getString("msg"), JSON.toJSONString(param));
+            throw new ControllerException(jsonObject.getInteger("code"), jsonObject.getString("msg"));
+        }
+        log.info("调用ZLM-TCP被动推流接口, 结果： {}",  jsonObject);
+        log.info("启动监听TCP被动推流成功[ {}/{} ]，{}->{}:{}, " , sendRtpItem.getApp(), sendRtpItem.getStream(),
+                jsonObject.getString("local_port"), param.get("dst_url"), param.get("dst_port"));
+        return jsonObject.getInteger("local_port");
+    }
+
+    @Override
     public Long updateDownloadProcess(MediaServer mediaServer, String app, String stream) {
         MediaInfo mediaInfo = getMediaInfo(mediaServer, app, stream);
         if (mediaInfo == null) {
@@ -425,7 +461,7 @@ public class ZLMMediaNodeServerService implements IMediaNodeServerService {
     }
 
     @Override
-    public StreamInfo startProxy(MediaServer mediaServer, StreamProxy streamProxy) {
+    public void startProxy(MediaServer mediaServer, StreamProxy streamProxy) {
         String dstUrl;
         if ("ffmpeg".equalsIgnoreCase(streamProxy.getType())) {
 
@@ -463,10 +499,6 @@ public class ZLMMediaNodeServerService implements IMediaNodeServerService {
         MediaInfo mediaInfo = getMediaInfo(mediaServer, streamProxy.getApp(), streamProxy.getStream());
 
         if (mediaInfo != null) {
-            if (mediaInfo.getOriginUrl() != null && mediaInfo.getOriginUrl().equals(streamProxy.getSrcUrl())) {
-                log.info("[启动拉流代理] 已存在， 直接返回， app： {}, stream: {}", mediaInfo.getApp(), streamProxy.getStream());
-                return getStreamInfoByAppAndStream(mediaServer, streamProxy.getApp(), streamProxy.getStream(), mediaInfo, null, true);
-            }
             closeStreams(mediaServer, streamProxy.getApp(), streamProxy.getStream());
         }
 
@@ -490,15 +522,6 @@ public class ZLMMediaNodeServerService implements IMediaNodeServerService {
             JSONObject data = jsonObject.getJSONObject("data");
             if (data == null) {
                 throw new ControllerException(jsonObject.getInteger("code"), "代理结果异常： " + jsonObject);
-            }else {
-                streamProxy.setStreamKey(data.getString("key"));
-                // 由于此时流未注册，手动拼装流信息
-                mediaInfo = new MediaInfo();
-                mediaInfo.setApp(streamProxy.getApp());
-                mediaInfo.setStream(streamProxy.getStream());
-                mediaInfo.setOriginType(4);
-                mediaInfo.setOriginTypeStr("pull");
-                return getStreamInfoByAppAndStream(mediaServer, streamProxy.getApp(), streamProxy.getStream(), mediaInfo, null, true);
             }
         }
     }
