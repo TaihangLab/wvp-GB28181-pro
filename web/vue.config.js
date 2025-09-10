@@ -40,14 +40,14 @@ module.exports = {
     // before: require('./mock/mock-server.js'),
     proxy: {
       "/dev-api": {
-        target: "http://192.168.1.107:18080",
+        target: "http://127.0.0.1:18080",
         changeOrigin: true,
         pathRewrite: {
           "^/dev-api": "/",
         },
       },
       "/static/snap": {
-        target: "http://192.168.1.107:18080",
+        target: "http://127.0.0.1:18080",
         changeOrigin: true,
         // pathRewrite: {
         //   '^/static/snap': '/static/snap'

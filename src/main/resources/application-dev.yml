@@ -15,20 +15,20 @@ spring:
   # REDIS数据库配置
   redis:
     # [必须修改] Redis服务器IP, REDIS安装在本机的,使用127.0.0.1
-    host: 192.168.1.107
+    host: 192.168.0.16
     # [必须修改] 端口号
     port: 6379
     # [可选] 数据库 DB
     database: 7
     # [可选] 访问密码,若你的redis服务器没有设置密码，就不需要用密码去连接
-    password: ruoyi123
+    password:
     # [可选] 超时时间
     timeout: 10000
     # mysql数据源
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.1.107:3306/wvp?useUnicode=true&characterEncoding=UTF8&rewriteBatchedStatements=true&serverTimezone=PRC&useSSL=false&allowMultiQueries=true&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1:3306/wvp?useUnicode=true&characterEncoding=UTF8&rewriteBatchedStatements=true&serverTimezone=PRC&useSSL=false&allowMultiQueries=true&allowPublicKeyRetrieval=true
     username: root
     password: root
 #[可选] WVP监听的HTTP端口, 网页和接口调用都是这个端口
@@ -66,9 +66,9 @@ sip:
 media:
   id: XwFtVZrtZbHJq4UV
   # [必须修改] zlm服务器的内网IP
-  ip: 192.168.1.107
+  ip: 192.168.0.16
   # [必须修改] zlm服务器的http.port
-  hook-ip: 192.168.1.107
+  hook-ip: 192.168.0.16
   http-port: 9092
   # [必选选] zlm服务器的hook.admin_params=secret
   secret: 7TFF0VJ9B1JZcUdDGnufYWUaskpwW3EG

@@ -565,19 +565,19 @@ public class ChannelController {
                 }
 
                 // 构建流URL并请求截图
-                String streamUrl;
-                if (mediaServer.getRtspPort() != 0) {
-                    streamUrl = String.format("rtsp://127.0.0.1:%s/%s/%s", mediaServer.getRtspPort(), app, stream);
-                } else {
-                    streamUrl = String.format("http://127.0.0.1:%s/%s/%s.live.mp4", mediaServer.getHttpPort(), app, stream);
-                }
+//                String streamUrl;
+//                if (mediaServer.getRtspPort() != 0) {
+//                    streamUrl = String.format("rtsp://127.0.0.1:%s/%s/%s", mediaServer.getRtspPort(), app, stream);
+//                } else {
+//                    streamUrl = String.format("http://127.0.0.1:%s/%s/%s.live.mp4", mediaServer.getHttpPort(), app, stream);
+//                }
 
                 String path = "snap";
                 String pushFileName = app + "_" + stream + "_" +  DateUtil.getNowForUrl() + ".jpg";
 
                 // 请求截图
                 log.info("[请求推流设备截图]: " + pushFileName);
-                mediaServerService.getSnap(mediaServer, streamUrl, 15, 1, path, pushFileName);
+                mediaServerService.getSnap(mediaServer, app, stream, 15, 1, path, pushFileName);
 
                 File snapFile = new File(path + File.separator + pushFileName);
                 if (snapFile.exists()) {
@@ -614,19 +614,19 @@ public class ChannelController {
                 }
 
                 // 构建流URL并请求截图
-                String proxyStreamUrl;
-                if (proxyMediaServer.getRtspPort() != 0) {
-                    proxyStreamUrl = String.format("rtsp://127.0.0.1:%s/%s/%s", proxyMediaServer.getRtspPort(), app, stream);
-                } else {
-                    proxyStreamUrl = String.format("http://127.0.0.1:%s/%s/%s.live.mp4", proxyMediaServer.getHttpPort(), app, stream);
-                }
+//                String proxyStreamUrl;
+//                if (proxyMediaServer.getRtspPort() != 0) {
+//                    proxyStreamUrl = String.format("rtsp://127.0.0.1:%s/%s/%s", proxyMediaServer.getRtspPort(), app, stream);
+//                } else {
+//                    proxyStreamUrl = String.format("http://127.0.0.1:%s/%s/%s.live.mp4", proxyMediaServer.getHttpPort(), app, stream);
+//                }
 
                 String proxyPath = "snap";
                 String proxyFileName = app + "_" + stream + "_" +  DateUtil.getNowForUrl() +  ".jpg";
 
                 // 请求截图
                 log.info("[请求拉流代理截图]: " + proxyFileName);
-                mediaServerService.getSnap(proxyMediaServer, proxyStreamUrl, 15, 1, proxyPath, proxyFileName);
+                mediaServerService.getSnap(proxyMediaServer, app, stream, 15, 1, proxyPath, proxyFileName);
 
                 File proxySnapFile = new File(proxyPath + File.separator + proxyFileName);
                 if (proxySnapFile.exists()) {

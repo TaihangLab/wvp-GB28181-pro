@@ -84,19 +84,19 @@ public class StreamPushSnapshotController {
             return result;
         }
 
-        String streamUrl;
-        if (mediaServer.getRtspPort() != 0) {
-            streamUrl = String.format("rtsp://127.0.0.1:%s/%s/%s", mediaServer.getRtspPort(), app, stream);
-        } else {
-            streamUrl = String.format("http://127.0.0.1:%s/%s/%s.live.mp4", mediaServer.getHttpPort(), app, stream);
-        }
+//        String streamUrl;
+//        if (mediaServer.getRtspPort() != 0) {
+//            streamUrl = String.format("rtsp://127.0.0.1:%s/%s/%s", mediaServer.getRtspPort(), app, stream);
+//        } else {
+//            streamUrl = String.format("http://127.0.0.1:%s/%s/%s.live.mp4", mediaServer.getHttpPort(), app, stream);
+//        }
         String path = "snap";
         String fileName = app + "_" + stream + "_" + DateUtil.getNowForUrl() + ".jpg";
         // String fileName = app + "_" + stream + ".jpg";
         
         // 请求截图
         log.info("[请求推流设备截图]: " + fileName);
-        mediaServerService.getSnap(mediaServer, streamUrl, 15, 1, path, fileName);
+        mediaServerService.getSnap(mediaServer, app, stream, 15, 1, path, fileName);
         
         File snapFile = new File(path + File.separator + fileName);
         if (snapFile.exists()) {
