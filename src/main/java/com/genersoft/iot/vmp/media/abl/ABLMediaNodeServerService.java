@@ -229,6 +229,12 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
     }
 
     @Override
+    public byte[] getSnapBytes(MediaServer mediaServer, String app, String stream, int timeoutSec) {
+        logger.warn("[abl-getSnapBytes] ABL媒体服务器暂不支持直接获取截图字节流");
+        return null;
+    }
+
+    @Override
     public MediaInfo getMediaInfo(MediaServer mediaServer, String app, String stream) {
         JSONObject jsonObject = ablresTfulUtils.getMediaList(mediaServer, app, stream);
         if (jsonObject == null || jsonObject.getInteger("code") != 0) {

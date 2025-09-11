@@ -647,6 +647,95 @@ public class ChannelController {
         return result;
     }
 
+    @Operation(summary = "获取全局通道截图并直接返回图片流（高效模式）", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @Parameter(name = "channelId", description = "全局通道ID", required = true)
+    @GetMapping("/snap/stream")
+    public void getSnapStream(HttpServletResponse resp, int channelId) {
+        // 获取通道信息
+        CommonGBChannel channel = channelService.getOne(channelId);
+        Assert.notNull(channel, "通道不存在");
+
+        try {
+            byte[] imageBytes = null;
+            String app, stream;
+
+            // 根据通道类型调用不同的截图服务
+            switch (channel.getDataType()) {
+                case 1: // 国标设备
+                    String deviceId = channel.getGbDeviceId();
+                    playService.getSnapBytes(deviceId, deviceId, (code, msg, data) -> {
+                        try {
+                            if (code == InviteErrorCode.SUCCESS.getCode() && data != null) {
+                                resp.setContentType(MediaType.IMAGE_JPEG_VALUE);
+                                resp.setContentLength(data.length);
+                                resp.getOutputStream().write(data);
+                                resp.getOutputStream().flush();
+                            } else {
+                                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                            }
+                        } catch (IOException e) {
+                            log.error("返回国标设备截图流时发生错误: {}", e.getMessage());
+                            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        }
+                    });
+                    return;
+
+                case 2: // 推流设备
+                    StreamPush streamPush = streamPushService.getPush(channel.getDataDeviceId());
+                    if (streamPush == null) {
+                        resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
+
+                    MediaServer mediaServer = mediaServerService.getOne(streamPush.getMediaServerId());
+                    if (mediaServer == null) {
+                        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        return;
+                    }
+
+                    app = streamPush.getApp();
+                    stream = streamPush.getStream();
+                    imageBytes = mediaServerService.getSnapBytes(mediaServer, app, stream, 15);
+                    break;
+
+                case 3: // 拉流代理
+                    StreamProxy streamProxy = streamProxyService.getStreamProxyById(channel.getDataDeviceId());
+                    if (streamProxy == null) {
+                        resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
+
+                    MediaServer proxyMediaServer = mediaServerService.getOne(streamProxy.getMediaServerId());
+                    if (proxyMediaServer == null) {
+                        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        return;
+                    }
+
+                    app = streamProxy.getApp();
+                    stream = streamProxy.getStream();
+                    imageBytes = mediaServerService.getSnapBytes(proxyMediaServer, app, stream, 15);
+                    break;
+
+                default:
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+            }
+
+            if (imageBytes != null && imageBytes.length > 0) {
+                resp.setContentType(MediaType.IMAGE_JPEG_VALUE);
+                resp.setContentLength(imageBytes.length);
+                resp.getOutputStream().write(imageBytes);
+                resp.getOutputStream().flush();
+            } else {
+                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            }
+
+        } catch (IOException e) {
+            log.error("返回截图流时发生错误: {}", e.getMessage());
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @Operation(summary = "返回全局通道截图图片")
     @Parameter(name = "channelId", description = "全局通道ID", required = true)
     @Parameter(name = "mark", description = "标识", required = false)

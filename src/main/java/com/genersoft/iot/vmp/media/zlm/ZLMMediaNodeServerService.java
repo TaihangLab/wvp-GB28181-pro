@@ -266,6 +266,17 @@ public class ZLMMediaNodeServerService implements IMediaNodeServerService {
     }
 
     @Override
+    public byte[] getSnapBytes(MediaServer mediaServer, String app, String stream, int timeoutSec) {
+        String streamUrl;
+        if (mediaServer.getRtspPort() != 0) {
+            streamUrl = String.format("rtsp://127.0.0.1:%s/%s/%s", mediaServer.getRtspPort(), app, stream);
+        } else {
+            streamUrl = String.format("http://127.0.0.1:%s/%s/%s.live.mp4", mediaServer.getHttpPort(), app, stream);
+        }
+        return zlmresTfulUtils.getSnapBytes(mediaServer, streamUrl, timeoutSec);
+    }
+
+    @Override
     public MediaInfo getMediaInfo(MediaServer mediaServer, String app, String stream) {
         JSONObject jsonObject = zlmresTfulUtils.getMediaInfo(mediaServer, app, "rtsp", stream);
         if (jsonObject.getInteger("code") != 0) {

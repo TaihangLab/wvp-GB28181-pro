@@ -1668,6 +1668,34 @@ public class PlayServiceImpl implements IPlayService {
     }
 
     @Override
+    public void getSnapBytes(String deviceId, String channelId, ErrorCallback<byte[]> errorCallback) {
+        Device device = deviceService.getDeviceByDeviceId(deviceId);
+        Assert.notNull(device, "设备不存在");
+        DeviceChannel channel = deviceChannelService.getOne(deviceId, channelId);
+        Assert.notNull(channel, "通道不存在");
+        InviteInfo inviteInfo = inviteStreamService.getInviteInfoByDeviceAndChannel(InviteSessionType.PLAY, channel.getId());
+        if (inviteInfo != null) {
+            if (inviteInfo.getStreamInfo() != null) {
+                // 已在线直接截图
+                MediaServer mediaServer = inviteInfo.getStreamInfo().getMediaServer();
+                // 请求截图字节流
+                log.info("[请求截图字节流]: {}_{}", deviceId, channelId);
+                byte[] imageBytes = mediaServerService.getSnapBytes(mediaServer, "rtp", inviteInfo.getStreamInfo().getStream(), 15);
+                if (imageBytes != null && imageBytes.length > 0) {
+                    errorCallback.run(InviteErrorCode.SUCCESS.getCode(), InviteErrorCode.SUCCESS.getMsg(), imageBytes);
+                } else {
+                    errorCallback.run(InviteErrorCode.FAIL.getCode(), "截图失败", null);
+                }
+                return;
+            }
+        }
+
+        // 如果设备未在线，则通过SIP协议启动播放并截图
+        // 这里先简化处理，返回未实现状态
+        errorCallback.run(InviteErrorCode.ERROR_FOR_PARAMETER_ERROR.getCode(), "设备未在线，暂不支持高效截图模式", null);
+    }
+
+    @Override
     public void stop(InviteSessionType type, Device device, DeviceChannel channel, String stream) {
         if (!userSetting.getServerId().equals(device.getServerId())) {
             redisRpcPlayService.stop(device.getServerId(), type,  channel.getId(), stream);

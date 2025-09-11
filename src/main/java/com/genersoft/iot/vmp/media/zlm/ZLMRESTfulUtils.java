@@ -217,6 +217,49 @@ public class ZLMRESTfulUtils {
         }
     }
 
+    /**
+     * 获取截图并直接返回字节数组，不写入磁盘
+     */
+    public byte[] getSnapBytes(MediaServer mediaServerItem, String api, Map<String, Object> params) {
+        String url = String.format("http://%s:%s/index/api/%s", mediaServerItem.getIp(), mediaServerItem.getHttpPort(), api);
+        HttpUrl parseUrl = HttpUrl.parse(url);
+        if (parseUrl == null) {
+            return null;
+        }
+        HttpUrl.Builder httpBuilder = parseUrl.newBuilder();
+
+        httpBuilder.addQueryParameter("secret", mediaServerItem.getSecret());
+        if (params != null) {
+            for (Map.Entry<String, Object> param : params.entrySet()) {
+                httpBuilder.addQueryParameter(param.getKey(), param.getValue().toString());
+            }
+        }
+
+        Request request = new Request.Builder()
+                .url(httpBuilder.build())
+                .build();
+        if (log.isDebugEnabled()){
+            log.debug(request.toString());
+        }
+        try {
+            OkHttpClient client = getClient();
+            Response response = client.newCall(request).execute();
+            if (response.isSuccessful()) {
+                return Objects.requireNonNull(response.body()).bytes();
+            } else {
+                log.error(String.format("[ %s ]请求失败: %s %s", url, response.code(), response.message()));
+                return null;
+            }
+        } catch (ConnectException e) {
+            log.error(String.format("连接ZLM失败: %s, %s", e.getCause().getMessage(), e.getMessage()));
+            log.info("请检查media配置并确认ZLM已启动...");
+            return null;
+        } catch (IOException e) {
+            log.error(String.format("[ %s ]请求失败: %s", url, e.getMessage()));
+            return null;
+        }
+    }
+
     public JSONObject isMediaOnline(MediaServer mediaServerItem, String app, String stream, String schema){
         Map<String, Object> param = new HashMap<>();
         if (app != null) {
@@ -384,6 +427,18 @@ public class ZLMRESTfulUtils {
         param.put("expire_sec", expire_sec);
         param.put("async", 1);
         sendGetForImg(mediaServerItem, "getSnap", param, targetPath, fileName);
+    }
+
+    /**
+     * 获取截图并直接返回字节数组，不写入磁盘文件
+     */
+    public byte[] getSnapBytes(MediaServer mediaServerItem, String streamUrl, int timeout_sec) {
+        Map<String, Object> param = new HashMap<>(3);
+        param.put("url", streamUrl);
+        param.put("timeout_sec", timeout_sec);
+        param.put("expire_sec", 1);
+        param.put("async", 0); // 同步获取
+        return getSnapBytes(mediaServerItem, "getSnap", param);
     }
 
     public JSONObject pauseRtpCheck(MediaServer mediaServerItem, String streamId) {

@@ -66,6 +66,8 @@ public interface IPlayService {
 
     void getSnap(String deviceId, String channelId, String fileName, ErrorCallback errorCallback);
 
+    void getSnapBytes(String deviceId, String channelId, ErrorCallback<byte[]> errorCallback);
+
     void stop(InviteSessionType type, Device device, DeviceChannel channel, String stream);
 
     void stop(InviteInfo inviteInfo);

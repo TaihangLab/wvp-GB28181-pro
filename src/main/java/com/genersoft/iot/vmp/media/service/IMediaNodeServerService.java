@@ -44,6 +44,8 @@ public interface IMediaNodeServerService {
 
     void getSnap(MediaServer mediaServer, String app, String stream, int timeoutSec, int expireSec, String path, String fileName);
 
+    byte[] getSnapBytes(MediaServer mediaServer, String app, String stream, int timeoutSec);
+
     MediaInfo getMediaInfo(MediaServer mediaServer, String app, String stream);
 
     Boolean pauseRtpCheck(MediaServer mediaServer, String streamKey);
