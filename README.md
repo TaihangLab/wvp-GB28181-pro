@@ -23,9 +23,13 @@ WEB VIDEO PLATFORM是一个基于GB28181-2016、部标808、部标1078标准实�
 - 支持跨网网闸平台互联。
 
 
-# 文档
+# 接口文档
 wvp使用文档 [https://doc.wvp-pro.cn](https://doc.wvp-pro.cn)  
 ZLM使用文档 [https://github.com/ZLMediaKit/ZLMediaKit](https://github.com/ZLMediaKit/ZLMediaKit)
+
+# 接口文档
+Knife4j文档 [http://localhost:18080/doc.html#/home](http://localhost:18080/doc.html#/home) 
+SpringDoc/Swagger UI  [http://localhost:18080/swagger-ui/index.html](http://localhost:18080/swagger-ui/index.html)
 
 # gitee仓库
 https://gitee.com/pan648540858/wvp-GB28181-pro.git
