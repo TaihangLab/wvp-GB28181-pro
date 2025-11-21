@@ -8,7 +8,6 @@ import com.genersoft.iot.vmp.gb28181.bean.RegionTree;
 import com.genersoft.iot.vmp.gb28181.dao.CommonGBChannelMapper;
 import com.genersoft.iot.vmp.gb28181.dao.RegionMapper;
 import com.genersoft.iot.vmp.gb28181.event.EventPublisher;
-import com.genersoft.iot.vmp.gb28181.event.subscribe.catalog.CatalogEvent;
 import com.genersoft.iot.vmp.gb28181.service.IGbChannelService;
 import com.genersoft.iot.vmp.gb28181.service.IRegionService;
 import com.genersoft.iot.vmp.utils.CivilCodeUtil;
@@ -125,7 +124,7 @@ public class RegionServiceImpl implements IRegionService {
         // 发送变化通知
         try {
             // 发送catalog
-            eventPublisher.catalogEventPublish(null, CommonGBChannel.build(region), CatalogEvent.UPDATE);
+            eventPublisher.channelEventPublishForUpdate(CommonGBChannel.build(region), null);
         }catch (Exception e) {
             log.warn("[行政区划变化] 发送失败，{}", region.getDeviceId(), e);
         }
@@ -237,8 +236,9 @@ public class RegionServiceImpl implements IRegionService {
             throw new ControllerException(ErrorCode.ERROR100.getCode(), "行政区划不存在");
         }
         List<Region> allParent = getAllParent(region);
-        allParent.add(region);
-        return allParent;
+        List<Region> regionList = new LinkedList<>(allParent);
+        regionList.add(region);
+        return regionList;
     }
 
 
@@ -247,15 +247,13 @@ public class RegionServiceImpl implements IRegionService {
             return new ArrayList<>();
         }
 
-        List<Region> regionList = new LinkedList<>();
         Region parent = regionMapper.queryByDeviceId(region.getParentDeviceId());
         if (parent == null) {
-            return regionList;
+            return new ArrayList<>();
         }
-        regionList.add(parent);
         List<Region> allParent = getAllParent(parent);
-        regionList.addAll(allParent);
-        return regionList;
+        allParent.add(parent);
+        return allParent;
     }
 
     @Override

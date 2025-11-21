@@ -41,13 +41,11 @@ export function update(data) {
   })
 }
 
-export function reset(id) {
+export function reset(data) {
   return request({
     method: 'post',
     url: '/api/common/channel/reset',
-    params: {
-      id: id
-    }
+    data: data
   })
 }
 
@@ -60,7 +58,7 @@ export function add(data) {
 }
 
 export function getList(params) {
-  const { page, count, query, online, hasRecordPlan, channelType } = params
+  const { page, count, query, online, hasRecordPlan, channelType, civilCode, parentDeviceId } = params
   return request({
     method: 'get',
     url: '/api/common/channel/list',
@@ -70,7 +68,9 @@ export function getList(params) {
       channelType: channelType,
       query: query,
       online: online,
-      hasRecordPlan: hasRecordPlan
+      hasRecordPlan: hasRecordPlan,
+      civilCode: civilCode,
+      parentDeviceId: parentDeviceId
     }
   })
 }
@@ -583,6 +583,76 @@ export function speedPlayback({ channelId, stream, speed}) {
       channelId: channelId,
       stream: stream,
       speed: speed
+    }
+  })
+}
+export function getAllForMap({ query, online, hasRecordPlan, channelType }) {
+  return request({
+    method: 'get',
+    url: '/api/common/channel/map/list',
+    params: {
+      query: query,
+      online: online,
+      hasRecordPlan: hasRecordPlan,
+      channelType: channelType
+    }
+  })
+}
+export function saveLevel(data) {
+  return request({
+    method: 'post',
+    url: '/api/common/channel/map/save-level',
+    data: data
+  })
+}
+export function resetLevel() {
+  return request({
+    method: 'post',
+    url: '/api/common/channel/map/reset-level'
+  })
+}
+export function clearThin(id) {
+  return request({
+    method: 'get',
+    url: '/api/common/channel/map/thin/clear',
+    params: {
+      id: id
+    }
+  })
+}
+export function thinProgress(id) {
+  return request({
+    method: 'get',
+    url: '/api/common/channel/map/thin/progress',
+    params: {
+      id: id
+    }
+  })
+}
+export function saveThin(id) {
+  return request({
+    method: 'get',
+    url: '/api/common/channel/map/thin/save',
+    params: {
+      id: id
+    }
+  })
+}
+export function drawThin(data) {
+  return request({
+    method: 'post',
+    url: '/api/common/channel/map/thin/draw',
+    data: data
+  })
+}
+export function test() {
+  return request({
+    method: 'get',
+    url: '/api/sy/camera/list/ids',
+    params: {
+      deviceIds: ['a', 'b', 'c'].join(','),
+      geoCoordSys: 'GCJ02',
+      traditional: true
     }
   })
 }

@@ -9,7 +9,7 @@
             placeholder="关键字"
             prefix-icon="el-icon-search"
             clearable
-            @input="getPushList"
+            @input="queryList"
           />
         </el-form-item>
         <el-form-item label="流媒体">
@@ -18,7 +18,7 @@
             style="margin-right: 1rem;"
             placeholder="请选择"
             default-first-option
-            @change="getPushList"
+            @change="queryList"
           >
             <el-option label="全部" value="" />
             <el-option
@@ -35,7 +35,7 @@
             style="margin-right: 1rem;"
             placeholder="请选择"
             default-first-option
-            @change="getPushList"
+            @change="queryList"
           >
             <el-option label="全部" value="" />
             <el-option label="推流中" value="true" />
@@ -93,6 +93,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="gbDeviceId" label="国标编码" min-width="200" />
+        <el-table-column label="国标状态" min-width="100">
+          <template v-slot:default="scope">
+            <el-tag v-if="scope.row.gbStatus === 'ON' " size="medium">在线</el-tag>
+            <el-tag v-if="scope.row.gbStatus !== 'ON' " size="medium" type="info">离线</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="位置信息" min-width="150">
           <template v-slot:default="scope">
             <span v-if="scope.row.gbLongitude && scope.row.gbLatitude" size="medium">{{ scope.row.gbLongitude }}<br>{{ scope.row.gbLatitude }}</span>
@@ -137,7 +143,7 @@
     <devicePlayer ref="devicePlayer" />
     <addStreamTOGB ref="addStreamTOGB" />
     <importChannel ref="importChannel" />
-    <stream-push-edit v-if="streamPush" :stream-push="streamPush" :close-edit="closeEdit" style="height: calc(100vh - 90px);" />
+    <stream-push-edit v-if="streamPush" :stream-push="streamPush" :close-edit="closeEdit" />
     <buildPushStreamUrl ref="buildPushStreamUrl" />
   </div>
 </template>
@@ -200,6 +206,11 @@ export default {
       this.count = val
       this.getPushList()
     },
+    queryList: function() {
+      this.currentPage = 1
+      this.total = 0
+      this.getPushList()
+    },
     getPushList: function() {
       this.$store.dispatch('streamPush/queryList', {
         page: this.currentPage,
@@ -238,7 +249,7 @@ export default {
         })
     },
     deletePush: function(id) {
-      this.$confirm(`确定删除通道?`, '提示', {
+      this.$confirm('确定删除通道?', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
@@ -246,6 +257,10 @@ export default {
         this.loading = true
         this.$store.dispatch('streamPush/remove', id)
           .then((data) => {
+            this.$message.success({
+              showClose: true,
+              message: '删除成功'
+            })
             this.initData()
           })
       }).catch(() => {

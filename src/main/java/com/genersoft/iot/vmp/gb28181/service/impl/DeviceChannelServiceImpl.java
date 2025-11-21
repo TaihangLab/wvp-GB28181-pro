@@ -1,6 +1,5 @@
 package com.genersoft.iot.vmp.gb28181.service.impl;
 
-import com.alibaba.fastjson2.JSONObject;
 import com.genersoft.iot.vmp.common.InviteInfo;
 import com.genersoft.iot.vmp.common.InviteSessionType;
 import com.genersoft.iot.vmp.common.enums.ChannelDataType;
@@ -8,7 +7,6 @@ import com.genersoft.iot.vmp.common.enums.DeviceControlType;
 import com.genersoft.iot.vmp.conf.UserSetting;
 import com.genersoft.iot.vmp.conf.exception.ControllerException;
 import com.genersoft.iot.vmp.gb28181.bean.*;
-import com.genersoft.iot.vmp.gb28181.controller.bean.ChannelReduce;
 import com.genersoft.iot.vmp.gb28181.dao.DeviceChannelMapper;
 import com.genersoft.iot.vmp.gb28181.dao.DeviceMapper;
 import com.genersoft.iot.vmp.gb28181.dao.DeviceMobilePositionMapper;
@@ -24,12 +22,14 @@ import com.genersoft.iot.vmp.gb28181.utils.SipUtils;
 import com.genersoft.iot.vmp.service.bean.ErrorCallback;
 import com.genersoft.iot.vmp.service.redisMsg.IRedisRpcPlayService;
 import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
+import com.genersoft.iot.vmp.utils.Coordtransform;
 import com.genersoft.iot.vmp.utils.DateUtil;
 import com.genersoft.iot.vmp.vmanager.bean.ErrorCode;
 import com.genersoft.iot.vmp.vmanager.bean.ResourceBaseInfo;
 import com.genersoft.iot.vmp.web.gb28181.dto.DeviceChannelExtend;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.dom4j.Element;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +43,6 @@ import org.springframework.util.ObjectUtils;
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
 import javax.sip.message.Response;
-import javax.validation.constraints.NotNull;
 import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -209,66 +208,6 @@ public class DeviceChannelServiceImpl implements IDeviceChannelService {
         return new ResourceBaseInfo(total, online);
     }
 
-
-    @Override
-    public List<ChannelReduce> queryAllChannelList(String platformId) {
-        return channelMapper.queryChannelListInAll(null, null, null, platformId, null);
-    }
-
-    @Override
-    public PageInfo<ChannelReduce> queryAllChannelList(int page, int count, String query, Boolean online, Boolean channelType, String platformId, String catalogId) {
-        PageHelper.startPage(page, count);
-        List<ChannelReduce> all = channelMapper.queryChannelListInAll(query, online, channelType, platformId, catalogId);
-        return new PageInfo<>(all);
-    }
-
-    @Override
-    public List<Device> getDeviceByChannelId(String channelId) {
-        return channelMapper.getDeviceByChannelDeviceId(channelId);
-    }
-
-    @Override
-    @Transactional
-    public int deleteChannelsForNotify(List<DeviceChannel> channels) {
-        int limitCount = 1000;
-        int result = 0;
-        if (!channels.isEmpty()) {
-            if (channels.size() > limitCount) {
-                for (int i = 0; i < channels.size(); i += limitCount) {
-                    int toIndex = i + limitCount;
-                    if (i + limitCount > channels.size()) {
-                        toIndex = channels.size();
-                    }
-                    result += channelMapper.batchDel(channels.subList(i, toIndex));
-                }
-            }else {
-                result += channelMapper.batchDel(channels);
-            }
-        }
-        return result;
-    }
-
-    @Transactional
-    @Override
-    public int updateChannelsStatus(List<DeviceChannel> channels) {
-        int limitCount = 1000;
-        int result = 0;
-        if (!channels.isEmpty()) {
-            if (channels.size() > limitCount) {
-                for (int i = 0; i < channels.size(); i += limitCount) {
-                    int toIndex = i + limitCount;
-                    if (i + limitCount > channels.size()) {
-                        toIndex = channels.size();
-                    }
-                    result += channelMapper.batchUpdateStatus(channels.subList(i, toIndex));
-                }
-            }else {
-                result += channelMapper.batchUpdateStatus(channels);
-            }
-        }
-        return result;
-    }
-
     @Override
     public void online(DeviceChannel channel) {
         channelMapper.online(channel.getId());
@@ -280,8 +219,8 @@ public class DeviceChannelServiceImpl implements IDeviceChannelService {
     }
 
     @Override
-    public void delete(DeviceChannel channel) {
-        channelMapper.del(channel.getId());
+    public void deleteForNotify(DeviceChannel channel) {
+        channelMapper.deleteForNotify(channel);
     }
 
     @Override
@@ -313,58 +252,6 @@ public class DeviceChannelServiceImpl implements IDeviceChannelService {
     }
 
     @Override
-    @Transactional
-    public synchronized void batchUpdateChannelForNotify(List<DeviceChannel> channels) {
-        String now = DateUtil.getNow();
-        for (DeviceChannel channel : channels) {
-            channel.setUpdateTime(now);
-        }
-        int limitCount = 1000;
-        if (!channels.isEmpty()) {
-            if (channels.size() > limitCount) {
-                for (int i = 0; i < channels.size(); i += limitCount) {
-                    int toIndex = i + limitCount;
-                    if (i + limitCount > channels.size()) {
-                        toIndex = channels.size();
-                    }
-                    channelMapper.batchUpdateForNotify(channels.subList(i, toIndex));
-                }
-            }else {
-                channelMapper.batchUpdateForNotify(channels);
-            }
-        }
-    }
-
-    @Override
-    @Transactional
-    public void batchAddChannel(List<DeviceChannel> channels) {
-        String now = DateUtil.getNow();
-        for (DeviceChannel channel : channels) {
-            channel.setUpdateTime(now);
-            channel.setCreateTime(now);
-        }
-        int limitCount = 1000;
-        if (!channels.isEmpty()) {
-            if (channels.size() > limitCount) {
-                for (int i = 0; i < channels.size(); i += limitCount) {
-                    int toIndex = i + limitCount;
-                    if (i + limitCount > channels.size()) {
-                        toIndex = channels.size();
-                    }
-                    channelMapper.batchAdd(channels.subList(i, toIndex));
-                }
-            }else {
-                channelMapper.batchAdd(channels);
-            }
-        }
-        for (DeviceChannel channel : channels) {
-            if (channel.getParentId() != null) {
-                channelMapper.updateChannelSubCount(channel.getDataDeviceId(), channel.getParentId());
-            }
-        }
-    }
-
-    @Override
     public void updateChannelStreamIdentification(DeviceChannel channel) {
         Assert.hasLength(channel.getStreamIdentification(), "码流标识必须存在");
         if (ObjectUtils.isEmpty(channel.getStreamIdentification())) {
@@ -387,11 +274,6 @@ public class DeviceChannelServiceImpl implements IDeviceChannelService {
             throw new ControllerException(ErrorCode.ERROR100.getCode(), "未找到通道：" + deviceId);
         }
         return channelMapper.queryChannelsByDeviceDbId(device.getId());
-    }
-
-    @Override
-    public List<DeviceChannel> queryChaneListByDeviceDbId(Integer deviceDbId) {
-        return channelMapper.queryChannelsByDeviceDbId(deviceDbId);
     }
 
     @Override
@@ -434,6 +316,17 @@ public class DeviceChannelServiceImpl implements IDeviceChannelService {
 
     @Override
     public void updateChannelGPS(Device device, DeviceChannel deviceChannel, MobilePosition mobilePosition) {
+
+        if (device.getGeoCoordSys().equalsIgnoreCase("GCJ02")) {
+            Double[] wgs84Position = Coordtransform.GCJ02ToWGS84(mobilePosition.getLongitude(), mobilePosition.getLatitude());
+            mobilePosition.setLongitude(wgs84Position[0]);
+            mobilePosition.setLatitude(wgs84Position[1]);
+
+            Double[] wgs84PositionForChannel = Coordtransform.GCJ02ToWGS84(deviceChannel.getLongitude(), deviceChannel.getLatitude());
+            deviceChannel.setGbLongitude(wgs84PositionForChannel[0]);
+            deviceChannel.setGbLatitude(wgs84PositionForChannel[1]);
+        }
+
         if (userSetting.getSavePositionHistory()) {
             deviceMobilePositionMapper.insertNewPosition(mobilePosition);
         }
@@ -468,22 +361,12 @@ public class DeviceChannelServiceImpl implements IDeviceChannelService {
         for (DeviceChannel channel : deviceChannels) {
             // 向关联了该通道并且开启移动位置订阅的上级平台发送移动位置订阅消息
             mobilePosition.setChannelId(channel.getId());
+            mobilePosition.setChannelDeviceId(channel.getDeviceId());
             try {
                 eventPublisher.mobilePositionEventPublish(mobilePosition);
             }catch (Exception e) {
                 log.error("[向上级转发移动位置失败] ", e);
             }
-            // 发送redis消息。 通知位置信息的变化
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("time", DateUtil.yyyy_MM_dd_HH_mm_ssToISO8601(mobilePosition.getTime()));
-            jsonObject.put("serial", mobilePosition.getDeviceId());
-            jsonObject.put("code", channel.getDeviceId());
-            jsonObject.put("longitude", mobilePosition.getLongitude());
-            jsonObject.put("latitude", mobilePosition.getLatitude());
-            jsonObject.put("altitude", mobilePosition.getAltitude());
-            jsonObject.put("direction", mobilePosition.getDirection());
-            jsonObject.put("speed", mobilePosition.getSpeed());
-            redisCatchStorage.sendMobilePositionMsg(jsonObject);
         }
     }
 
@@ -495,49 +378,6 @@ public class DeviceChannelServiceImpl implements IDeviceChannelService {
     @Override
     public void stopPlay(Integer channelId) {
         channelMapper.stopPlayById(channelId);
-    }
-
-    @Override
-    @Transactional
-    public void batchUpdateChannelGPS(List<DeviceChannel> channelList) {
-        for (DeviceChannel deviceChannel : channelList) {
-            deviceChannel.setUpdateTime(DateUtil.getNow());
-            if (deviceChannel.getGpsTime() == null) {
-                deviceChannel.setGpsTime(DateUtil.getNow());
-            }
-        }
-        int count = 1000;
-        if (channelList.size() > count) {
-            for (int i = 0; i < channelList.size(); i+=count) {
-                int toIndex = i+count;
-                if ( i + count > channelList.size()) {
-                    toIndex = channelList.size();
-                }
-                List<DeviceChannel> channels = channelList.subList(i, toIndex);
-                channelMapper.batchUpdatePosition(channels);
-            }
-        }else {
-            channelMapper.batchUpdatePosition(channelList);
-        }
-    }
-
-    @Override
-    @Transactional
-    public void batchAddMobilePosition(List<MobilePosition> mobilePositions) {
-//        int count = 500;
-//        if (mobilePositions.size() > count) {
-//            for (int i = 0; i < mobilePositions.size(); i+=count) {
-//                int toIndex = i+count;
-//                if ( i + count > mobilePositions.size()) {
-//                    toIndex = mobilePositions.size();
-//                }
-//                List<MobilePosition> mobilePositionsSub = mobilePositions.subList(i, toIndex);
-//                deviceMobilePositionMapper.batchadd(mobilePositionsSub);
-//            }
-//        }else {
-//            deviceMobilePositionMapper.batchadd(mobilePositions);
-//        }
-        deviceMobilePositionMapper.batchadd(mobilePositions);
     }
 
     @Override
@@ -774,7 +614,7 @@ public class DeviceChannelServiceImpl implements IDeviceChannelService {
     }
 
     @Override
-    public void updateChannelStatus(DeviceChannel channel) {
+    public void updateChannelStatusForNotify(DeviceChannel channel) {
         channelMapper.updateStatus(channel);
     }
 

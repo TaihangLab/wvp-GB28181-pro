@@ -5,8 +5,8 @@ import com.genersoft.iot.vmp.common.StreamInfo;
 import com.genersoft.iot.vmp.gb28181.bean.SendRtpInfo;
 import com.genersoft.iot.vmp.media.bean.MediaInfo;
 import com.genersoft.iot.vmp.media.bean.MediaServer;
-import com.genersoft.iot.vmp.service.bean.MediaServerLoad;
-import com.genersoft.iot.vmp.service.bean.SSRCInfo;
+import com.genersoft.iot.vmp.media.bean.RecordInfo;
+import com.genersoft.iot.vmp.service.bean.*;
 import com.genersoft.iot.vmp.streamProxy.bean.StreamProxy;
 import com.genersoft.iot.vmp.vmanager.bean.WVPResult;
 
@@ -70,6 +70,8 @@ public interface IMediaServerService {
     boolean checkMediaRecordServer(String ip, int port);
 
     void delete(MediaServer mediaServer);
+
+    MediaServer getOneFromCluster(String mediaServerId);
 
     MediaServer getDefaultMediaServer();
 
@@ -166,9 +168,13 @@ public interface IMediaServerService {
 
     List<String> listRtpServer(MediaServer mediaServer);
 
-    StreamInfo loadMP4File(MediaServer mediaServer, String app, String stream, String datePath);
+    void loadMP4FileForDate(MediaServer mediaServer, String app, String stream, String datePath, String dateDir, ErrorCallback<StreamInfo> callback);
 
     void seekRecordStamp(MediaServer mediaServer, String app, String stream, Double stamp, String schema);
 
     void setRecordSpeed(MediaServer mediaServer, String app, String stream, Integer speed, String schema);
+
+    DownloadFileInfo getDownloadFilePath(MediaServer mediaServer, RecordInfo recordInfo);
+
+    void loadMP4File(MediaServer mediaServer, String app, String stream, String filePath, String fileName, ErrorCallback<StreamInfo> callback);
 }

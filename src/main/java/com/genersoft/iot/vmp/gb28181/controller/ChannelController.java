@@ -5,19 +5,16 @@ import com.genersoft.iot.vmp.conf.UserSetting;
 import com.genersoft.iot.vmp.conf.exception.ControllerException;
 import com.genersoft.iot.vmp.conf.security.JwtUtils;
 import com.genersoft.iot.vmp.gb28181.bean.*;
-import com.genersoft.iot.vmp.gb28181.controller.bean.ChannelToGroupByGbDeviceParam;
-import com.genersoft.iot.vmp.gb28181.controller.bean.ChannelToGroupParam;
-import com.genersoft.iot.vmp.gb28181.controller.bean.ChannelToRegionByGbDeviceParam;
-import com.genersoft.iot.vmp.gb28181.controller.bean.ChannelToRegionParam;
+import com.genersoft.iot.vmp.gb28181.controller.bean.*;
 import com.genersoft.iot.vmp.gb28181.service.IGbChannelPlayService;
 import com.genersoft.iot.vmp.gb28181.service.IGbChannelService;
+import com.genersoft.iot.vmp.gb28181.utils.VectorTileCatch;
 import com.genersoft.iot.vmp.gb28181.service.IPlayService;
 import com.genersoft.iot.vmp.gb28181.transmit.callback.DeferredResultHolder;
 import com.genersoft.iot.vmp.media.bean.MediaServer;
 import com.genersoft.iot.vmp.media.service.IMediaServerService;
 import com.genersoft.iot.vmp.service.bean.ErrorCallback;
 import com.genersoft.iot.vmp.service.bean.InviteErrorCode;
-import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
 import com.genersoft.iot.vmp.utils.DateUtil;
 import com.genersoft.iot.vmp.vmanager.bean.ErrorCode;
 import com.genersoft.iot.vmp.streamProxy.bean.StreamProxy;
@@ -31,9 +28,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
@@ -43,9 +46,10 @@ import com.genersoft.iot.vmp.utils.DateUtil;
 import com.genersoft.iot.vmp.vmanager.bean.ErrorCode;
 import org.apache.commons.compress.utils.IOUtils;
 
+import java.beans.PropertyDescriptor;
 import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+//import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,7 +68,7 @@ import java.util.UUID;
 public class ChannelController {
 
     @Autowired
-    private IRedisCatchStorage redisCatchStorage;
+    private RedisTemplate<Object, Object> redisTemplate;
 
     @Autowired
     private IGbChannelService channelService;
@@ -90,6 +94,9 @@ public class ChannelController {
 
     @Autowired
     private UserSetting userSetting;
+
+    @Autowired
+    private VectorTileCatch vectorTileCatch;
 
 
     @Operation(summary = "查询通道信息", security = @SecurityRequirement(name = JwtUtils.HEADER))
@@ -120,13 +127,26 @@ public class ChannelController {
     @Operation(summary = "更新通道", security = @SecurityRequirement(name = JwtUtils.HEADER))
     @PostMapping("/update")
     public void update(@RequestBody CommonGBChannel channel){
+        BeanWrapperImpl wrapper = new BeanWrapperImpl(channel);
+        int count = 0;
+        for (PropertyDescriptor pd : wrapper.getPropertyDescriptors()) {
+            String name = pd.getName();
+            if ("class".equals(name)) continue;
+            if (pd.getReadMethod() == null) continue;
+            Object val = wrapper.getPropertyValue(name);
+            if (val != null) count++;
+        }
+        Assert.isTrue(count > 1, "未进行任何修改");
         channelService.update(channel);
     }
 
+
     @Operation(summary = "重置国标通道", security = @SecurityRequirement(name = JwtUtils.HEADER))
     @PostMapping("/reset")
-    public void reset(Integer id){
-        channelService.reset(id);
+    public void reset(@RequestBody ResetParam param){
+        Assert.notNull(param.getId(), "通道ID不能为空");
+        Assert.notEmpty(param.getChanelFields(), "待重置字段不可以空");
+        channelService.reset(param.getId(), param.getChanelFields());
     }
 
     @Operation(summary = "增加通道", security = @SecurityRequirement(name = JwtUtils.HEADER))
@@ -143,16 +163,26 @@ public class ChannelController {
     @Parameter(name = "online", description = "是否在线")
     @Parameter(name = "hasRecordPlan", description = "是否已设置录制计划")
     @Parameter(name = "channelType", description = "通道类型， 1：国标设备，2：推流设备，3：拉流代理")
+    @Parameter(name = "civilCode", description = "行政区划")
+    @Parameter(name = "parentDeviceId", description = "父节点编码")
     @GetMapping("/list")
     public PageInfo<CommonGBChannel> queryList(int page, int count,
                                                           @RequestParam(required = false) String query,
                                                           @RequestParam(required = false) Boolean online,
                                                           @RequestParam(required = false) Boolean hasRecordPlan,
-                                                          @RequestParam(required = false) Integer channelType){
+                                                          @RequestParam(required = false) Integer channelType,
+                                                          @RequestParam(required = false) String civilCode,
+                                                          @RequestParam(required = false) String parentDeviceId){
         if (ObjectUtils.isEmpty(query)){
             query = null;
         }
-        return channelService.queryList(page, count, query, online, hasRecordPlan, channelType);
+        if (ObjectUtils.isEmpty(civilCode)){
+            civilCode = null;
+        }
+        if (ObjectUtils.isEmpty(parentDeviceId)){
+            parentDeviceId = null;
+        }
+        return channelService.queryList(page, count, query, online, hasRecordPlan, channelType, civilCode, parentDeviceId);
     }
 
     @Operation(summary = "获取关联行政区划通道列表", security = @SecurityRequirement(name = JwtUtils.HEADER))
@@ -355,7 +385,7 @@ public class ChannelController {
         Assert.notNull(channelId,"参数异常");
         CommonGBChannel channel = channelService.getOne(channelId);
         Assert.notNull(channel, "通道不存在");
-        channelPlayService.stopPlay(channel, channel.getStreamId());
+        channelPlayService.stopPlay(channel);
     }
 
     @Operation(summary = "录像查询", security = @SecurityRequirement(name = JwtUtils.HEADER))
@@ -496,6 +526,106 @@ public class ChannelController {
         Assert.notNull(channel, "通道不存在");
         channelPlayService.playbackSpeed(channel, stream, speed);
     }
+
+    @Operation(summary = "为地图获取通道列表", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @Parameter(name = "query", description = "查询内容")
+    @Parameter(name = "online", description = "是否在线")
+    @Parameter(name = "hasRecordPlan", description = "是否已设置录制计划")
+    @Parameter(name = "channelType", description = "通道类型， 0：国标设备，1：推流设备，2：拉流代理")
+    @Parameter(name = "geoCoordSys", description = "地理坐标系， WGS84/GCJ02")
+    @GetMapping("/map/list")
+    public List<CommonGBChannel> queryListForMap(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) Boolean online,
+            @RequestParam(required = false) Boolean hasRecordPlan,
+            @RequestParam(required = false) Integer channelType){
+        if (ObjectUtils.isEmpty(query)){
+            query = null;
+        }
+        return channelService.queryListForMap(query, online, hasRecordPlan, channelType);
+    }
+
+    @Operation(summary = "为地图去除抽稀结果", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @PostMapping("/map/reset-level")
+    public void resetLevel(){
+        channelService.resetLevel();
+    }
+
+    @Operation(summary = "执行抽稀", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @PostMapping("/map/thin/draw")
+    public String drawThin(@RequestBody DrawThinParam param){
+        if(param == null || param.getZoomParam() == null || param.getZoomParam().isEmpty()) {
+            throw new ControllerException(ErrorCode.ERROR400);
+        }
+        return channelService.drawThin(param.getZoomParam(), param.getExtent(), param.getGeoCoordSys());
+    }
+
+    @Operation(summary = "清除未保存的抽稀结果", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @Parameter(name = "id", description = "抽稀ID", required = true)
+    @GetMapping("/map/thin/clear")
+    public void clearThin(String id){
+        vectorTileCatch.remove(id);
+    }
+
+    @Operation(summary = "保存的抽稀结果", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @Parameter(name = "id", description = "抽稀ID", required = true)
+    @GetMapping("/map/thin/save")
+    public void saveThin(String id){
+        channelService.saveThin(id);
+    }
+
+    @Operation(summary = "获取抽稀执行的进度", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @Parameter(name = "id", description = "抽稀ID", required = true)
+    @GetMapping("/map/thin/progress")
+    public DrawThinProcess thinProgress(String id){
+        return channelService.thinProgress(id);
+    }
+
+    @Operation(summary = "为地图提供标准mvt图层", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @GetMapping(value = "/map/tile/{z}/{x}/{y}", produces = "application/x-protobuf")
+    @Parameter(name = "geoCoordSys", description = "地理坐标系， WGS84/GCJ02")
+    public ResponseEntity<byte[]> getTile(@PathVariable int z, @PathVariable int x, @PathVariable int y, String geoCoordSys){
+
+        try {
+            byte[] mvt = channelService.getTile(z, x, y, geoCoordSys);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType("application/x-protobuf"));
+            if (mvt == null) {
+                headers.setContentLength(0);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            }
+            headers.setContentLength(mvt.length);
+            return new ResponseEntity<>(mvt, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("构建矢量瓦片失败： z: {}, x: {}, y:{}", z, x, y, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @Operation(summary = "为地图提供经过抽稀的标准mvt图层", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @GetMapping(value = "/map/thin/tile/{z}/{x}/{y}", produces = "application/x-protobuf")
+    @Parameter(name = "geoCoordSys", description = "地理坐标系， WGS84/GCJ02")
+    @Parameter(name = "thinId", description = "抽稀结果ID")
+    public ResponseEntity<byte[]> getThinTile(@PathVariable int z, @PathVariable int x, @PathVariable int y,
+                                              String geoCoordSys, @RequestParam(required = false) String thinId){
+
+        if (ObjectUtils.isEmpty(thinId)) {
+            thinId = "DEFAULT";
+        }
+        String catchKey = z + "_" + x + "_" + y + "_" + geoCoordSys.toUpperCase();
+        byte[] mvt = vectorTileCatch.getVectorTile(thinId, catchKey);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/x-protobuf"));
+        if (mvt == null) {
+            headers.setContentLength(0);
+            return ResponseEntity.status(HttpStatus.OK).body(null);
+        }
+
+        headers.setContentLength(mvt.length);
+        return new ResponseEntity<>(mvt, headers, HttpStatus.OK);
+    }
+
+
 
     @Operation(summary = "全局通道截图并返回路径", security = @SecurityRequirement(name = JwtUtils.HEADER))
     @Parameter(name = "channelId", description = "全局通道ID", required = true)

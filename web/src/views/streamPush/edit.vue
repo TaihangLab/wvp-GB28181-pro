@@ -5,8 +5,9 @@
         <el-page-header content="编辑推流信息" @back="close" />
       </div>
     </div>
-    <el-tabs tab-position="top" style="padding: 1rem 0">
-      <el-tab-pane label="推流信息编辑" style="background-color: #FFFFFF; padding: 1rem">
+    <el-tabs tab-position="top" style="padding-top: 1rem;">
+      <el-tab-pane label="推流信息编辑" style="background-color: #FFFFFF; padding: 1rem; height: calc(-218px + 100vh);
+    overflow: auto;">
         <el-divider content-position="center">基础信息</el-divider>
         <el-form ref="streamPushForm" v-loading="locading" status-icon label-width="160px" class="channel-form">
           <el-form-item label="应用名">
@@ -32,7 +33,7 @@
 
       </el-tab-pane>
       <el-tab-pane v-if="streamPush.id" label="国标通道配置">
-        <CommonChannelEdit ref="commonChannelEdit" :data-form="streamPush" :cancel="close" />
+        <CommonChannelEdit ref="commonChannelEdit" :showCancel="true" :data-form="streamPush" @cancel="close" />
       </el-tab-pane>
     </el-tabs>
   </div>

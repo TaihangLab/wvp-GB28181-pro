@@ -14,13 +14,14 @@ import com.genersoft.iot.vmp.media.zlm.event.HookZlmServerKeepaliveEvent;
 import com.genersoft.iot.vmp.media.zlm.event.HookZlmServerStartEvent;
 import com.genersoft.iot.vmp.service.IMediaService;
 import com.genersoft.iot.vmp.utils.MediaServerUtils;
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/index/hook")
+@Hidden
 public class ZLMHttpHookListener {
 
     @Autowired

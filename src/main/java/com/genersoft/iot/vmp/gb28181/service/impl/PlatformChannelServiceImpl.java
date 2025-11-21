@@ -1,16 +1,21 @@
 package com.genersoft.iot.vmp.gb28181.service.impl;
 
 import com.genersoft.iot.vmp.common.enums.ChannelDataType;
+import com.genersoft.iot.vmp.conf.UserSetting;
 import com.genersoft.iot.vmp.gb28181.bean.*;
+import com.genersoft.iot.vmp.gb28181.controller.bean.ChannelListForRpcParam;
 import com.genersoft.iot.vmp.gb28181.dao.*;
 import com.genersoft.iot.vmp.gb28181.event.EventPublisher;
+import com.genersoft.iot.vmp.gb28181.event.channel.ChannelEvent;
 import com.genersoft.iot.vmp.gb28181.event.subscribe.catalog.CatalogEvent;
 import com.genersoft.iot.vmp.gb28181.service.IPlatformChannelService;
 import com.genersoft.iot.vmp.gb28181.transmit.cmd.ISIPCommanderForPlatform;
+import com.genersoft.iot.vmp.service.redisMsg.IRedisRpcService;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -19,6 +24,7 @@ import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
 import java.text.ParseException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author lin
@@ -48,6 +54,168 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
 
     @Autowired
     private ISIPCommanderForPlatform sipCommanderFroPlatform;
+
+    @Autowired
+    private SubscribeHolder subscribeHolder;
+
+    @Autowired
+    private UserSetting userSetting;
+
+    @Autowired
+    private IRedisRpcService redisRpcService;
+
+    // 监听通道信息变化
+    @EventListener
+    public void onApplicationEvent(ChannelEvent event) {
+        if (event.getChannels().isEmpty()) {
+            log.info("[国标级联-处理通道变化事件] 通道数量为空");
+            return;
+        }
+        String deviceIds = event.getChannels().stream().map(CommonGBChannel::getGbDeviceId).collect(Collectors.joining(","));
+        log.info("[国标级联-处理通道变化事件] 类型： {}, 通道: {}", event.getMessageType(), deviceIds);
+        // 获取通道所关联的平台
+        List<Platform> allPlatform = platformMapper.queryByServerId(userSetting.getServerId());
+        if (allPlatform.isEmpty()) {
+            log.info("[国标级联-处理通道变化事件] 没有当前服务负责的平台");
+            return;
+        }
+        // 获取所用订阅
+        List<String> platforms = subscribeHolder.getAllCatalogSubscribePlatform(allPlatform);
+
+        Map<String, List<Platform>> platformMap = new HashMap<>();
+        Map<String, CommonGBChannel> channelMap = new HashMap<>();
+        if (platforms.isEmpty()) {
+            log.info("[国标级联-处理通道变化事件] 没有关联的平台的目录订阅");
+            return;
+        }
+        for (CommonGBChannel deviceChannel : event.getChannels()) {
+            List<Platform> parentPlatformsForGB = queryPlatFormListByChannelDeviceId(
+                    deviceChannel.getGbId(), platforms);
+            platformMap.put(deviceChannel.getGbDeviceId(), parentPlatformsForGB);
+            channelMap.put(deviceChannel.getGbDeviceId(), deviceChannel);
+        }
+        if (platformMap.isEmpty()) {
+            log.info("[国标级联-处理通道变化事件] 开启订阅的平台都没有关联通道： {}", deviceIds);
+            return;
+        }
+        switch (event.getMessageType()) {
+            case ON:
+            case OFF:
+            case DEL:
+                for (String serverGbId : platformMap.keySet()) {
+                    List<Platform> platformList = platformMap.get(serverGbId);
+                    if (platformList != null && !platformList.isEmpty()) {
+                        for (Platform platform : platformList) {
+                            SubscribeInfo subscribeInfo = subscribeHolder.getCatalogSubscribe(platform.getServerGBId());
+                            if (subscribeInfo == null) {
+                                continue;
+                            }
+                            log.info("[Catalog事件: {}]平台：{}，影响通道{}", event.getMessageType(), platform.getServerGBId(), serverGbId);
+                            List<CommonGBChannel> deviceChannelList = new ArrayList<>();
+                            CommonGBChannel deviceChannel = new CommonGBChannel();
+                            deviceChannel.setGbDeviceId(serverGbId);
+                            deviceChannelList.add(deviceChannel);
+                            try {
+                                sipCommanderFroPlatform.sendNotifyForCatalogOther(event.getMessageType().name(), platform, deviceChannelList, subscribeInfo, null);
+                            } catch (InvalidArgumentException | ParseException | NoSuchFieldException | SipException |
+                                     IllegalAccessException e) {
+                                log.error("[命令发送失败] 国标级联 Catalog通知: {}", e.getMessage());
+                            }
+                        }
+                    }else {
+                        log.info("[Catalog事件: {}] 未找到上级平台： {}", event.getMessageType(), serverGbId);
+                    }
+                }
+                break;
+            case VLOST:
+                break;
+            case DEFECT:
+                break;
+            case ADD:
+            case UPDATE:
+                for (String gbId : platformMap.keySet()) {
+                    List<Platform> parentPlatforms = platformMap.get(gbId);
+                    if (parentPlatforms != null && !parentPlatforms.isEmpty()) {
+                        for (Platform platform : parentPlatforms) {
+                            SubscribeInfo subscribeInfo = subscribeHolder.getCatalogSubscribe(platform.getServerGBId());
+                            if (subscribeInfo == null) {
+                                continue;
+                            }
+                            log.info("[Catalog事件: {}]平台：{}，影响通道{}", event.getMessageType(), platform.getServerGBId(), gbId);
+                            List<CommonGBChannel> channelList = new ArrayList<>();
+                            CommonGBChannel deviceChannel = channelMap.get(gbId);
+                            channelList.add(deviceChannel);
+                            try {
+                                sipCommanderFroPlatform.sendNotifyForCatalogAddOrUpdate(event.getMessageType().name(), platform, channelList, subscribeInfo, null);
+                            } catch (InvalidArgumentException | ParseException | NoSuchFieldException |
+                                     SipException | IllegalAccessException e) {
+                                log.error("[命令发送失败] 国标级联 Catalog通知: {}", e.getMessage());
+                            }
+                        }
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    @EventListener
+    public void onApplicationEvent(CatalogEvent event) {
+        String deviceIds = event.getChannels().stream().map(CommonGBChannel::getGbDeviceId).collect(Collectors.joining(","));
+        log.info("[Catalog事件: {}] 通道： {}", event.getType(), deviceIds);
+        Platform platform = event.getPlatform();
+        if (platform == null || platform.getServerGBId() == null) {
+            log.info("[Catalog事件: {}] 缺少通道或通道数据异常： {}", event.getType(), deviceIds);
+            return;
+        }
+        SubscribeInfo subscribe = subscribeHolder.getCatalogSubscribe(platform.getServerGBId());
+        if (subscribe == null) {
+            log.info("[Catalog事件: {}] 平台未被目录订阅，取消发送： {}", event.getType(), deviceIds);
+            return;
+        }
+        switch (event.getType()) {
+            case CatalogEvent.ON:
+            case CatalogEvent.OFF:
+            case CatalogEvent.DEL:
+                List<CommonGBChannel> channels = new ArrayList<>();
+                if (event.getChannels() != null) {
+                    channels.addAll(event.getChannels());
+                }
+                if (!channels.isEmpty()) {
+                    log.info("[Catalog事件: {}]平台：{}，影响通道{}", event.getType(), platform.getServerGBId(), deviceIds);
+                    try {
+                        sipCommanderFroPlatform.sendNotifyForCatalogOther(event.getType(), platform, channels, subscribe, null);
+                    } catch (InvalidArgumentException | ParseException | NoSuchFieldException | SipException |
+                             IllegalAccessException e) {
+                        log.error("[命令发送失败] 国标级联 Catalog通知: {}", e.getMessage());
+                    }
+                }
+                break;
+            case CatalogEvent.VLOST:
+                break;
+            case CatalogEvent.DEFECT:
+                break;
+            case CatalogEvent.ADD:
+            case CatalogEvent.UPDATE:
+                List<CommonGBChannel> deviceChannelList = new ArrayList<>();
+                if (event.getChannels() != null) {
+                    deviceChannelList.addAll(event.getChannels());
+                }
+                if (!deviceChannelList.isEmpty()) {
+                    log.info("[Catalog事件: {}]平台：{}，影响通道{}", event.getType(), platform.getServerGBId(), deviceIds);
+                    try {
+                        sipCommanderFroPlatform.sendNotifyForCatalogAddOrUpdate(event.getType(), platform, deviceChannelList, subscribe, null);
+                    } catch (InvalidArgumentException | ParseException | NoSuchFieldException | SipException |
+                             IllegalAccessException e) {
+                        log.error("[命令发送失败] 国标级联 Catalog通知: {}", e.getMessage());
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+    }
 
 
     @Override
@@ -214,8 +382,20 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
     @Transactional
     public int addChannelList(Integer platformId, List<CommonGBChannel> channelList) {
         Platform platform = platformMapper.query(platformId);
-        if (platform == null) {
-            return 0;
+        Assert.notNull(platform, "平台不存在");
+        String channelDeviceIds = channelList.stream().map(CommonGBChannel::getGbDeviceId).collect(Collectors.joining(","));
+
+        log.info("[共享通道] 平台：{}， 通道：{}", platform.getServerGBId(), channelDeviceIds);
+        if (!userSetting.getServerId().equals(platform.getServerId())) {
+
+            List<Integer> channelIdList = channelList.stream().map(CommonGBChannel::getGbId).toList();
+            int result = redisRpcService.addPlatformChannelList(platform.getServerId(), new ChannelListForRpcParam(channelIdList, platformId));
+            if (result > 0) {
+                log.info("[跨平台-共享通道] 成功， 平台：{}， 通道：{}", platform.getServerGBId(), channelDeviceIds);
+            }else {
+                log.info("[跨平台-共享通道] 失败， 平台：{}， 通道：{}", platform.getServerGBId(), channelDeviceIds);
+            }
+            return result;
         }
         int result = platformChannelMapper.addChannels(platformId, channelList);
         if (result > 0) {
@@ -242,7 +422,6 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
                     }
                 }
             }
-
             // 发送消息
             try {
                 // 发送catalog
@@ -260,7 +439,17 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
         if (platform == null) {
             return 0;
         }
+        log.info("[取消共享通道] 平台：{}， 通道：全部", platform.getServerGBId());
+        if (!userSetting.getServerId().equals(platform.getServerId())) {
 
+            int result = redisRpcService.removeAllPlatformChannel(platform.getServerId(), platformId);
+            if (result > 0) {
+                log.info("[跨平台-取消共享通道] 成功， 平台：{}， 通道：全部", platform.getServerGBId());
+            }else {
+                log.info("[跨平台-取消共享通道] 失败， 平台：{}， 通道：全部", platform.getServerGBId());
+            }
+            return result;
+        }
         List<CommonGBChannel> channelListShare = platformChannelMapper.queryShare(platformId,  null);
         Assert.notEmpty(channelListShare, "未共享任何通道");
         int result = platformChannelMapper.removeChannelsWithPlatform(platformId, channelListShare);
@@ -311,34 +500,50 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
     public int removeChannelList(Integer platformId, List<CommonGBChannel> channelList) {
         Platform platform = platformMapper.query(platformId);
         if (platform == null) {
+            log.info("[移除关联通道] 平台{}未查询到", platformId);
             return 0;
         }
+        String channelDeviceIds = channelList.stream().map(CommonGBChannel::getGbDeviceId).collect(Collectors.joining(","));
+        log.info("[取消共享通道] 平台：{}， 通道： {}", platform.getServerGBId(), channelDeviceIds);
+        if (!userSetting.getServerId().equals(platform.getServerId())) {
+            List<Integer> channelIds = channelList.stream().map(CommonGBChannel::getGbId).toList();
+            int result = redisRpcService.removePlatformChannelList(platform.getServerId(), new ChannelListForRpcParam(channelIds, platformId));
+            if (result > 0) {
+                log.info("[跨平台-取消共享通道] 成功， 平台：{}， 通道： {}", platform.getServerGBId(), channelDeviceIds);
+            }else {
+                log.info("[跨平台-取消共享通道] 失败， 平台：{}， 通道： {}", platform.getServerGBId(), channelDeviceIds);
+            }
+            return result;
+        }
+        String deviceIds = channelList.stream().map(CommonGBChannel::getGbDeviceId).collect(Collectors.joining(","));
         int result = platformChannelMapper.removeChannelsWithPlatform(platformId, channelList);
-        if (result > 0) {
-            // 查询通道相关的分组信息
-            Set<Region> regionSet = regionMapper.queryByChannelList(channelList);
-            Set<Region> deleteRegion = deleteEmptyRegion(regionSet, platformId);
-            if (!deleteRegion.isEmpty()) {
-                for (Region region : deleteRegion) {
-                    channelList.add(0, CommonGBChannel.build(region));
-                }
+        if (result <= 0) {
+            log.info("[取消共享通道] 平台{}未关联通道： {}", platformId, deviceIds);
+            return 0;
+        }
+        // 查询通道相关的分组信息
+        Set<Region> regionSet = regionMapper.queryByChannelList(channelList);
+        Set<Region> deleteRegion = deleteEmptyRegion(regionSet, platformId);
+        if (!deleteRegion.isEmpty()) {
+            for (Region region : deleteRegion) {
+                channelList.add(0, CommonGBChannel.build(region));
             }
+        }
 
-            // 查询通道相关的分组信息
-            Set<Group> groupSet = groupMapper.queryByChannelList(channelList);
-            Set<Group> deleteGroup = deleteEmptyGroup(groupSet, platformId);
-            if (!deleteGroup.isEmpty()) {
-                for (Group group : deleteGroup) {
-                    channelList.add(0, CommonGBChannel.build(group));
-                }
+        // 查询通道相关的分组信息
+        Set<Group> groupSet = groupMapper.queryByChannelList(channelList);
+        Set<Group> deleteGroup = deleteEmptyGroup(groupSet, platformId);
+        if (!deleteGroup.isEmpty()) {
+            for (Group group : deleteGroup) {
+                channelList.add(0, CommonGBChannel.build(group));
             }
-            // 发送消息
-            try {
-                // 发送catalog
-                eventPublisher.catalogEventPublish(platform, channelList, CatalogEvent.DEL);
-            } catch (Exception e) {
-                log.warn("[移除关联通道] 发送失败，数量：{}", channelList.size(), e);
-            }
+        }
+        // 发送消息
+        try {
+            // 发送catalog
+            eventPublisher.catalogEventPublish(platform, channelList, CatalogEvent.DEL);
+        } catch (Exception e) {
+            log.warn("[取消共享通道] 发送失败，数量：{}", channelList.size(), e);
         }
         return result;
     }
@@ -348,6 +553,7 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
     public int removeChannels(Integer platformId, List<Integer> channelIds) {
         List<CommonGBChannel> channelList = platformChannelMapper.queryShare(platformId, channelIds);
         if (channelList.isEmpty()) {
+            log.info("[移除通道] 通道列表为空");
             return 0;
         }
         return removeChannelList(platformId, channelList);
@@ -358,6 +564,7 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
     public void removeChannels(List<Integer> ids) {
         List<Platform> platformList = platformChannelMapper.queryPlatFormListByChannelList(ids);
         if (platformList.isEmpty()) {
+            log.info("[移除多个通道] 未查询到通道关联的平台");
             return;
         }
 
@@ -371,6 +578,7 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
     public void removeChannel(int channelId) {
         List<Platform> platformList = platformChannelMapper.queryPlatFormListByChannelId(channelId);
         if (platformList.isEmpty()) {
+            log.info("[移除多个通道] 未查询到通道：{} 关联的平台", channelId);
             return;
         }
         for (Platform platform : platformList) {
@@ -383,6 +591,7 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
     @Override
     public List<CommonGBChannel> queryByPlatform(Platform platform) {
         if (platform == null) {
+            log.info("[查询通道所属平台] 平台参数为NULL");
             return null;
         }
         List<CommonGBChannel> commonGBChannelList = commonGBChannelMapper.queryWithPlatform(platform.getId());
@@ -419,8 +628,19 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
     public void pushChannel(Integer platformId) {
         Platform platform = platformMapper.query(platformId);
         Assert.notNull(platform, "平台不存在");
+        if (!userSetting.getServerId().equals(platform.getServerId())) {
+            boolean result = redisRpcService.pushPlatformChannel(platform.getServerId(), platformId);
+            if (result) {
+                log.info("[跨平台-主动推送通道] 成功， 平台：{}", platform.getServerGBId());
+            }else {
+                log.info("[跨平台-主动推送通道] 失败， 平台：{}", platform.getServerGBId());
+            }
+            return;
+        }
+
         List<CommonGBChannel> channelList = queryByPlatform(platform);
         if (channelList.isEmpty()){
+            log.info("[推送通道] 平台：{} 未查询到通道信息", platform.getServerGBId());
             return;
         }
         SubscribeInfo subscribeInfo = SubscribeInfo.buildSimulated(platform.getServerGBId(), platform.getServerIp());
@@ -435,15 +655,28 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
 
     @Override
     public void updateCustomChannel(PlatformChannel channel) {
-        platformChannelMapper.updateCustomChannel(channel);
         Platform platform = platformMapper.query(channel.getPlatformId());
+        Assert.notNull(platform, "平台不存在");
+        log.info("[国标级联-自定义共享通道] 平台：{}， 通道：{}", platform.getServerGBId(), channel);
+        if (!userSetting.getServerId().equals(platform.getServerId())) {
+            boolean result = redisRpcService.updateCustomPlatformChannel(platform.getServerId(), channel);
+            if (result) {
+                log.info("[国标级联-自定义共享通道] 成功， 平台：{}， 通道：{}", platform.getServerGBId(), channel);
+            }else {
+                log.info("[国标级联-自定义共享通道] 失败， 平台：{}， 通道：{}", platform.getServerGBId(), channel);
+            }
+            return;
+        }
+
+        platformChannelMapper.updateCustomChannel(channel);
+
         CommonGBChannel commonGBChannel = platformChannelMapper.queryShareChannel(channel.getPlatformId(), channel.getGbId());
         // 发送消息
         try {
             // 发送catalog
             eventPublisher.catalogEventPublish(platform, commonGBChannel, CatalogEvent.UPDATE);
         } catch (Exception e) {
-            log.warn("[自定义通道信息] 发送失败， 平台ID： {}， 通道： {}（{}）", channel.getPlatformId(),
+            log.warn("[国标级联-自定义共享通道] 发送失败， 平台ID： {}， 通道： {}（{}）", channel.getPlatformId(),
                     channel.getGbName(), channel.getId(), e);
         }
     }
@@ -459,6 +692,8 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
         // 获取关联这些通道的平台
         List<Platform> platformList = platformChannelMapper.queryPlatFormListByChannelList(channelIds);
         if (platformList.isEmpty()) {
+            String deviceIds = channelList.stream().map(CommonGBChannel::getGbDeviceId).collect(Collectors.joining(","));
+            log.info("[获取关联这些通道的平台] 未查询到通道关联的平台, 通道如下 {}", deviceIds);
             return;
         }
         for (Platform platform : platformList) {
@@ -497,6 +732,8 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
         // 获取关联这些通道的平台
         List<Platform> platformList = platformChannelMapper.queryPlatFormListByChannelList(channelIds);
         if (platformList.isEmpty()) {
+            String deviceIds = channelList.stream().map(CommonGBChannel::getGbDeviceId).collect(Collectors.joining(","));
+            log.info("[获取关联这些通道的平台] 未查询到通道关联的平台, 通道如下 {}", deviceIds);
             return;
         }
         for (Platform platform : platformList) {
@@ -534,6 +771,8 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
         });
         List<Platform> platformList = platformChannelMapper.queryPlatFormListByChannelList(channelIds);
         if (platformList.isEmpty()) {
+            String deviceIds = channelList.stream().map(CommonGBChannel::getGbDeviceId).collect(Collectors.joining(","));
+            log.info("[获取关联这些通道的平台] 未查询到通道关联的平台, 通道如下 {}", deviceIds);
             return;
         }
         for (Platform platform : platformList) {
@@ -565,6 +804,8 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
         });
         List<Platform> platformList = platformChannelMapper.queryPlatFormListByChannelList(channelIds);
         if (platformList.isEmpty()) {
+            String deviceIds = channelList.stream().map(CommonGBChannel::getGbDeviceId).collect(Collectors.joining(","));
+            log.info("[获取关联这些通道的平台] 未查询到通道关联的平台, 通道如下 {}", deviceIds);
             return;
         }
         for (Platform platform : platformList) {
@@ -604,9 +845,11 @@ public class PlatformChannelServiceImpl implements IPlatformChannelService {
 
     @Override
     public List<Platform> queryByPlatformBySharChannelId(String channelDeviceId) {
-        CommonGBChannel commonGBChannel = commonGBChannelMapper.queryByDeviceId(channelDeviceId);
+        List<CommonGBChannel> commonGBChannels = commonGBChannelMapper.queryByDeviceId(channelDeviceId);
         ArrayList<Integer> ids = new ArrayList<>();
-        ids.add(commonGBChannel.getGbId());
+        for (CommonGBChannel commonGBChannel : commonGBChannels) {
+            ids.add(commonGBChannel.getGbId());
+        }
         return platformChannelMapper.queryPlatFormListByChannelList(ids);
     }
 }

@@ -15,6 +15,7 @@ import com.github.pagehelper.PageInfo;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -41,15 +42,18 @@ public class GroupServiceImpl implements IGroupService {
     @Autowired
     private EventPublisher eventPublisher;
 
+    @Autowired
+    private RedisTemplate<Object, Object> redisTemplate;
+
     @Override
     public void add(Group group) {
         Assert.notNull(group, "参数不可为NULL");
-        Assert.notNull(group.getDeviceId(), "设备编号不可为NULL");
-        Assert.isTrue(group.getDeviceId().trim().length() == 20, "设备编号必须为20位");
-        Assert.notNull(group.getName(), "设备编号不可为NULL");
+        Assert.notNull(group.getDeviceId(), "分组编号不可为NULL");
+        Assert.isTrue(group.getDeviceId().trim().length() == 20, "分组编号必须为20位");
+        Assert.notNull(group.getName(), "分组名称不可为NULL");
 
         GbCode gbCode = GbCode.decode(group.getDeviceId());
-        Assert.notNull(gbCode, "设备编号不满足国标定义");
+        Assert.notNull(gbCode, "分组编号不满足国标定义");
 
         // 查询数据库中已经存在的.
         List<Group> groupListInDb = groupManager.queryInGroupListByDeviceId(Lists.newArrayList(group));
@@ -90,7 +94,8 @@ public class GroupServiceImpl implements IGroupService {
         groupManager.addBusinessGroup(group);
     }
 
-    private List<Group> queryAllChildren(Integer id) {
+    @Override
+    public List<Group> queryAllChildren(Integer id) {
         List<Group> children = groupManager.getChildren(id);
         if (ObjectUtils.isEmpty(children)) {
             return children;
@@ -133,7 +138,7 @@ public class GroupServiceImpl implements IGroupService {
                        CommonGBChannel channel = CommonGBChannel.build(chjildGroup);
                        try {
                            // 发送catalog
-                           eventPublisher.catalogEventPublish(null, channel, CatalogEvent.UPDATE);
+                           eventPublisher.channelEventPublishForUpdate(channel, null);
                        }catch (Exception e) {
                            log.warn("[业务分组/虚拟组织变化] 发送失败，{}", group.getDeviceId(), e);
                        }
@@ -145,7 +150,7 @@ public class GroupServiceImpl implements IGroupService {
         CommonGBChannel channel = CommonGBChannel.build(group);
         try {
             // 发送catalog
-            eventPublisher.catalogEventPublish(null, channel, CatalogEvent.UPDATE);
+            eventPublisher.channelEventPublishForUpdate(channel, null);
         }catch (Exception e) {
             log.warn("[业务分组/虚拟组织变化] 发送失败，{}", group.getDeviceId(), e);
         }
@@ -165,7 +170,7 @@ public class GroupServiceImpl implements IGroupService {
 
     @Override
     public Group queryGroupByDeviceId(String regionDeviceId) {
-        return null;
+        return groupManager.queryOneByOnlyDeviceId(regionDeviceId);
     }
 
     @Override
@@ -184,11 +189,6 @@ public class GroupServiceImpl implements IGroupService {
             }
         }
         return groupTrees;
-    }
-
-    @Override
-    public void syncFromChannel() {
-
     }
 
     @Override
@@ -269,15 +269,13 @@ public class GroupServiceImpl implements IGroupService {
         if (businessGroupInDb == null) {
             throw new ControllerException(ErrorCode.ERROR100.getCode(), "业务分组不存在");
         }
-        List<Group> groupList = new LinkedList<>();
-        groupList.add(businessGroupInDb);
         Group group = groupManager.queryOneByDeviceId(deviceId, businessGroup);
         if (group == null) {
             throw new ControllerException(ErrorCode.ERROR100.getCode(), "虚拟组织不存在");
         }
-        groupList.add(group);
         List<Group> allParent = getAllParent(group);
-        groupList.addAll(allParent);
+        List<Group> groupList = new LinkedList<>(allParent);
+        groupList.add(group);
         return groupList;
     }
 
@@ -286,10 +284,9 @@ public class GroupServiceImpl implements IGroupService {
             return new ArrayList<>();
         }
 
-        List<Group> groupList = new ArrayList<>();
         Group parent = groupManager.queryOneByDeviceId(group.getParentDeviceId(), group.getBusinessGroup());
         if (parent == null) {
-            return groupList;
+            return new ArrayList<>();
         }
         List<Group> allParent = getAllParent(parent);
         allParent.add(parent);
@@ -306,5 +303,26 @@ public class GroupServiceImpl implements IGroupService {
         }
         List<Group> all = groupManager.query(query, null, null);
         return new PageInfo<>(all);
+    }
+
+    @Override
+    public Group queryGroupByAlias(String groupAlias) {
+        return groupManager.queryGroupByAlias(groupAlias);
+    }
+
+    @Override
+    public Map<String, Group> queryGroupByAliasMap() {
+        return groupManager.queryGroupByAliasMap();
+    }
+
+    @Override
+    @Transactional
+    public void saveByAlias(Collection<Group> groups) {
+        // 清空别名数据
+        groupManager.deleteHasAlias();
+        // 写入新数据
+        groupManager.batchAdd(new ArrayList<>(groups));
+        // 修复数据丢失的parentID
+        groupManager.fixParentId();
     }
 }

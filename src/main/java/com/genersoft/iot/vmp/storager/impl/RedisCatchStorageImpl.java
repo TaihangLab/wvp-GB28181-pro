@@ -106,7 +106,7 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
         if (streamAuthorityInfo != null) {
             mediaInfo.setCallId(streamAuthorityInfo.getCallId());
         }
-        redisTemplate.opsForValue().set(key, mediaInfo);
+        redisTemplate.opsForValue().set(key, JSON.toJSONString(mediaInfo));
     }
 
     @Override
@@ -130,7 +130,8 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
         String key = VideoManagerConstants.WVP_SERVER_STREAM_PREFIX + userSetting.getServerId() + "_" + type.toUpperCase() + "_*_*_" + mediaServerId;
         List<Object> streams = RedisUtil.scan(redisTemplate, key);
         for (Object stream : streams) {
-            MediaInfo mediaInfo = (MediaInfo)redisTemplate.opsForValue().get(stream);
+            String mediaInfoJson = (String)redisTemplate.opsForValue().get(stream);
+            MediaInfo mediaInfo = JSON.parseObject(mediaInfoJson, MediaInfo.class);
             result.add(mediaInfo);
         }
         return result;
@@ -187,6 +188,7 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
     public void updateGpsMsgInfo(GPSMsgInfo gpsMsgInfo) {
         String key = VideoManagerConstants.WVP_STREAM_GPS_MSG_PREFIX + userSetting.getServerId();
         Duration duration = Duration.ofSeconds(60L);
+        gpsMsgInfo.setStored(false);
         redisTemplate.opsForHash().put(key, gpsMsgInfo.getId(),gpsMsgInfo);
         redisTemplate.expire(key, duration);
         // 默认GPS消息保存1分钟
@@ -211,21 +213,21 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
 
     @Override
     public void updateStreamAuthorityInfo(String app, String stream, StreamAuthorityInfo streamAuthorityInfo) {
-        String key = VideoManagerConstants.MEDIA_STREAM_AUTHORITY + userSetting.getServerId();
+        String key = VideoManagerConstants.MEDIA_STREAM_AUTHORITY;
         String objectKey = app+ "_" + stream;
         redisTemplate.opsForHash().put(key, objectKey, streamAuthorityInfo);
     }
 
     @Override
     public void removeStreamAuthorityInfo(String app, String stream) {
-        String key = VideoManagerConstants.MEDIA_STREAM_AUTHORITY + userSetting.getServerId();
+        String key = VideoManagerConstants.MEDIA_STREAM_AUTHORITY;
         String objectKey = app+ "_" + stream;
         redisTemplate.opsForHash().delete(key, objectKey);
     }
 
     @Override
     public StreamAuthorityInfo getStreamAuthorityInfo(String app, String stream) {
-        String key = VideoManagerConstants.MEDIA_STREAM_AUTHORITY + userSetting.getServerId();
+        String key = VideoManagerConstants.MEDIA_STREAM_AUTHORITY;
         String objectKey = app+ "_" + stream;
         return (StreamAuthorityInfo)redisTemplate.opsForHash().get(key, objectKey);
 
@@ -233,7 +235,7 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
 
     @Override
     public List<StreamAuthorityInfo> getAllStreamAuthorityInfo() {
-        String key = VideoManagerConstants.MEDIA_STREAM_AUTHORITY + userSetting.getServerId();
+        String key = VideoManagerConstants.MEDIA_STREAM_AUTHORITY;
         List<StreamAuthorityInfo> result = new ArrayList<>();
         List<Object> values = redisTemplate.opsForHash().values(key);
         for (Object value : values) {
@@ -251,7 +253,8 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
         List<Object> keys = RedisUtil.scan(redisTemplate, scanKey);
         if (keys.size() > 0) {
             String key = (String) keys.get(0);
-            result = JsonUtil.redisJsonToObject(redisTemplate, key, MediaInfo.class);
+            String mediaInfoJson = (String)redisTemplate.opsForValue().get(key);
+            result = JSON.parseObject(mediaInfoJson, MediaInfo.class);
         }
 
         return result;
@@ -265,7 +268,8 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
         List<Object> keys = RedisUtil.scan(redisTemplate, scanKey);
         if (keys.size() > 0) {
             String key = (String) keys.get(0);
-            result = JsonUtil.redisJsonToObject(redisTemplate, key, MediaInfo.class);
+            String mediaInfoJson = (String)redisTemplate.opsForValue().get(key);
+            result = JSON.parseObject(mediaInfoJson, MediaInfo.class);
         }
 
         return result;
@@ -342,13 +346,6 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
         systemAllInfo.setDisk(redisTemplate.opsForValue().get(diskKey));
         systemAllInfo.setNetTotal(SystemInfoUtils.getNetworkTotal());
         return systemAllInfo;
-    }
-
-    @Override
-    public void sendMobilePositionMsg(JSONObject jsonObject) {
-        String key = VideoManagerConstants.VM_MSG_SUBSCRIBE_MOBILE_POSITION;
-        log.debug("[redis发送通知] 发送 移动位置 {}: {}", key, jsonObject.toString());
-        redisTemplate.convertAndSend(key, jsonObject);
     }
 
     @Override
@@ -431,15 +428,21 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
 
     @Override
     public void sendPlatformStartPlayMsg(SendRtpInfo sendRtpItem, DeviceChannel channel, Platform platform) {
-        if (sendRtpItem.getPlayType() == InviteStreamType.PUSH && platform  != null) {
-            MessageForPushChannel messageForPushChannel = MessageForPushChannel.getInstance(0, sendRtpItem.getApp(), sendRtpItem.getStream(),
-                    channel.getDeviceId(), platform.getServerGBId(), platform.getName(), userSetting.getServerId(),
-                    sendRtpItem.getMediaServerId());
-            messageForPushChannel.setPlatFormIndex(platform.getId());
-            String key = VideoManagerConstants.VM_MSG_STREAM_START_PLAY_NOTIFY;
-            log.info("[redis发送通知] 发送 推流被上级平台观看 {}: {}/{}->{}", key, sendRtpItem.getApp(), sendRtpItem.getStream(), platform.getServerGBId());
-            redisTemplate.convertAndSend(key, JSON.toJSON(messageForPushChannel));
+        if (platform == null) {
+            log.info("[redis发送通知] 失败， 平台信息为NULL");
+            return;
         }
+        if (sendRtpItem.getPlayType() != InviteStreamType.PUSH) {
+            log.info("[redis发送通知] 取消， 流来源通道不是推流设备");
+            return;
+        }
+        MessageForPushChannel messageForPushChannel = MessageForPushChannel.getInstance(0, sendRtpItem.getApp(), sendRtpItem.getStream(),
+                channel.getDeviceId(), platform.getServerGBId(), platform.getName(), userSetting.getServerId(),
+                sendRtpItem.getMediaServerId());
+        messageForPushChannel.setPlatFormIndex(platform.getId());
+        String key = VideoManagerConstants.VM_MSG_STREAM_START_PLAY_NOTIFY;
+        log.info("[redis发送通知] 发送 推流被上级平台观看 {}: {}/{}->{}", key, sendRtpItem.getApp(), sendRtpItem.getStream(), platform.getServerGBId());
+        redisTemplate.convertAndSend(key, JSON.toJSON(messageForPushChannel));
     }
 
     @Override
@@ -471,7 +474,7 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
     public void removePushListItem(String app, String stream, String mediaServerId) {
         String key = VideoManagerConstants.PUSH_STREAM_LIST + app + "_" + stream;
         MediaInfo param = (MediaInfo)redisTemplate.opsForValue().get(key);
-        if (param != null) {
+        if (param != null && userSetting.getServerId().equals(param.getServerId())) {
             redisTemplate.delete(key);
         }
     }
@@ -518,8 +521,11 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
     @Override
     public String chooseOneServer(String serverId) {
         String key = VideoManagerConstants.WVP_SERVER_LIST;
-        redisTemplate.opsForZSet().remove(key, serverId);
-        Set<Object> range = redisTemplate.opsForZSet().range(key, 0, 0);
+        if (serverId != null) {
+            redisTemplate.opsForZSet().remove(key, serverId);
+        }
+        // 获取得分最高的，也是最后更新时间到redis的wvp，这样可以避免读取到离线的wvp，同时时间最新也一定程度代表最健康的
+        Set<Object> range = redisTemplate.opsForZSet().reverseRange(key, 0, 0);
         if (range == null || range.isEmpty()) {
             return null;
         }

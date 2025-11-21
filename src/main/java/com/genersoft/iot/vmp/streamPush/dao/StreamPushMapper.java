@@ -56,7 +56,7 @@ public interface StreamPushMapper {
             " <if test='pushing == true' > AND st.pushing=true</if>" +
             " <if test='pushing == false' > AND st.pushing=false </if>" +
             " <if test='mediaServerId != null' > AND st.media_server_id=#{mediaServerId} </if>" +
-            " order by st.create_time desc" +
+            " order by st.pushing desc, st.create_time desc" +
             " </script>"})
     List<StreamPush> selectAll(@Param("query") String query, @Param("pushing") Boolean pushing, @Param("mediaServerId") String mediaServerId);
 
@@ -106,7 +106,8 @@ public interface StreamPushMapper {
     int getAllPushing(Boolean usePushingAsStatus);
 
     @MapKey("uniqueKey")
-    @Select("SELECT CONCAT(wsp.app, wsp.stream) as unique_key, wsp.*, wsp.* , wdc.id as gb_id " +
+    @Select("SELECT CONCAT(wsp.app, wsp.stream) as unique_key, wsp.*, wdc.* , " +
+            " wdc.id as gb_id " +
             " from wvp_stream_push wsp " +
             " LEFT join wvp_device_channel wdc on wdc.data_type = 2 and wsp.id = wdc.data_device_id")
     Map<String, StreamPush> getAllAppAndStreamMap();
@@ -156,4 +157,14 @@ public interface StreamPushMapper {
             "</foreach>" +
             "</script>"})
     int batchUpdate(List<StreamPush> streamPushItemForUpdate);
+
+    @Delete(" DELETE FROM wvp_stream_push" +
+            " WHERE server_id = #{serverId}" +
+            "  AND NOT EXISTS (" +
+            "    SELECT 1 " +
+            "    FROM wvp_device_channel wdc " +
+            "    WHERE wdc.data_type = 2 " +
+            "      AND wvp_stream_push.id = wdc.data_device_id" +
+            "  );")
+    void deleteWithoutGBId(@Param("serverId") String serverId);
 }

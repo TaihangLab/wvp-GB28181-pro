@@ -1,9 +1,13 @@
 package com.genersoft.iot.vmp.gb28181.dao;
 
 import com.genersoft.iot.vmp.gb28181.bean.*;
+import com.genersoft.iot.vmp.gb28181.controller.bean.Extent;
 import com.genersoft.iot.vmp.gb28181.dao.provider.ChannelProvider;
 import com.genersoft.iot.vmp.service.bean.GPSMsgInfo;
 import com.genersoft.iot.vmp.streamPush.bean.StreamPush;
+import com.genersoft.iot.vmp.web.custom.bean.CameraChannel;
+import com.genersoft.iot.vmp.web.custom.bean.CameraGroup;
+import com.genersoft.iot.vmp.web.custom.bean.Point;
 import org.apache.ibatis.annotations.*;
 import org.springframework.stereotype.Repository;
 
@@ -16,7 +20,7 @@ public interface CommonGBChannelMapper {
 
 
     @SelectProvider(type = ChannelProvider.class, method = "queryByDeviceId")
-    CommonGBChannel queryByDeviceId(@Param("gbDeviceId") String gbDeviceId);
+    List<CommonGBChannel> queryByDeviceId(@Param("gbDeviceId") String gbDeviceId);
 
     @Insert(" <script>" +
             "INSERT INTO wvp_device_channel (" +
@@ -57,7 +61,8 @@ public interface CommonGBChannelMapper {
             "gb_business_group_id," +
             "gb_download_speed," +
             "gb_svc_space_support_mod," +
-            "gb_svc_time_support_mode ) " +
+            "gb_svc_time_support_mode," +
+            "enable_broadcast ) " +
             "VALUES (" +
             "#{gbDeviceId}, " +
             "#{dataType}, " +
@@ -96,7 +101,8 @@ public interface CommonGBChannelMapper {
             "#{gbBusinessGroupId},"+
             "#{gbDownloadSpeed},"+
             "#{gbSvcSpaceSupportMod},"+
-            "#{gbSvcTimeSupportMode}"+
+            "#{gbSvcTimeSupportMode},"+
+            "#{enableBroadcast}"+
             ")" +
             " </script>")
     @Options(useGeneratedKeys = true, keyProperty = "gbId", keyColumn = "id")
@@ -111,39 +117,40 @@ public interface CommonGBChannelMapper {
     @Update(value = {" <script>" +
             "UPDATE wvp_device_channel " +
             "SET update_time=#{updateTime}" +
-            ", gb_device_id = #{gbDeviceId}" +
-            ", gb_name = #{gbName}" +
-            ", gb_manufacturer = #{gbManufacturer}" +
-            ", gb_model = #{gbModel}" +
-            ", gb_owner = #{gbOwner}" +
-            ", gb_civil_code = #{gbCivilCode}" +
-            ", gb_block = #{gbBlock}" +
-            ", gb_address = #{gbAddress}" +
-            ", gb_parental = #{gbParental}" +
-            ", gb_parent_id = #{gbParentId}" +
-            ", gb_safety_way = #{gbSafetyWay}" +
-            ", gb_register_way = #{gbRegisterWay}" +
-            ", gb_cert_num = #{gbCertNum}" +
-            ", gb_certifiable = #{gbCertifiable}" +
-            ", gb_err_code = #{gbErrCode}" +
-            ", gb_end_time = #{gbEndTime}" +
-            ", gb_ip_address = #{gbIpAddress}" +
-            ", gb_port = #{gbPort}" +
-            ", gb_password = #{gbPassword}" +
-            ", gb_status = #{gbStatus}" +
-            ", gb_longitude = #{gbLongitude}" +
-            ", gb_latitude = #{gbLatitude}" +
-            ", gb_ptz_type = #{gbPtzType}" +
-            ", gb_position_type = #{gbPositionType}" +
-            ", gb_room_type = #{gbRoomType}" +
-            ", gb_use_type = #{gbUseType}" +
-            ", gb_supply_light_type = #{gbSupplyLightType}" +
-            ", gb_direction_type = #{gbDirectionType}" +
-            ", gb_resolution = #{gbResolution}" +
-            ", gb_business_group_id = #{gbBusinessGroupId}" +
-            ", gb_download_speed = #{gbDownloadSpeed}" +
-            ", gb_svc_space_support_mod = #{gbSvcSpaceSupportMod}" +
-            ", gb_svc_time_support_mode = #{gbSvcTimeSupportMode}" +
+            "<if test='gbDeviceId != null' > , gb_device_id = #{gbDeviceId}</if> " +
+            "<if test='gbName != null' > , gb_name = #{gbName}</if> " +
+            "<if test='gbManufacturer != null' > , gb_manufacturer = #{gbManufacturer}</if> " +
+            "<if test='gbModel != null' > , gb_model = #{gbModel}</if> " +
+            "<if test='gbOwner != null' > , gb_owner = #{gbOwner}</if> " +
+            "<if test='gbCivilCode != null' > , gb_civil_code = #{gbCivilCode}</if> " +
+            "<if test='gbBlock != null' > , gb_block = #{gbBlock}</if> " +
+            "<if test='gbAddress != null' > , gb_address = #{gbAddress}</if> " +
+            "<if test='gbParental != null' > , gb_parental = #{gbParental}</if> " +
+            "<if test='gbParentId != null' > , gb_parent_id = #{gbParentId}</if> " +
+            "<if test='gbSafetyWay != null' > , gb_safety_way = #{gbSafetyWay}</if> " +
+            "<if test='gbRegisterWay != null' > , gb_register_way = #{gbRegisterWay}</if> " +
+            "<if test='gbCertNum != null' > , gb_cert_num = #{gbCertNum}</if> " +
+            "<if test='gbCertifiable != null' > , gb_certifiable = #{gbCertifiable}</if> " +
+            "<if test='gbErrCode != null' > , gb_err_code = #{gbErrCode}</if> " +
+            "<if test='gbEndTime != null' > , gb_end_time = #{gbEndTime}</if> " +
+            "<if test='gbIpAddress != null' > , gb_ip_address = #{gbIpAddress}</if> " +
+            "<if test='gbPort != null' > , gb_port = #{gbPort}</if> " +
+            "<if test='gbPassword != null' > , gb_password = #{gbPassword}</if> " +
+            "<if test='gbStatus != null' > , gb_status = #{gbStatus}</if> " +
+            "<if test='gbLongitude != null' > , gb_longitude = #{gbLongitude}</if> " +
+            "<if test='gbLatitude != null' > , gb_latitude = #{gbLatitude}</if> " +
+            "<if test='gbPtzType != null' > , gb_ptz_type = #{gbPtzType}</if> " +
+            "<if test='gbPositionType != null' > , gb_position_type = #{gbPositionType}</if> " +
+            "<if test='gbRoomType != null' > , gb_room_type = #{gbRoomType}</if> " +
+            "<if test='gbUseType != null' > , gb_use_type = #{gbUseType}</if> " +
+            "<if test='gbSupplyLightType != null' > , gb_supply_light_type = #{gbSupplyLightType}</if> " +
+            "<if test='gbDirectionType != null' > , gb_direction_type = #{gbDirectionType}</if> " +
+            "<if test='gbResolution != null' > , gb_resolution = #{gbResolution}</if> " +
+            "<if test='gbBusinessGroupId != null' > , gb_business_group_id = #{gbBusinessGroupId}</if> " +
+            "<if test='gbDownloadSpeed != null' > , gb_download_speed = #{gbDownloadSpeed}</if> " +
+            "<if test='gbSvcSpaceSupportMod != null' > , gb_svc_space_support_mod = #{gbSvcSpaceSupportMod}</if> " +
+            "<if test='gbSvcTimeSupportMode != null' > , gb_svc_time_support_mode = #{gbSvcTimeSupportMode}</if> " +
+            "<if test='enableBroadcast != null' > , enable_broadcast = #{enableBroadcast}</if> " +
             " WHERE id = #{gbId}"+
             " </script>"})
     int update(CommonGBChannel commonGBChannel);
@@ -205,7 +212,8 @@ public interface CommonGBChannelMapper {
             "gb_business_group_id," +
             "gb_download_speed," +
             "gb_svc_space_support_mod," +
-            "gb_svc_time_support_mode ) " +
+            "gb_svc_time_support_mode," +
+            "enable_broadcast ) " +
             "VALUES" +
             "<foreach collection='commonGBChannels' index='index' item='item' separator=','> " +
             "(#{item.gbDeviceId}, #{item.dataType}, #{item.dataDeviceId},#{item.createTime},#{item.updateTime}," +
@@ -214,7 +222,7 @@ public interface CommonGBChannelMapper {
             "#{item.gbRegisterWay},#{item.gbCertNum},#{item.gbCertifiable},#{item.gbErrCode},#{item.gbEndTime}, #{item.gbSecrecy},#{item.gbIpAddress}," +
             "#{item.gbPort},#{item.gbPassword},#{item.gbStatus},#{item.gbLongitude}, #{item.gbLatitude},#{item.gbPtzType},#{item.gbPositionType},#{item.gbRoomType}," +
             "#{item.gbUseType},#{item.gbSupplyLightType},#{item.gbDirectionType},#{item.gbResolution},#{item.gbBusinessGroupId},#{item.gbDownloadSpeed}," +
-            "#{item.gbSvcSpaceSupportMod},#{item.gbSvcTimeSupportMode})" +
+            "#{item.gbSvcSpaceSupportMod},#{item.gbSvcTimeSupportMode},#{item.enableBroadcast})" +
             "</foreach> " +
             " </script>")
     int batchAdd(List<CommonGBChannel> commonGBChannels);
@@ -228,17 +236,13 @@ public interface CommonGBChannelMapper {
 
     @Update(value = {" <script>" +
             " UPDATE wvp_device_channel " +
-            " SET update_time=#{updateTime}, gb_device_id = null, gb_name = null, gb_manufacturer = null," +
-            " gb_model = null, gb_owner = null, gb_block = null, gb_address = null," +
-            " gb_parental = null, gb_parent_id = null, gb_safety_way = null, gb_register_way = null, gb_cert_num = null," +
-            " gb_certifiable = null, gb_err_code = null, gb_end_time = null, gb_secrecy = null, gb_ip_address = null, " +
-            " gb_port = null, gb_password = null, gb_status = null, gb_longitude = null, gb_latitude = null, " +
-            " gb_ptz_type = null, gb_position_type = null, gb_room_type = null, gb_use_type = null, gb_supply_light_type = null, " +
-            " gb_direction_type = null, gb_resolution = null, gb_business_group_id = null, gb_download_speed = null, gb_svc_space_support_mod = null, " +
-            " gb_svc_time_support_mode = null" +
-            " WHERE id = #{id} and data_type = #{dataType} and data_device_id = #{dataDeviceId}"+
+            " SET update_time=#{updateTime}" +
+            "<foreach collection='fields' index='index' item='item'> " +
+            " ,${item} = null" +
+            "</foreach> " +
+            " WHERE id = #{id}"+
             " </script>"})
-    void reset(@Param("id") int id, @Param("dataType") Integer dataType, @Param("dataDeviceId") int dataDeviceId, @Param("updateTime") String updateTime);
+    void reset(@Param("id") int id, List<String> fields, @Param("updateTime") String updateTime);
 
 
     @SelectProvider(type = ChannelProvider.class, method = "queryByIds")
@@ -317,8 +321,11 @@ public interface CommonGBChannelMapper {
     @SelectProvider(type = ChannelProvider.class, method = "queryByCivilCode")
     List<CommonGBChannel> queryByCivilCode(@Param("civilCode") String civilCode);
 
+    @SelectProvider(type = ChannelProvider.class, method = "queryByDataTypeAndDeviceIds")
+    List<CommonGBChannel> queryByDataTypeAndDeviceIds(@Param("dataType") Integer dataType, List<Integer> deviceIds);
+
     @SelectProvider(type = ChannelProvider.class, method = "queryByGbDeviceIds")
-    List<CommonGBChannel> queryByGbDeviceIds(@Param("dataType") Integer dataType, List<Integer> deviceIds);
+    List<CommonGBChannel> queryByGbDeviceIds(List<String> deviceIds);
 
     @Select(value = {" <script>" +
             " select id from wvp_device_channel " +
@@ -410,7 +417,7 @@ public interface CommonGBChannelMapper {
             ", gb_ip_address=#{item.gbIpAddress}" +
             ", gb_port=#{item.gbPort}" +
             ", gb_password=#{item.gbPassword}" +
-            ", gb_status=#{item.gbStatus}" +
+            "<if test='item.gbStatus != null' > , gb_status=#{item.gbStatus}</if> " +
             ", gb_longitude=#{item.gbLongitude}" +
             ", gb_latitude=#{item.gbLatitude}" +
             ", gb_ptz_type=#{item.gbPtzType}" +
@@ -424,6 +431,7 @@ public interface CommonGBChannelMapper {
             ", gb_download_speed=#{item.gbDownloadSpeed}" +
             ", gb_svc_space_support_mod=#{item.gbSvcSpaceSupportMod}" +
             ", gb_svc_time_support_mode=#{item.gbSvcTimeSupportMode}" +
+            ", enable_broadcast = #{item.enableBroadcast}" +
             " WHERE id=#{item.gbId}" +
             "</foreach>" +
             "</script>"})
@@ -465,7 +473,8 @@ public interface CommonGBChannelMapper {
 
     @SelectProvider(type = ChannelProvider.class, method = "queryList")
     List<CommonGBChannel> queryList(@Param("query") String query, @Param("online") Boolean online,
-                                    @Param("hasRecordPlan") Boolean hasRecordPlan, @Param("dataType") Integer dataType);
+                                    @Param("hasRecordPlan") Boolean hasRecordPlan, @Param("dataType") Integer dataType,
+                                    @Param("civilCode") String civilCode, @Param("parentDeviceId") String parentDeviceId);
 
     @Update(value = {" <script>" +
             " UPDATE wvp_device_channel " +
@@ -505,6 +514,7 @@ public interface CommonGBChannelMapper {
             "    wdc.create_time,\n" +
             "    wdc.update_time,\n" +
             "    wdc.record_plan_id,\n" +
+            "    wdc.enable_broadcast,\n" +
             "    coalesce( wdc.gb_device_id, wdc.device_id) as gb_device_id,\n" +
             "    coalesce( wdc.gb_name, wdc.name) as gb_name,\n" +
             "    coalesce( wdc.gb_manufacturer, wdc.manufacturer) as gb_manufacturer,\n" +
@@ -581,6 +591,9 @@ public interface CommonGBChannelMapper {
     @SelectProvider(type = ChannelProvider.class, method = "queryOnlineListsByGbDeviceId")
     List<CommonGBChannel> queryOnlineListsByGbDeviceId(@Param("deviceId") int deviceId);
 
+    @SelectProvider(type = ChannelProvider.class, method = "queryCommonChannelByDeviceChannel")
+    CommonGBChannel queryCommonChannelByDeviceChannel(@Param("dataType") Integer dataType, @Param("dataDeviceId") Integer dataDeviceId, @Param("deviceId") String deviceId);
+
     @Update("UPDATE wvp_device_channel SET stream_id = #{stream} where id = #{gbId}")
     void updateStream(int gbId, String stream);
 
@@ -597,4 +610,89 @@ public interface CommonGBChannelMapper {
             "</foreach> " +
             "</script>")
     void updateGps(List<CommonGBChannel> commonGBChannels);
+
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryListForSy")
+    List<CameraChannel> queryListForSy(@Param("groupDeviceId") String groupDeviceId, @Param("online") Boolean online);
+
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryGbChannelByChannelDeviceIdAndGbDeviceId")
+    List<CameraChannel> queryGbChannelByChannelDeviceIdAndGbDeviceId(@Param("channelDeviceId") String channelDeviceId, @Param("gbDeviceId") String gbDeviceId);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryListByDeviceIds")
+    List<CameraChannel> queryListByDeviceIds(List<String> deviceIds);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryListWithChildForSy")
+    List<CameraChannel> queryListWithChildForSy(@Param("query") String query, @Param("sortName") String sortName, @Param("order") Boolean order, @Param("groupList") List<CameraGroup> groupList, @Param("online") Boolean online);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryListByAddressAndDirectionType")
+    List<CameraChannel> queryListByAddressAndDirectionType(@Param("address") String address, @Param("directionType") Integer directionType);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryListInBox")
+    List<CameraChannel> queryListInBox(@Param("minLongitude") Double minLongitude, @Param("maxLongitude") Double maxLongitude,
+                                       @Param("minLatitude") Double minLatitude, @Param("maxLatitude") Double maxLatitude,
+                                       @Param("level") Integer level, @Param("groupList") List<CameraGroup> groupList);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryListInCircleForMysql", databaseId = "mysql")
+    @SelectProvider(type = ChannelProvider.class, method = "queryListInCircleForH2", databaseId = "h2")
+    @SelectProvider(type = ChannelProvider.class, method = "queryListInCircleForKingBase", databaseId = "kingbase")
+    @SelectProvider(type = ChannelProvider.class, method = "queryListInCircleForKingBase", databaseId = "postgresql")
+    List<CameraChannel> queryListInCircle(@Param("centerLongitude") Double centerLongitude, @Param("centerLatitude") Double centerLatitude,
+                                          @Param("radius") Double radius, @Param("level") Integer level, @Param("groupList") List<CameraGroup> groupList);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryListInPolygonForMysql", databaseId = "mysql")
+    @SelectProvider(type = ChannelProvider.class, method = "queryListInPolygonForH2", databaseId = "h2")
+    @SelectProvider(type = ChannelProvider.class, method = "queryListInPolygonForKingBase", databaseId = "kingbase")
+    @SelectProvider(type = ChannelProvider.class, method = "queryListInPolygonForKingBase", databaseId = "postgresql")
+    List<CameraChannel> queryListInPolygon(@Param("pointList") List<Point> pointList, @Param("level") Integer level, @Param("groupList") List<CameraGroup> groupList);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryListForSyMobile")
+    List<CameraChannel> queryListForSyMobile(@Param("business") String business);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryCameraChannelById")
+    CameraChannel queryCameraChannelById(@Param("gbId") Integer id);
+
+    @Update("<script> " +
+            "<foreach collection='channels' index='index' item='item' separator=';'> " +
+            "UPDATE wvp_device_channel SET map_level=#{item.mapLevel} " +
+            "WHERE id = #{item.gbId}" +
+            "</foreach> " +
+            "</script>")
+    void saveLevel(List<CommonGBChannel> channels);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryCameraChannelByIds")
+    List<CameraChannel> queryCameraChannelByIds(List<CommonGBChannel> channelList);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryOldChanelListByChannels")
+    List<CommonGBChannel> queryOldChanelListByChannels(List<CommonGBChannel> channelList);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryMeetingChannelList")
+    List<CameraChannel> queryMeetingChannelList(@Param("business") String business);
+
+    @Update("UPDATE wvp_device_channel SET map_level=null")
+    int resetLevel();
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryCameraChannelInBox")
+    List<CommonGBChannel> queryCameraChannelInBox(@Param("minLon") double minLon, @Param("maxLon") double maxLon,
+                                                  @Param("minLat") double minLat, @Param("maxLat") double maxLat);
+
+    @Select("select " +
+            "MAX(coalesce(gb_longitude, longitude)) as maxLng,  " +
+            "MIN(coalesce(gb_longitude, longitude)) as minLng,  " +
+            "MAX(coalesce(gb_latitude, latitude)) as maxLat,  " +
+            "MIN(coalesce(gb_latitude, latitude)) as minLat  " +
+            " from wvp_device_channel " +
+            " where channel_type = 0")
+    Extent queryExtent();
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryAllWithPosition")
+    List<CommonGBChannel> queryAllWithPosition();
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryListInExtent")
+    List<CommonGBChannel> queryListInExtent(@Param("minLng") double minLng, @Param("maxLng") double maxLng,
+                                            @Param("minLat") double minLat, @Param("maxLat") double maxLat);
+
+    @SelectProvider(type = ChannelProvider.class, method = "queryListOutExtent")
+    List<CommonGBChannel> queryListOutExtent(@Param("minLng") double minLng, @Param("maxLng") double maxLng,
+                                            @Param("minLat") double minLat, @Param("maxLat") double maxLat);
 }

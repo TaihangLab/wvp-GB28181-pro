@@ -6,6 +6,7 @@ import com.genersoft.iot.vmp.media.bean.MediaServer;
 import com.genersoft.iot.vmp.service.bean.CloudRecordItem;
 import com.genersoft.iot.vmp.service.bean.DownloadFileInfo;
 import com.genersoft.iot.vmp.service.bean.ErrorCallback;
+import com.genersoft.iot.vmp.vmanager.cloudRecord.bean.CloudRecordUrl;
 import com.github.pagehelper.PageInfo;
 
 import java.util.List;
@@ -59,11 +60,17 @@ public interface ICloudRecordService {
     /**
      * 加载录像文件，形成录像流
      */
-    void loadRecord(String app, String stream, String date, ErrorCallback<StreamInfo> callback);
+    void loadMP4FileForDate(String app, String stream, String date, ErrorCallback<StreamInfo> callback);
 
     void seekRecord(String mediaServerId,String app, String stream, Double seek, String schema);
 
     void setRecordSpeed(String mediaServerId, String app, String stream, Integer speed, String schema);
 
     void deleteFileByIds(Set<Integer> ids);
+
+    void loadMP4File(String app, String stream, int cloudRecordId, ErrorCallback<StreamInfo> callback);
+
+    List<CloudRecordUrl> getUrlListByIds(List<Integer> ids);
+
+    List<CloudRecordUrl> getUrlList(String app, String stream, String callId);
 }

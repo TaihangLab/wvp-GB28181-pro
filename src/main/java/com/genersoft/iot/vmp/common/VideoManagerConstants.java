@@ -31,7 +31,7 @@ public class VideoManagerConstants {
 	public static final String SIP_INVITE_SESSION_CALL_ID = SIP_INVITE_SESSION + "CALL_ID:";
 	public static final String SIP_INVITE_SESSION_STREAM = SIP_INVITE_SESSION + "STREAM:";
 
-	public static final String MEDIA_STREAM_AUTHORITY = "VMP_MEDIA_STREAM_AUTHORITY:";
+	public static final String MEDIA_STREAM_AUTHORITY = "VMP_MEDIA_STREAM_AUTHORITY";
 
 	public static final String SIP_CSEQ_PREFIX = "VMP_SIP_CSEQ_";
 
@@ -50,6 +50,7 @@ public class VideoManagerConstants {
 	public static final String WAITE_SEND_PUSH_STREAM = "VMP_WAITE_SEND_PUSH_STREAM:";
 	public static final String START_SEND_PUSH_STREAM = "VMP_START_SEND_PUSH_STREAM:";
 	public static final String SSE_TASK_KEY = "SSE_TASK_";
+	public static final String DRAW_THIN_PROCESS_PREFIX = "VMP_DRAW_THIN_PROCESS_";
 
 
 
@@ -74,6 +75,16 @@ public class VideoManagerConstants {
 	 * 接收推流设备列表更新变化通知
 	 */
 	public static final String VM_MSG_PUSH_STREAM_LIST_CHANGE = "VM_MSG_PUSH_STREAM_LIST_CHANGE";
+
+    /**
+     * 同步三方组织结构回复
+     */
+    public static final String VM_MSG_GROUP_LIST_RESPONSE = "VM_MSG_GROUP_LIST_RESPONSE";
+
+    /**
+     * 同步三方组织结构回复
+     */
+    public static final String VM_MSG_GROUP_LIST_CHANGE = "VM_MSG_GROUP_LIST_CHANGE";
 
 	/**
 	 * redis 消息通知设备推流到平台
@@ -112,11 +123,6 @@ public class VideoManagerConstants {
 	public static final String VM_MSG_GET_ALL_ONLINE_REQUESTED = "VM_MSG_GET_ALL_ONLINE_REQUESTED";
 
 	/**
-	 * 移动位置订阅通知
-	 */
-	public static final String VM_MSG_SUBSCRIBE_MOBILE_POSITION = "mobileposition";
-
-	/**
 	 * 报警订阅的通知（收到报警向redis发出通知）
 	 */
 	public static final String VM_MSG_SUBSCRIBE_ALARM = "alarm";
@@ -131,6 +137,8 @@ public class VideoManagerConstants {
 	 * 设备状态订阅的通知
 	 */
 	public static final String VM_MSG_SUBSCRIBE_DEVICE_STATUS = "device";
+
+
 
 
 	//**************************    第三方  ****************************************

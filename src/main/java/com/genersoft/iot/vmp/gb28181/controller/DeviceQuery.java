@@ -31,8 +31,8 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -328,11 +328,13 @@ public class DeviceQuery {
 		return result;
 	}
 
-
+    /**
+     * 此接口保留仅作为兼容，后续将移除，请迁移至
+     */
 	@GetMapping("/{deviceId}/sync_status")
-	@Operation(summary = "获取通道同步进度", security = @SecurityRequirement(name = JwtUtils.HEADER))
+	@Operation(summary = "获取通道同步进度（此接口保留仅作为兼容，后续将移除，请迁移至 /sync_status?deviceId=）", security = @SecurityRequirement(name = JwtUtils.HEADER))
 	@Parameter(name = "deviceId", description = "设备国标编号", required = true)
-	public WVPResult<SyncStatus> getSyncStatus(@PathVariable String deviceId) {
+	public WVPResult<SyncStatus> getSyncStatusInPath(@PathVariable String deviceId) {
 		SyncStatus channelSyncStatus = deviceService.getChannelSyncStatus(deviceId);
 		WVPResult<SyncStatus> wvpResult = new WVPResult<>();
 		if (channelSyncStatus == null) {
@@ -341,9 +343,13 @@ public class DeviceQuery {
 		}else if (channelSyncStatus.getErrorMsg() != null) {
 			wvpResult.setCode(ErrorCode.ERROR100.getCode());
 			wvpResult.setMsg(channelSyncStatus.getErrorMsg());
-		}else if (channelSyncStatus.getTotal() == null || channelSyncStatus.getTotal() == 0){
+		}else if (channelSyncStatus.getTotal() == null){
 			wvpResult.setCode(ErrorCode.SUCCESS.getCode());
 			wvpResult.setMsg("等待通道信息...");
+		}else if (channelSyncStatus.getTotal() == 0){
+			wvpResult.setCode(ErrorCode.SUCCESS.getCode());
+            wvpResult.setMsg(ErrorCode.SUCCESS.getMsg());
+            wvpResult.setData(channelSyncStatus);
 		}else {
 			wvpResult.setCode(ErrorCode.SUCCESS.getCode());
 			wvpResult.setMsg(ErrorCode.SUCCESS.getMsg());
@@ -351,6 +357,36 @@ public class DeviceQuery {
 		}
 		return wvpResult;
 	}
+
+    /**
+     * 此接口保留仅作为兼容，后续将移除，请迁移至
+     */
+    @GetMapping("/sync_status")
+    @Operation(summary = "获取通道同步进度", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    @Parameter(name = "deviceId", description = "设备国标编号", required = true)
+    public WVPResult<SyncStatus> getSyncStatus(String deviceId) {
+        SyncStatus channelSyncStatus = deviceService.getChannelSyncStatus(deviceId);
+        WVPResult<SyncStatus> wvpResult = new WVPResult<>();
+        if (channelSyncStatus == null) {
+            wvpResult.setCode(ErrorCode.ERROR100.getCode());
+            wvpResult.setMsg("同步不存在");
+        }else if (channelSyncStatus.getErrorMsg() != null) {
+            wvpResult.setCode(ErrorCode.ERROR100.getCode());
+            wvpResult.setMsg(channelSyncStatus.getErrorMsg());
+        }else if (channelSyncStatus.getTotal() == null){
+            wvpResult.setCode(ErrorCode.SUCCESS.getCode());
+            wvpResult.setMsg("等待通道信息...");
+        }else if (channelSyncStatus.getTotal() == 0){
+            wvpResult.setCode(ErrorCode.SUCCESS.getCode());
+            wvpResult.setMsg(ErrorCode.SUCCESS.getMsg());
+            wvpResult.setData(channelSyncStatus);
+        }else {
+            wvpResult.setCode(ErrorCode.SUCCESS.getCode());
+            wvpResult.setMsg(ErrorCode.SUCCESS.getMsg());
+            wvpResult.setData(channelSyncStatus);
+        }
+        return wvpResult;
+    }
 
 	@GetMapping("/snap/{deviceId}/{channelId}")
 	@Operation(summary = "请求截图")

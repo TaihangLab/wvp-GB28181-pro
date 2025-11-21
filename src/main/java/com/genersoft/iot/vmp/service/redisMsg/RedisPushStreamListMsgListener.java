@@ -2,7 +2,9 @@ package com.genersoft.iot.vmp.service.redisMsg;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.genersoft.iot.vmp.conf.UserSetting;
 import com.genersoft.iot.vmp.media.service.IMediaServerService;
+import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
 import com.genersoft.iot.vmp.streamPush.bean.RedisPushStreamMessage;
 import com.genersoft.iot.vmp.streamPush.bean.StreamPush;
 import com.genersoft.iot.vmp.streamPush.service.IStreamPushService;
@@ -13,7 +15,7 @@ import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,11 +38,17 @@ public class RedisPushStreamListMsgListener implements MessageListener {
     @Resource
     private IStreamPushService streamPushService;
 
+    @Resource
+    private IRedisCatchStorage redisCatchStorage;
+
+    @Resource
+    private UserSetting userSetting;
+
     private final ConcurrentLinkedQueue<Message> taskQueue = new ConcurrentLinkedQueue<>();
 
     @Override
     public void onMessage(Message message, byte[] bytes) {
-        log.info("[REDIS: 流设备列表更新]： {}", new String(message.getBody()));
+        log.info("[REDIS: 推流设备列表更新]： {}", new String(message.getBody()));
         taskQueue.offer(message);
     }
 
@@ -102,7 +110,9 @@ public class RedisPushStreamListMsgListener implements MessageListener {
                         streamPush.setUpdateTime(DateUtil.getNow());
                         streamPush.setGbDeviceId(pushStreamMessage.getGbId());
                         streamPush.setGbName(pushStreamMessage.getName());
-                        streamPush.setGbStatus(pushStreamMessage.isStatus() ? "ON" : "OFF");
+                        if (pushStreamMessage.getStatus() != null) {
+                            streamPush.setGbStatus(pushStreamMessage.getStatus() ? "ON" : "OFF");
+                        }
                         //存在就只修改 name和gbId
                         streamPushItemForUpdate.add(streamPush);
                     }
@@ -116,7 +126,7 @@ public class RedisPushStreamListMsgListener implements MessageListener {
                 if (!streamPushItemForUpdate.isEmpty()) {
                     log.info("修改{}条", streamPushItemForUpdate.size());
                     log.info(JSONObject.toJSONString(streamPushItemForUpdate));
-                    streamPushService.batchUpdate(streamPushItemForUpdate);
+                    streamPushService.batchUpdateForRedisMsg(streamPushItemForUpdate);
                 }
             } catch (Exception e) {
                 log.warn("[REDIS消息-推流设备列表更新] 发现未处理的异常, \r\n{}", new String(msg.getBody()));

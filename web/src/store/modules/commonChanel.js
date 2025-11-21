@@ -48,7 +48,7 @@ import {
   stopPlayback,
   pausePlayback,
   resumePlayback,
-  seekPlayback, speedPlayback
+  seekPlayback, speedPlayback, getAllForMap, test, saveLevel, resetLevel, clearThin, thinProgress, drawThin, saveThin
 } from '@/api/commonChannel'
 
 const actions = {
@@ -72,9 +72,9 @@ const actions = {
       })
     })
   },
-  reset({ commit }, id) {
+  reset({ commit }, data) {
     return new Promise((resolve, reject) => {
-      reset(id).then(response => {
+      reset(data).then(response => {
         const { data } = response
         resolve(data)
       }).catch(error => {
@@ -555,6 +555,87 @@ const actions = {
   speedPlayback({ commit }, params) {
     return new Promise((resolve, reject) => {
       speedPlayback(params).then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
+  getAllForMap({ commit }, params) {
+    return new Promise((resolve, reject) => {
+      getAllForMap(params).then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
+  saveLevel({ commit }, data) {
+    return new Promise((resolve, reject) => {
+      saveLevel(data).then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
+  resetLevel({ commit }) {
+    return new Promise((resolve, reject) => {
+      resetLevel().then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
+  clearThin({ commit }, id) {
+    return new Promise((resolve, reject) => {
+      clearThin(id).then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
+  thinProgress({ commit }, id) {
+    return new Promise((resolve, reject) => {
+      thinProgress(id).then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
+  saveThin({ commit }, id) {
+    return new Promise((resolve, reject) => {
+      saveThin(id).then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
+  drawThin({ commit }, param) {
+    return new Promise((resolve, reject) => {
+      drawThin(param).then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
+
+  test({ commit }) {
+    return new Promise((resolve, reject) => {
+      test().then(response => {
         const { data } = response
         resolve(data)
       }).catch(error => {

@@ -11,7 +11,7 @@ import com.genersoft.iot.vmp.gb28181.dao.DeviceChannelMapper;
 import com.genersoft.iot.vmp.gb28181.dao.DeviceMapper;
 import com.genersoft.iot.vmp.gb28181.dao.PlatformChannelMapper;
 import com.genersoft.iot.vmp.gb28181.event.EventPublisher;
-import com.genersoft.iot.vmp.gb28181.event.subscribe.catalog.CatalogEvent;
+import com.genersoft.iot.vmp.gb28181.event.channel.ChannelEvent;
 import com.genersoft.iot.vmp.gb28181.service.IDeviceService;
 import com.genersoft.iot.vmp.gb28181.service.IInviteStreamService;
 import com.genersoft.iot.vmp.gb28181.session.AudioBroadcastManager;
@@ -39,6 +39,7 @@ import com.genersoft.iot.vmp.vmanager.bean.WVPResult;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import gov.nist.javax.sip.message.SIPResponse;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -51,7 +52,6 @@ import org.springframework.util.Assert;
 import javax.sip.InvalidArgumentException;
 import javax.sip.ResponseEvent;
 import javax.sip.SipException;
-import javax.validation.constraints.NotNull;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.*;
@@ -356,7 +356,6 @@ public class DeviceServiceImpl implements IDeviceService, CommandLineRunner {
                     // 发送redis消息
                     redisCatchStorage.sendDeviceOrChannelStatus(device.getDeviceId(), null, true);
                 }
-
             }else {
                 deviceMapper.update(device);
                 redisCatchStorage.updateDevice(device);
@@ -423,7 +422,7 @@ public class DeviceServiceImpl implements IDeviceService, CommandLineRunner {
         }
         deviceChannelMapper.offlineByDeviceId(device.getId());
         // 发送通道离线通知
-        eventPublisher.catalogEventPublish(null, channelList, CatalogEvent.OFF);
+        eventPublisher.channelEventPublish(channelList, ChannelEvent.ChannelEventMessageType.OFF);
     }
 
     private boolean isDevice(String deviceId) {
@@ -824,6 +823,15 @@ public class DeviceServiceImpl implements IDeviceService, CommandLineRunner {
         if (deviceStatusTaskRunner.containsKey(deviceId)) {
             deviceStatusTaskRunner.removeTask(deviceId);
         }
+        List<CommonGBChannel> commonGBChannels = commonGBChannelMapper.queryByDataTypeAndDeviceIds(1, List.of(device.getId()));
+
+        try {
+            // 发送catalog
+            eventPublisher.channelEventPublish(commonGBChannels, ChannelEvent.ChannelEventMessageType.DEL);
+        } catch (Exception e) {
+            log.warn("[多个通道删除] 发送失败，数量：{}", commonGBChannels.size(), e);
+        }
+
         platformChannelMapper.delChannelForDeviceId(deviceId);
         deviceChannelMapper.cleanChannelsByDeviceId(device.getId());
         deviceMapper.del(deviceId);

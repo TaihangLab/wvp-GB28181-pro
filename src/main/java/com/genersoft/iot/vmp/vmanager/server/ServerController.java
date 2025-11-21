@@ -16,18 +16,17 @@ import com.genersoft.iot.vmp.media.bean.MediaInfo;
 import com.genersoft.iot.vmp.media.bean.MediaServer;
 import com.genersoft.iot.vmp.media.event.mediaServer.MediaServerChangeEvent;
 import com.genersoft.iot.vmp.media.service.IMediaServerService;
+import com.genersoft.iot.vmp.service.IMapService;
 import com.genersoft.iot.vmp.service.bean.MediaServerLoad;
 import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
 import com.genersoft.iot.vmp.streamProxy.service.IStreamProxyService;
 import com.genersoft.iot.vmp.streamPush.service.IStreamPushService;
-import com.genersoft.iot.vmp.vmanager.bean.ErrorCode;
-import com.genersoft.iot.vmp.vmanager.bean.ResourceBaseInfo;
-import com.genersoft.iot.vmp.vmanager.bean.ResourceInfo;
-import com.genersoft.iot.vmp.vmanager.bean.SystemConfigInfo;
+import com.genersoft.iot.vmp.vmanager.bean.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,13 +41,9 @@ import oshi.hardware.HardwareAbstractionLayer;
 import oshi.hardware.NetworkIF;
 import oshi.software.os.OperatingSystem;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @SuppressWarnings("rawtypes")
 @Tag(name = "服务控制")
@@ -84,6 +79,10 @@ public class ServerController {
 
     @Autowired
     private IStreamProxyService proxyService;
+
+
+    @Autowired(required = false)
+    private IMapService mapService;
 
     @Value("${server.port}")
     private int serverPort;
@@ -177,7 +176,7 @@ public class ServerController {
     @GetMapping(value = "/media_server/media_info")
     @ResponseBody
     public MediaInfo getMediaInfo(String app, String stream, String mediaServerId) {
-        MediaServer mediaServer = mediaServerService.getOne(mediaServerId);
+        MediaServer mediaServer = mediaServerService.getOneFromCluster(mediaServerId);
         if (mediaServer == null) {
             throw new ControllerException(ErrorCode.ERROR100.getCode(), "流媒体不存在");
         }
@@ -361,5 +360,25 @@ public class ServerController {
         }
         double tbNumber = gbNumber / FORMAT;
         return new DecimalFormat("#.##TB").format(tbNumber);
+    }
+
+    @GetMapping(value = "/map/config")
+    @ResponseBody
+    @Operation(summary = "获取地图配置", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    public List<MapConfig> getMapConfig() {
+        if (mapService == null) {
+            return Collections.emptyList();
+        }
+        return mapService.getConfig();
+    }
+
+    @GetMapping(value = "/map/model-icon/list")
+    @ResponseBody
+    @Operation(summary = "获取地图配置图标", security = @SecurityRequirement(name = JwtUtils.HEADER))
+    public List<MapModelIcon> getMapModelIconList() {
+        if (mapService == null) {
+            return Collections.emptyList();
+        }
+        return mapService.getModelList();
     }
 }

@@ -212,4 +212,8 @@ public class Device {
 
 	@Schema(description = "所属服务Id")
 	private String serverId;
+
+    public boolean checkWgs84() {
+        return geoCoordSys.equalsIgnoreCase("WGS84");
+    }
 }

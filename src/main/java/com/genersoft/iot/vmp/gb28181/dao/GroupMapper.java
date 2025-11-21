@@ -4,21 +4,24 @@ import com.genersoft.iot.vmp.gb28181.bean.CommonGBChannel;
 import com.genersoft.iot.vmp.gb28181.bean.Group;
 import com.genersoft.iot.vmp.gb28181.bean.GroupTree;
 import com.genersoft.iot.vmp.gb28181.bean.Platform;
+import com.genersoft.iot.vmp.web.custom.bean.CameraCount;
+import com.genersoft.iot.vmp.web.custom.bean.CameraGroup;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Mapper
 public interface GroupMapper {
 
-    @Insert("INSERT INTO wvp_common_group (device_id, name, parent_id, parent_device_id, business_group, create_time, update_time, civil_code) " +
-            "VALUES (#{deviceId}, #{name}, #{parentId}, #{parentDeviceId}, #{businessGroup}, #{createTime}, #{updateTime}, #{civilCode})")
+    @Insert("INSERT INTO wvp_common_group (device_id, name, parent_id, parent_device_id, business_group, create_time, update_time, civil_code, alias) " +
+            "VALUES (#{deviceId}, #{name}, #{parentId}, #{parentDeviceId}, #{businessGroup}, #{createTime}, #{updateTime}, #{civilCode}, #{alias})")
     @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
     int add(Group group);
 
-    @Insert("INSERT INTO wvp_common_group (device_id, name, business_group, create_time, update_time, civil_code) " +
-            "VALUES (#{deviceId}, #{name}, #{businessGroup}, #{createTime}, #{updateTime}, #{civilCode})")
+    @Insert("INSERT INTO wvp_common_group (device_id, name, business_group, create_time, update_time, civil_code, alias) " +
+            "VALUES (#{deviceId}, #{name}, #{businessGroup}, #{createTime}, #{updateTime}, #{civilCode}, #{alias})")
     @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
     int addBusinessGroup(Group group);
 
@@ -27,7 +30,8 @@ public interface GroupMapper {
 
     @Update(" UPDATE wvp_common_group " +
             " SET update_time=#{updateTime}, device_id=#{deviceId}, name=#{name}, parent_id=#{parentId}, " +
-            " parent_device_id=#{parentDeviceId}, business_group=#{businessGroup}, civil_code=#{civilCode}" +
+            " parent_device_id=#{parentDeviceId}, business_group=#{businessGroup}, civil_code=#{civilCode}, " +
+            " alias=#{alias}" +
             " WHERE id = #{id}")
     int update(Group group);
 
@@ -55,10 +59,12 @@ public interface GroupMapper {
             " business_group," +
             " create_time," +
             " civil_code," +
+            " alias," +
             " update_time) " +
             " VALUES " +
             " <foreach collection='groupList' index='index' item='item' separator=','> " +
-            " (#{item.deviceId}, #{item.name}, #{item.parentDeviceId}, #{item.parentId}, #{item.businessGroup},#{item.createTime},#{item.civilCode},#{item.updateTime})" +
+            " (#{item.deviceId}, #{item.name}, #{item.parentDeviceId}, #{item.parentId}, #{item.businessGroup}," +
+            "#{item.createTime},#{item.civilCode},#{item.alias},#{item.updateTime})" +
             " </foreach> " +
             " </script>")
     @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
@@ -105,6 +111,9 @@ public interface GroupMapper {
     @Select("SELECT * from wvp_common_group WHERE device_id = #{deviceId} and business_group = #{businessGroup}")
     Group queryOneByDeviceId(@Param("deviceId") String deviceId, @Param("businessGroup") String businessGroup);
 
+    @Select("SELECT * from wvp_common_group WHERE device_id = #{deviceId}")
+    Group queryOneByOnlyDeviceId(@Param("deviceId") String deviceId);
+
     @Delete("<script>" +
             " DELETE FROM wvp_common_group WHERE id in " +
             " <foreach collection='allChildren'  item='item'  open='(' separator=',' close=')' > #{item.id}</foreach>" +
@@ -116,6 +125,10 @@ public interface GroupMapper {
 
     @Select("SELECT * from wvp_common_group WHERE business_group = #{businessGroup} ")
     List<Group> queryByBusinessGroup(@Param("businessGroup") String businessGroup);
+
+    @Select("SELECT * from wvp_common_group WHERE business_group = #{businessGroup}")
+    @MapKey("id")
+    Map<Integer, CameraGroup> queryByBusinessGroupForMap(@Param("businessGroup") String businessGroup);
 
     @Delete("DELETE FROM wvp_common_group WHERE business_group = #{businessGroup}")
     int deleteByBusinessGroup(@Param("businessGroup") String businessGroup);
@@ -200,6 +213,13 @@ public interface GroupMapper {
             " where w1.id in " +
             " <foreach collection='groupListForAdd'  item='item'  open='(' separator=',' close=')' > #{item.id}</foreach>" +
             " </script>", databaseId = "mysql")
+    @Update(value = " <script>" +
+            " update wvp_common_group w1 " +
+            " inner join (select * from wvp_common_group ) w2 on w1.parent_device_id = w2.device_id " +
+            " set w1.parent_id = w2.id" +
+            " where w1.id in " +
+            " <foreach collection='groupListForAdd'  item='item'  open='(' separator=',' close=')' > #{item.id}</foreach>" +
+            " </script>", databaseId = "h2")
     @Update( value = " <script>" +
             " update wvp_common_group w1\n" +
             " set parent_id = w2.id\n" +
@@ -230,6 +250,18 @@ public interface GroupMapper {
             " where w1.id in " +
             " <foreach collection='groupListForAdd'  item='item'  open='(' separator=',' close=')' > #{item.id}</foreach>" +
             " </script>", databaseId = "mysql")
+    @Update(value = " <script>" +
+            " update wvp_common_group w1 " +
+            "    inner join (select * from wvp_common_group ) w2" +
+            "    on w1.parent_device_id is null" +
+            "           and w2.parent_device_id is null" +
+            "           and w2.device_id = w2.business_group " +
+            "           and w1.business_group = w2.device_id " +
+            "            and w1.device_id != w1.business_group " +
+            " set w1.parent_id = w2.id" +
+            " where w1.id in " +
+            " <foreach collection='groupListForAdd'  item='item'  open='(' separator=',' close=')' > #{item.id}</foreach>" +
+            " </script>", databaseId = "h2")
     @Update( value = " <script>" +
             " update wvp_common_group w1 " +
             " set parent_id = w2.id " +
@@ -267,4 +299,55 @@ public interface GroupMapper {
 
     @Delete("DELETE FROM wvp_platform_group WHERE group_id = #{groupId}")
     void deletePlatformGroup(@Param("groupId") int groupId);
+
+    @Select("SELECT * from wvp_common_group WHERE alias = #{alias} ")
+    CameraGroup queryGroupByAlias(@Param("alias") String alias);
+
+    @Select("SELECT * from wvp_common_group WHERE alias = #{alias} and  business_group = #{businessGroup}")
+    Group queryGroupByAliasAndBusinessGroup(@Param("alias") String alias, @Param("deviceId") String businessGroup);
+
+
+    @Select("<script>" +
+            " SELECT " +
+            "    MIN(coalesce( wdc.gb_parent_id, wdc.parent_id)) as deviceId," +
+            "    COUNT(*) AS allCount," +
+            "    SUM(CASE WHEN coalesce( wdc.gb_status, wdc.status) = 'ON' THEN 1 ELSE 0 END) AS onlineCount" +
+            " FROM " +
+            "    wvp_device_channel wdc " +
+            " where wdc.channel_type = 0 AND wdc.data_type != 2 AND (wdc.gb_ptz_type is null or  ( wdc.gb_ptz_type != 98 AND wdc.gb_ptz_type != 99)) " +
+            " AND coalesce( wdc.gb_parent_id, wdc.parent_id) in " +
+            " <foreach collection='groupList'  item='item'  open='(' separator=',' close=')' > #{item.deviceId}</foreach>" +
+            " GROUP BY coalesce(wdc.gb_parent_id, wdc.parent_id)" +
+            "</script>")
+    List<CameraCount> queryCountWithChild(List<CameraGroup> groupList);
+
+    @Select("SELECT * from wvp_common_group where alias is not null")
+    @MapKey("alias")
+    Map<String, Group> queryGroupByAliasMap();
+
+    @Delete("DELETE FROM wvp_common_group where alias is not null")
+    void deleteHasAlias();
+
+    @Update(value = " UPDATE wvp_common_group g1" +
+            "    JOIN wvp_common_group g2" +
+            "    ON g1.parent_device_id = g2.device_id" +
+            " SET g1.parent_id = g2.id" +
+            " WHERE g1.alias IS NOT NULL;", databaseId = "mysql")
+    @Update(value = " UPDATE wvp_common_group g1" +
+            "    JOIN wvp_common_group g2" +
+            "    ON g1.parent_device_id = g2.device_id" +
+            " SET g1.parent_id = g2.id" +
+            " WHERE g1.alias IS NOT NULL;", databaseId = "h2")
+    @Update(value = " UPDATE wvp_common_group AS g1" +
+            " SET parent_id = g2.id" +
+            " FROM wvp_common_group AS g2" +
+            " WHERE g1.parent_device_id = g2.device_id" +
+            "  AND g1.alias IS NOT NULL;", databaseId = "kingbase")
+    @Update(value = " UPDATE wvp_common_group AS g1" +
+            " SET parent_id = g2.id" +
+            " FROM wvp_common_group AS g2" +
+            " WHERE g1.parent_device_id = g2.device_id" +
+            "  AND g1.alias IS NOT NULL;", databaseId = "postgresql")
+    void fixParentId();
+
 }

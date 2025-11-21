@@ -118,7 +118,8 @@ create table IF NOT EXISTS wvp_device_channel
     has_audio                    bool default false,
     gps_time                     character varying(50),
     stream_identification        character varying(50),
-    channel_type                 int  default 0        not null,
+    channel_type                 int  default 0  not null,
+    map_level                    int  default 0,
     gb_device_id                 character varying(50),
     gb_name                      character varying(255),
     gb_manufacturer              character varying(255),
@@ -159,6 +160,7 @@ create table IF NOT EXISTS wvp_device_channel
     gps_speed                    double precision,
     gps_altitude                 double precision,
     gps_direction                double precision,
+    enable_broadcast             integer default 0,
     constraint uk_wvp_unique_channel unique (gb_device_id)
 );
 
@@ -182,6 +184,8 @@ create table IF NOT EXISTS wvp_media_server
     rtsp_ssl_port       integer,
     flv_port            integer,
     flv_ssl_port        integer,
+    mp4_port            integer,
+    mp4_ssl_port        integer,
     ws_flv_port         integer,
     ws_flv_ssl_port     integer,
     jtt_proxy_port      integer,
@@ -322,7 +326,6 @@ create table IF NOT EXISTS wvp_stream_proxy
     enable_mp4                 bool default false,
     pulling                    bool default false,
     enable                     bool default false,
-    enable_remove_none_reader  bool default false,
     create_time                character varying(50),
     name                       character varying(255),
     update_time                character varying(50),
@@ -428,6 +431,7 @@ create table IF NOT EXISTS wvp_common_group
     create_time      varchar(50)  NOT NULL,
     update_time      varchar(50)  NOT NULL,
     civil_code       varchar(50) default null,
+    alias            varchar(255) default null,
     constraint uk_common_group_device_platform unique (device_id)
 );
 

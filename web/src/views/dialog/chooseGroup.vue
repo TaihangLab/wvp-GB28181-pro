@@ -16,7 +16,7 @@
         :show-header="true"
         :edit="true"
         :enable-add-channel="false"
-        :click-event="treeNodeClickEvent"
+        @clickEvent="treeNodeClickEvent"
         :on-channel-change="onChannelChange"
         :tree-height="'45vh'"
       />
@@ -47,6 +47,7 @@ export default {
       showDialog: false,
       endCallback: false,
       groupDeviceId: '',
+      groupName: '',
       businessGroup: ''
     }
   },
@@ -56,10 +57,13 @@ export default {
     openDialog: function(callback) {
       this.showDialog = true
       this.endCallback = callback
+      this.groupDeviceId = ''
+      this.groupName = ''
+      this.businessGroup = ''
     },
     onSubmit: function() {
       if (this.endCallback) {
-        this.endCallback(this.groupDeviceId, this.businessGroup)
+        this.endCallback(this.groupDeviceId, this.businessGroup, this.groupName)
       }
       this.close()
     },
@@ -67,11 +71,14 @@ export default {
       this.showDialog = false
     },
     treeNodeClickEvent: function(group) {
+      console.log(111)
+      console.log(group)
       if (group.deviceId === '' || group.deviceId === group.businessGroup) {
         return
       }
       this.groupDeviceId = group.deviceId
       this.businessGroup = group.businessGroup
+      this.groupName = group.name
     },
     onChannelChange: function(deviceId) {
       //

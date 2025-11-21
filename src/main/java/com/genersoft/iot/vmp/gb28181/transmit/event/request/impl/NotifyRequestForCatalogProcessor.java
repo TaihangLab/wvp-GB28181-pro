@@ -3,11 +3,14 @@ package com.genersoft.iot.vmp.gb28181.transmit.event.request.impl;
 import com.genersoft.iot.vmp.conf.UserSetting;
 import com.genersoft.iot.vmp.gb28181.bean.*;
 import com.genersoft.iot.vmp.gb28181.event.EventPublisher;
+import com.genersoft.iot.vmp.gb28181.event.channel.ChannelEvent;
 import com.genersoft.iot.vmp.gb28181.event.subscribe.catalog.CatalogEvent;
 import com.genersoft.iot.vmp.gb28181.service.IDeviceChannelService;
+import com.genersoft.iot.vmp.gb28181.service.IGbChannelService;
 import com.genersoft.iot.vmp.gb28181.transmit.event.request.SIPRequestProcessorParent;
 import com.genersoft.iot.vmp.gb28181.utils.SipUtils;
 import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
+import com.genersoft.iot.vmp.utils.Coordtransform;
 import com.genersoft.iot.vmp.utils.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.dom4j.DocumentException;
@@ -48,6 +51,9 @@ public class NotifyRequestForCatalogProcessor extends SIPRequestProcessorParent 
 
 	@Autowired
 	private IDeviceChannelService deviceChannelService;
+
+	@Autowired
+	private IGbChannelService channelService;
 
 //	@Scheduled(fixedRate = 2000)   //每400毫秒执行一次
 //	public void showSize(){
@@ -116,6 +122,19 @@ public class NotifyRequestForCatalogProcessor extends SIPRequestProcessorParent 
 								continue;
 							}
 							catalogChannelEvent.getChannel().setDataDeviceId(device.getId());
+                            if (catalogChannelEvent.getChannel().getLongitude() != null
+                                    && catalogChannelEvent.getChannel().getLatitude() != null
+                                    && catalogChannelEvent.getChannel().getLongitude() > 0
+                                    && catalogChannelEvent.getChannel().getLatitude() > 0) {
+                               if (device.checkWgs84()) {
+                                   catalogChannelEvent.getChannel().setGbLongitude(catalogChannelEvent.getChannel().getLongitude());
+                                   catalogChannelEvent.getChannel().setGbLatitude(catalogChannelEvent.getChannel().getLatitude());
+                               }else {
+                                   Double[] wgs84Position = Coordtransform.GCJ02ToWGS84(catalogChannelEvent.getChannel().getLongitude(), catalogChannelEvent.getChannel().getLatitude());
+                                   catalogChannelEvent.getChannel().setGbLongitude(wgs84Position[0]);
+                                   catalogChannelEvent.getChannel().setGbLatitude(wgs84Position[1]);
+                               }
+                            }
                         } catch (InvocationTargetException | NoSuchMethodException | InstantiationException |
                                  IllegalAccessException e) {
                             log.error("[解析CatalogChannelEvent]失败，", e);
@@ -133,6 +152,7 @@ public class NotifyRequestForCatalogProcessor extends SIPRequestProcessorParent 
 								log.info("[收到通道上线通知] 来自设备: {}, 通道 {}", device.getDeviceId(), catalogChannelEvent.getChannel().getDeviceId());
 								channel.setStatus("ON");
 								channelList.add(NotifyCatalogChannel.getInstance(NotifyCatalogChannel.Type.STATUS_CHANGED, channel));
+
 								if (userSetting.getDeviceStatusNotify()) {
 									// 发送redis消息
 									redisCatchStorage.sendDeviceOrChannelStatus(device.getDeviceId(), catalogChannelEvent.getChannel().getDeviceId(), true);
@@ -160,6 +180,7 @@ public class NotifyRequestForCatalogProcessor extends SIPRequestProcessorParent 
 								} else {
 									channel.setStatus("OFF");
 									channelList.add(NotifyCatalogChannel.getInstance(NotifyCatalogChannel.Type.STATUS_CHANGED, channel));
+
 									if (userSetting.getDeviceStatusNotify()) {
 										// 发送redis消息
 										redisCatchStorage.sendDeviceOrChannelStatus(device.getDeviceId(), catalogChannelEvent.getChannel().getDeviceId(), false);
@@ -174,6 +195,7 @@ public class NotifyRequestForCatalogProcessor extends SIPRequestProcessorParent 
 								} else {
 									channel.setStatus("OFF");
 									channelList.add(NotifyCatalogChannel.getInstance(NotifyCatalogChannel.Type.STATUS_CHANGED, channel));
+
 									if (userSetting.getDeviceStatusNotify()) {
 										// 发送redis消息
 										redisCatchStorage.sendDeviceOrChannelStatus(device.getDeviceId(), catalogChannelEvent.getChannel().getDeviceId(), false);
@@ -191,10 +213,12 @@ public class NotifyRequestForCatalogProcessor extends SIPRequestProcessorParent 
 									channel.setHasAudio(deviceChannel.isHasAudio());
 									channel.setUpdateTime(DateUtil.getNow());
 									channelList.add(NotifyCatalogChannel.getInstance(NotifyCatalogChannel.Type.UPDATE, channel));
+
 								} else {
 									catalogChannelEvent.getChannel().setUpdateTime(DateUtil.getNow());
 									catalogChannelEvent.getChannel().setCreateTime(DateUtil.getNow());
 									channelList.add(NotifyCatalogChannel.getInstance(NotifyCatalogChannel.Type.ADD, channel));
+
 									if (userSetting.getDeviceStatusNotify()) {
 										// 发送redis消息
 										redisCatchStorage.sendChannelAddOrDelete(device.getDeviceId(), catalogChannelEvent.getChannel().getDeviceId(), true);
@@ -206,6 +230,7 @@ public class NotifyRequestForCatalogProcessor extends SIPRequestProcessorParent 
 								// 删除
 								log.info("[收到删除通道通知] 来自设备: {}, 通道 {}", device.getDeviceId(), catalogChannelEvent.getChannel().getDeviceId());
 								channelList.add(NotifyCatalogChannel.getInstance(NotifyCatalogChannel.Type.DELETE, channel));
+
 								if (userSetting.getDeviceStatusNotify()) {
 									// 发送redis消息
 									redisCatchStorage.sendChannelAddOrDelete(device.getDeviceId(), catalogChannelEvent.getChannel().getDeviceId(), false);
@@ -222,10 +247,12 @@ public class NotifyRequestForCatalogProcessor extends SIPRequestProcessorParent 
 									channel.setUpdateTime(DateUtil.getNow());
 									channel.setUpdateTime(DateUtil.getNow());
 									channelList.add(NotifyCatalogChannel.getInstance(NotifyCatalogChannel.Type.UPDATE, channel));
+
 								} else {
 									catalogChannelEvent.getChannel().setCreateTime(DateUtil.getNow());
 									catalogChannelEvent.getChannel().setUpdateTime(DateUtil.getNow());
 									channelList.add(NotifyCatalogChannel.getInstance(NotifyCatalogChannel.Type.ADD, channel));
+
 									if (userSetting.getDeviceStatusNotify()) {
 										// 发送redis消息
 										redisCatchStorage.sendChannelAddOrDelete(device.getDeviceId(), catalogChannelEvent.getChannel().getDeviceId(), true);
@@ -236,8 +263,6 @@ public class NotifyRequestForCatalogProcessor extends SIPRequestProcessorParent 
 								log.warn("[ NotifyCatalog ] event not found ： {}", catalogChannelEvent.getEvent());
 
 						}
-						// 转发变化信息
-						eventPublisher.catalogEventPublish(null, catalogChannelEvent.getChannel(), catalogChannelEvent.getEvent());
 					}
 				}
 
@@ -262,20 +287,33 @@ public class NotifyRequestForCatalogProcessor extends SIPRequestProcessorParent 
 			try {
 				switch (notifyCatalogChannel.getType()) {
 					case STATUS_CHANGED:
-						deviceChannelService.updateChannelStatus(notifyCatalogChannel.getChannel());
+						deviceChannelService.updateChannelStatusForNotify(notifyCatalogChannel.getChannel());
+						CommonGBChannel channelForStatus = channelService.queryCommonChannelByDeviceChannel(notifyCatalogChannel.getChannel());
+						if ("ON".equals(notifyCatalogChannel.getChannel().getStatus()) ) {
+							eventPublisher.channelEventPublish(channelForStatus, ChannelEvent.ChannelEventMessageType.ON);
+						}else {
+							eventPublisher.channelEventPublish(channelForStatus, ChannelEvent.ChannelEventMessageType.OFF);
+						}
 						break;
 					case ADD:
 						deviceChannelService.addChannel(notifyCatalogChannel.getChannel());
+						CommonGBChannel channelForAdd = channelService.getOne(notifyCatalogChannel.getChannel().getId());
+						eventPublisher.channelEventPublish(channelForAdd, ChannelEvent.ChannelEventMessageType.ADD);
 						break;
 					case UPDATE:
+						CommonGBChannel oldCommonChannel = channelService.getOne(notifyCatalogChannel.getChannel().getId());
 						deviceChannelService.updateChannelForNotify(notifyCatalogChannel.getChannel());
+						CommonGBChannel channel = channelService.getOne(oldCommonChannel.getGbId());
+						eventPublisher.channelEventPublishForUpdate(channel, oldCommonChannel);
 						break;
 					case DELETE:
-						deviceChannelService.delete(notifyCatalogChannel.getChannel());
+						CommonGBChannel oldCommonChannelForDelete = channelService.queryCommonChannelByDeviceChannel(notifyCatalogChannel.getChannel());
+						deviceChannelService.deleteForNotify(notifyCatalogChannel.getChannel());
+						eventPublisher.channelEventPublish(oldCommonChannelForDelete, ChannelEvent.ChannelEventMessageType.DEL);
 						break;
 				}
 			}catch (Exception e) {
-				log.error("[存储收到的通道]类型：{}，编号：{}", notifyCatalogChannel.getType(),
+				log.error("[存储收到的通道-异常]类型：{}，编号：{}", notifyCatalogChannel.getType(),
 						notifyCatalogChannel.getChannel().getDeviceId(), e);
 			}
 		}

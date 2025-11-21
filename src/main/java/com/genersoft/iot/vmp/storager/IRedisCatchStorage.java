@@ -97,16 +97,12 @@ public interface IRedisCatchStorage {
 
     void addNetInfo(Map<String, Double> networkInterfaces);
 
-    void sendMobilePositionMsg(JSONObject jsonObject);
-
     void sendStreamPushRequestedMsg(MessageForPushChannel messageForPushChannel);
 
     /**
      * 判断设备状态
-     * @param deviceId 设备ID
-     * @return
      */
-    public boolean deviceIsOnline(String deviceId);
+    boolean deviceIsOnline(String deviceId);
 
     /**
      * 存储推流的鉴权信息

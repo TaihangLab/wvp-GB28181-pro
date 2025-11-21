@@ -12,11 +12,22 @@
             @input="initData"
           />
         </el-form-item>
+        <el-form-item label="Call Id">
+          <el-input
+            v-model="callId"
+            style="margin-right: 1rem; width: auto;"
+            placeholder="事务标识"
+            prefix-icon="el-icon-search"
+            clearable
+            @input="initData"
+          />
+        </el-form-item>
         <el-form-item label="开始时间">
           <el-date-picker
             v-model="startTime"
             type="datetime"
             size="mini"
+            style="width: 12rem; margin-right: 1rem;"
             value-format="yyyy-MM-dd HH:mm:ss"
             placeholder="选择日期时间"
             @change="initData"
@@ -27,6 +38,7 @@
             v-model="endTime"
             type="datetime"
             size="mini"
+            style="width: 12rem; margin-right: 1rem;"
             value-format="yyyy-MM-dd HH:mm:ss"
             placeholder="选择日期时间"
             @change="initData"
@@ -36,7 +48,7 @@
           <el-select
             v-model="mediaServerId"
             size="mini"
-            style="width: 16rem; margin-right: 1rem;"
+            style="width: 12rem; margin-right: 1rem;"
             placeholder="请选择"
             @change="initData"
           >
@@ -56,6 +68,14 @@
             @click="deleteRecord"
           >移除
           </el-button>
+          <el-button
+            icon="el-icon-download"
+            style="margin-right: 1rem;"
+            :disabled="multipleSelection.length === 0"
+            type="primary"
+            @click="downloadZip"
+          >下载
+          </el-button>
         </el-form-item>
         <el-form-item style="float: right;">
           <el-button icon="el-icon-refresh-right" circle :loading="loading" @click="initData()" />
@@ -68,7 +88,8 @@
           width="55"
         />
         <el-table-column prop="app" label="应用名" />
-        <el-table-column prop="stream" label="流ID" width="380" />
+        <el-table-column prop="stream" label="流ID" />
+        <el-table-column prop="callId" label="Call Id"/>
         <el-table-column label="开始时间">
           <template v-slot:default="scope">
             {{ formatTimeStamp(scope.row.startTime) }}
@@ -117,32 +138,24 @@
         @current-change="currentChange"
       />
     </div>
-    <el-dialog
-      :title="playerTitle"
-      :visible.sync="showPlayer"
-      top="2rem"
-      width="1200px"
-      height="560px"
-    >
-      <h265web ref="recordVideoPlayer" :video-url="videoUrl" :height="false" :show-button="true" />
-    </el-dialog>
+    <playerDialog ref="playerDialog"></playerDialog>
   </div>
 </template>
 
 <script>
-import h265web from '../common/h265web.vue'
+import playerDialog from './playerDialog.vue'
 import moment from 'moment'
 import Vue from 'vue'
 
 export default {
   name: 'CloudRecord',
-  components: { h265web },
+  components: { playerDialog },
   data() {
     return {
       search: '',
+      callId: '',
       startTime: '',
       endTime: '',
-      showPlayer: false,
       playerTitle: '',
       videoUrl: '',
       mediaServerList: [], // 滅体节点列表
@@ -176,6 +189,7 @@ export default {
   },
   methods: {
     initData: function() {
+      this.currentPage = 1
       this.getRecordList()
     },
     currentChange: function(val) {
@@ -198,6 +212,7 @@ export default {
     getRecordList: function() {
       this.$store.dispatch('cloudRecord/queryList', {
         query: this.search,
+        callId: this.callId,
         startTime: this.startTime,
         endTime: this.endTime,
         mediaServerId: this.mediaServerId,
@@ -216,19 +231,21 @@ export default {
         })
     },
     play(row) {
-      console.log(row)
       this.chooseRecord = row
-      this.$store.dispatch('cloudRecord/getPlayPath', row.id)
-        .then((data) => {
-          if (location.protocol === 'https:') {
-            this.videoUrl = data.httpsPath
-          } else {
-            this.videoUrl = data.httpPath
-          }
-          this.showPlayer = true
+      this.$refs.playerDialog.stopPlay()
+      this.$store.dispatch('cloudRecord/loadRecord', {
+        app: row.app,
+        stream: row.stream,
+        cloudRecordId: row.id
+      })
+        .then(data => {
+          this.$refs.playerDialog.openDialog(data, row.timeLen, row.startTime)
         })
         .catch((error) => {
           console.log(error)
+        })
+        .finally(() => {
+          this.playLoading = false
         })
     },
     downloadFile(row) {
@@ -237,9 +254,27 @@ export default {
           const link = document.createElement('a')
           link.target = '_blank'
           if (location.protocol === 'https:') {
-            link.href = data.httpsPath + '&save_name=' + row.fileName
+            if (data.httpsPath) {
+              link.href = data.httpsPath + '&save_name=' + row.fileName
+            }else if (data.httpPath){
+              link.href = data.httpPath + '&save_name=' + row.fileName
+            }else {
+              this.$message.error({
+                showClose: true,
+                message: '获取下载地址失败'
+              })
+            }
           } else {
-            link.href = data.httpPath + '&save_name=' + row.fileName
+            if (data.httpPath) {
+              link.href = data.httpPath + '&save_name=' + row.fileName
+            }else if (data.httpsPath){
+              link.href = data.httpsPath + '&save_name=' + row.fileName
+            }else {
+              this.$message.error({
+                showClose: true,
+                message: '获取下载地址失败'
+              })
+            }
           }
           link.click()
         })
@@ -272,8 +307,22 @@ export default {
 
       })
     },
+    downloadZip() {
+      const ids = []
+      for (let i = 0; i < this.multipleSelection.length; i++) {
+        ids.push(this.multipleSelection[i].id)
+      }
+      let idsStr = ids.join(',')
+      const link = document.createElement('a')
+      link.target = '_blank'
+      let baseUri = (process.env.NODE_ENV === 'development') ? process.env.VUE_APP_BASE_API : process.env.VUE_APP_BASE_API
+      let downloadUrl = `${location.origin}${baseUri}/api/cloud/record/download/zip?ids=${idsStr}`
+      console.log(downloadUrl)
+      link.href = downloadUrl
+      link.click()
+    },
     deleteOneRecord(row) {
-      this.$confirm(`确定删除?`, '提示', {
+      this.$confirm('确定删除?', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
@@ -310,6 +359,6 @@ export default {
 
 <style>
 .el-dialog__body {
-  padding: 30px 0 !important;
+  padding: 20px 0 0 0 !important;
 }
 </style>

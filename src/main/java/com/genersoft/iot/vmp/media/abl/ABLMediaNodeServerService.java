@@ -1,7 +1,6 @@
 package com.genersoft.iot.vmp.media.abl;
 
 import com.alibaba.fastjson2.JSONArray;
-import com.alibaba.fastjson2.JSONObject;
 import com.genersoft.iot.vmp.common.CommonCallback;
 import com.genersoft.iot.vmp.common.InviteInfo;
 import com.genersoft.iot.vmp.common.InviteSessionType;
@@ -11,20 +10,23 @@ import com.genersoft.iot.vmp.conf.UserSetting;
 import com.genersoft.iot.vmp.conf.exception.ControllerException;
 import com.genersoft.iot.vmp.gb28181.bean.SendRtpInfo;
 import com.genersoft.iot.vmp.gb28181.service.IInviteStreamService;
+import com.genersoft.iot.vmp.media.abl.bean.ABLMedia;
+import com.genersoft.iot.vmp.media.abl.bean.ABLResult;
 import com.genersoft.iot.vmp.media.abl.bean.AblServerConfig;
-import com.genersoft.iot.vmp.media.abl.bean.hook.OnStreamArriveABLHookParam;
 import com.genersoft.iot.vmp.media.bean.MediaInfo;
 import com.genersoft.iot.vmp.media.bean.MediaServer;
+import com.genersoft.iot.vmp.media.bean.RecordInfo;
 import com.genersoft.iot.vmp.media.event.media.MediaRecordMp4Event;
-import com.genersoft.iot.vmp.media.event.media.MediaRecordProcessEvent;
 import com.genersoft.iot.vmp.media.service.IMediaNodeServerService;
 import com.genersoft.iot.vmp.service.bean.CloudRecordItem;
 import com.genersoft.iot.vmp.service.bean.DownloadFileInfo;
+import com.genersoft.iot.vmp.service.bean.ErrorCallback;
 import com.genersoft.iot.vmp.storager.dao.CloudRecordServiceMapper;
 import com.genersoft.iot.vmp.streamProxy.bean.StreamProxy;
 import com.genersoft.iot.vmp.utils.DateUtil;
 import com.genersoft.iot.vmp.vmanager.bean.ErrorCode;
 import com.genersoft.iot.vmp.vmanager.bean.WVPResult;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +34,14 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
-import java.util.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @Service("abl")
 public class ABLMediaNodeServerService implements IMediaNodeServerService {
 
@@ -70,18 +78,10 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
        if (mediaServer == null) {
            return;
        }
-        Map<String, Object> param = new HashMap<>();
-        param.put("stream_id", streamId);
-        param.put("force", 1);
-        JSONObject jsonObject = ablresTfulUtils.closeStreams(mediaServer, "rtp", streamId);
-        logger.info("关闭RTP Server " +  jsonObject);
-        if (jsonObject != null ) {
-            if (jsonObject.getInteger("code") != 0) {
-                logger.error("[closeRtpServer] 失败: " + jsonObject.getString("memo"));
-            }
-        }else {
-            //  检查ZLM状态
-            logger.error("[closeRtpServer] 失败: 请检查ZLM服务");
+        ABLResult result = ablresTfulUtils.closeStreams(mediaServer, "rtp", streamId);
+        logger.info("关闭RTP Server " +  result);
+        if (result.getCode() != 0) {
+            logger.error("[closeRtpServer] 失败: {}", result.getMemo());
         }
     }
 
@@ -96,31 +96,18 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
         if (mediaServer == null) {
             return;
         }
-        JSONObject jsonObject = ablresTfulUtils.closeStreams(mediaServer, "1078", streamId);
-        logger.info("关闭RTP Server " +  jsonObject);
-        if (jsonObject != null ) {
-            if (jsonObject.getInteger("code") != 0) {
-                logger.error("[closeRtpServer] 失败: " + jsonObject.getString("memo"));
-            }
-        }else {
-            //  检查ZLM状态
-            logger.error("[closeRtpServer] 失败: 请检查ZLM服务");
+        ABLResult result = ablresTfulUtils.closeStreams(mediaServer, "1078", streamId);
+        logger.info("关闭JT-RTP Server " +  result);
+        if (result.getCode() != 0) {
+            logger.error("[JT-closeRtpServer] 失败: {}", result.getMemo());
         }
     }
 
     @Override
     public void closeStreams(MediaServer mediaServer, String app, String streamId) {
-        Map<String, Object> param = new HashMap<>();
-        param.put("stream_id", streamId);
-        param.put("force", 1);
-        JSONObject jsonObject = ablresTfulUtils.closeStreams(mediaServer, app, streamId);
-        if (jsonObject != null ) {
-            if (jsonObject.getInteger("code") != 0) {
-                logger.error("[closeStreams] 失败: " + jsonObject.getString("memo"));
-            }
-        }else {
-            //  检查ZLM状态
-            logger.error("[closeStreams] 失败: 请检查ZLM服务");
+        ABLResult result = ablresTfulUtils.closeStreams(mediaServer, app, streamId);
+        if (result.getCode() != 0) {
+            logger.error("[closeStreams] 失败: {}", result.getMemo());
         }
     }
 
@@ -146,8 +133,8 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
         mediaServer.setIp(ip);
         mediaServer.setHttpPort(port);
         mediaServer.setSecret(secret);
-        JSONObject responseJSON = ablresTfulUtils.getServerConfig(mediaServer);
-        JSONArray data = responseJSON.getJSONArray("params");
+        ABLResult result = ablresTfulUtils.getServerConfig(mediaServer);
+        JSONArray data = result.getParams();
         if (data != null && !data.isEmpty()) {
             AblServerConfig config = AblServerConfig.getInstance(data);
             config.setServerIp(ip);
@@ -173,20 +160,18 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
 
     @Override
     public List<StreamInfo> getMediaList(MediaServer mediaServer, String app, String stream, String callId) {
-        JSONObject jsonObject = ablresTfulUtils.getMediaList(mediaServer, app, stream);
-        if (jsonObject == null || jsonObject.getInteger("code") != 0) {
+        ABLResult result = ablresTfulUtils.getMediaList(mediaServer, app, stream);
+        if (result.getCode() != 0) {
             return null;
         }
-        JSONArray mediaList = jsonObject.getJSONArray("mediaList");
-        if (mediaList == null || mediaList.isEmpty()) {
+        if (result.getMediaList() == null || result.getMediaList().isEmpty()) {
             return new ArrayList<>();
         }
         List<StreamInfo> streamInfoList = new ArrayList<>();
-        for (int i = 0; i < mediaList.size(); i++) {
-            JSONObject mediaJSON = mediaList.getJSONObject(i);
-            OnStreamArriveABLHookParam onStreamArriveABLHookParam = mediaJSON.to(OnStreamArriveABLHookParam.class);
-            MediaInfo mediaInfo = MediaInfo.getInstance(onStreamArriveABLHookParam, mediaServer);
-            StreamInfo streamInfo = getStreamInfoByAppAndStream(mediaServer, app, stream, mediaInfo, callId, true);
+        for (int i = 0; i < result.getMediaList().size(); i++) {
+            ABLMedia ablMedia = result.getMediaList().get(i);
+            MediaInfo mediaInfo = MediaInfo.getInstance(ablMedia, mediaServer);
+            StreamInfo streamInfo = getStreamInfoByAppAndStream(mediaServer, app, stream, mediaInfo, null, callId, true);
             if (streamInfo != null) {
                 streamInfoList.add(streamInfo);
             }
@@ -194,26 +179,79 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
         return streamInfoList;
     }
 
-    public StreamInfo getStreamInfoByAppAndStream(MediaServer mediaServer, String app, String stream, MediaInfo mediaInfo, String callId, boolean isPlay) {
+    @Override
+    public StreamInfo getStreamInfoByAppAndStream(MediaServer mediaServer, String app, String stream, MediaInfo mediaInfo,
+                                                  String addr, String callId, boolean isPlay) {
         StreamInfo streamInfoResult = new StreamInfo();
         streamInfoResult.setStream(stream);
         streamInfoResult.setApp(app);
-        String addr = mediaServer.getStreamIp();
+        if (addr == null) {
+            addr = mediaServer.getStreamIp();
+        }
+
         streamInfoResult.setIp(addr);
+        if (mediaInfo != null) {
+            streamInfoResult.setServerId(mediaInfo.getServerId());
+        }else {
+            streamInfoResult.setServerId(userSetting.getServerId());
+        }
+
         streamInfoResult.setMediaServer(mediaServer);
-        String callIdParam = ObjectUtils.isEmpty(callId)?"":"?callId=" + callId;
+        Map<String, String> param = new HashMap<>();
+        if (!ObjectUtils.isEmpty(callId)) {
+            param.put("callId", callId);
+        }
+        if (mediaInfo != null && !ObjectUtils.isEmpty(mediaInfo.getOriginTypeStr()))  {
+            param.put("originTypeStr", mediaInfo.getOriginTypeStr());
+        }
+        StringBuilder callIdParamBuilder = new StringBuilder();
+        if (!param.isEmpty()) {
+            callIdParamBuilder.append("?");
+            for (Map.Entry<String, String> entry : param.entrySet()) {
+                callIdParamBuilder.append(entry.getKey()).append("=").append(entry.getValue());
+                callIdParamBuilder.append("&");
+            }
+            callIdParamBuilder.deleteCharAt(callIdParamBuilder.length() - 1);
+        }
+
+        String callIdParam = callIdParamBuilder.toString();
+
         streamInfoResult.setRtmp(addr, mediaServer.getRtmpPort(),mediaServer.getRtmpSSlPort(), app,  stream, callIdParam);
         streamInfoResult.setRtsp(addr, mediaServer.getRtspPort(),mediaServer.getRtspSSLPort(), app,  stream, callIdParam);
+
         String flvFile = String.format("%s/%s.flv%s", app, stream, callIdParam);
-        streamInfoResult.setFlv(addr, mediaServer.getFlvPort(),mediaServer.getHttpSSlPort(), flvFile);
-        streamInfoResult.setWsFlv(addr, mediaServer.getWsFlvPort(),mediaServer.getHttpSSlPort(), flvFile);
-        streamInfoResult.setFmp4(addr, mediaServer.getHttpPort(),mediaServer.getHttpSSlPort(), app,  stream, callIdParam);
-        streamInfoResult.setHls(addr, mediaServer.getHttpPort(),mediaServer.getHttpSSlPort(), app,  stream, callIdParam);
-        streamInfoResult.setTs(addr, mediaServer.getHttpPort(),mediaServer.getHttpSSlPort(), app,  stream, callIdParam);
-        streamInfoResult.setRtc(addr, mediaServer.getHttpPort(),mediaServer.getHttpSSlPort(), app,  stream, callIdParam, isPlay);
+        if ((mediaServer.getFlvPort() & 1) == 1) {
+            // 奇数端口 默认ssl端口
+            streamInfoResult.setFlv(addr, null, mediaServer.getFlvPort(), flvFile);
+        }else {
+            streamInfoResult.setFlv(addr, mediaServer.getFlvPort(),null,  flvFile);
+        }
+        if ((mediaServer.getWsFlvPort() & 1) == 1) {
+            // 奇数端口 默认ssl端口
+            streamInfoResult.setWsFlv(addr, null, mediaServer.getWsFlvPort(), flvFile);
+        }else {
+            streamInfoResult.setWsFlv(addr, mediaServer.getWsFlvPort(),null,  flvFile);
+        }
+        String mp4File = String.format("%s/%s.mp4%s", app, stream, callIdParam);
+        if ((mediaServer.getMp4Port() & 1) == 1) {
+            // 奇数端口 默认ssl端口
+            streamInfoResult.setFmp4(addr, null, mediaServer.getMp4Port(), mp4File);
+        }else {
+            streamInfoResult.setFmp4(addr, mediaServer.getMp4Port(), null, mp4File);
+        }
+
+        streamInfoResult.setHls(addr, mediaServer.getHttpPort(), mediaServer.getHttpSSlPort(), app,  stream, callIdParam);
+        streamInfoResult.setTs(addr, mediaServer.getHttpPort(), mediaServer.getHttpSSlPort(), app,  stream, callIdParam);
+        streamInfoResult.setRtc(addr, mediaServer.getHttpPort(), mediaServer.getHttpSSlPort(), app,  stream, callIdParam, isPlay);
 
         streamInfoResult.setMediaInfo(mediaInfo);
-        streamInfoResult.setOriginType(mediaInfo.getOriginType());
+
+        if (!"broadcast".equalsIgnoreCase(app) && !ObjectUtils.isEmpty(mediaServer.getTranscodeSuffix()) && !"null".equalsIgnoreCase(mediaServer.getTranscodeSuffix())) {
+            String newStream = stream + "_" + mediaServer.getTranscodeSuffix();
+            mediaServer.setTranscodeSuffix(null);
+            StreamInfo transcodeStreamInfo = getStreamInfoByAppAndStream(mediaServer, app, newStream, null, addr, callId, isPlay);
+            streamInfoResult.setTranscodeStream(transcodeStreamInfo);
+        }
         return streamInfoResult;
     }
 
@@ -236,37 +274,26 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
 
     @Override
     public MediaInfo getMediaInfo(MediaServer mediaServer, String app, String stream) {
-        JSONObject jsonObject = ablresTfulUtils.getMediaList(mediaServer, app, stream);
-        if (jsonObject == null || jsonObject.getInteger("code") != 0) {
+        ABLResult ablResult = ablresTfulUtils.getMediaList(mediaServer, app, stream);
+        if (ablResult.getCode() != 0) {
             return null;
         }
-        JSONArray mediaList = jsonObject.getJSONArray("mediaList");
-        if (mediaList == null || mediaList.isEmpty()) {
+        if (ablResult.getMediaList() == null || ablResult.getMediaList().isEmpty()) {
             return null;
         }
-        MediaInfo mediaInfo = null;
-        for (int i = 0; i < mediaList.size(); i++) {
-            JSONObject mediaJSON = mediaList.getJSONObject(i);
-            OnStreamArriveABLHookParam onStreamArriveABLHookParam = mediaJSON.to(OnStreamArriveABLHookParam.class);
-            if (onStreamArriveABLHookParam == null) {
-                continue;
-            }
-            mediaInfo = MediaInfo.getInstance(onStreamArriveABLHookParam, mediaServer);
-
-        }
-        return mediaInfo;
+        return MediaInfo.getInstance(ablResult.getMediaList().get(0), mediaServer);
     }
 
     @Override
     public Boolean pauseRtpCheck(MediaServer mediaServer, String streamKey) {
-        logger.warn("[abl-pauseRtpCheck] 未实现");
-        return null;
+        ABLResult ablResult = ablresTfulUtils.pauseRtpServer(mediaServer, streamKey);
+        return ablResult.getCode() == 0;
     }
 
     @Override
     public Boolean resumeRtpCheck(MediaServer mediaServer, String streamKey) {
-        logger.warn("[abl-resumeRtpCheck] 未实现");
-        return null;
+        ABLResult ablResult = ablresTfulUtils.resumeRtpServer(mediaServer, streamKey);
+        return ablResult.getCode() == 0;
     }
 
     @Override
@@ -276,14 +303,14 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
 
     @Override
     public Boolean delFFmpegSource(MediaServer mediaServer, String streamKey) {
-        JSONObject jsonObject = ablresTfulUtils.delFFmpegProxy(mediaServer, streamKey);
-        return jsonObject.getInteger("code") == 0;
+        ABLResult ablResult = ablresTfulUtils.delFFmpegProxy(mediaServer, streamKey);
+        return ablResult.getCode() == 0;
     }
 
     @Override
     public Boolean delStreamProxy(MediaServer mediaServer, String streamKey) {
-        JSONObject jsonObject = ablresTfulUtils.delStreamProxy(mediaServer, streamKey);
-        return jsonObject.getInteger("code") == 0;
+        ABLResult ablResult = ablresTfulUtils.delStreamProxy(mediaServer, streamKey);
+        return ablResult.getCode() == 0;
     }
 
     @Override
@@ -292,18 +319,18 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
     }
 
     // 接受进度通知
-    @EventListener
-    public void onApplicationEvent(MediaRecordProcessEvent event) {
-        CloudRecordItem cloudRecordItem = cloudRecordServiceMapper.getListByFileName(event.getApp(), event.getStream(), event.getFileName());
-        if (cloudRecordItem == null) {
-            cloudRecordItem = CloudRecordItem.getInstance(event);
-            cloudRecordItem.setStartTime(event.getStartTime());
-            cloudRecordItem.setEndTime(event.getEndTime());
-            cloudRecordServiceMapper.add(cloudRecordItem);
-        }else {
-            cloudRecordServiceMapper.updateTimeLen(cloudRecordItem.getId(), (long)event.getCurrentFileDuration() * 1000, System.currentTimeMillis());
-        }
-    }
+//    @EventListener
+//    public void onApplicationEvent(MediaRecordProcessEvent event) {
+//        CloudRecordItem cloudRecordItem = cloudRecordServiceMapper.getListByFileName(event.getApp(), event.getStream(), event.getFileName());
+//        if (cloudRecordItem == null) {
+//            cloudRecordItem = CloudRecordItem.getInstance(event);
+//            cloudRecordItem.setStartTime(event.getStartTime());
+//            cloudRecordItem.setEndTime(event.getEndTime());
+//            cloudRecordServiceMapper.add(cloudRecordItem);
+//        }else {
+//            cloudRecordServiceMapper.updateTimeLen(cloudRecordItem.getId(), (long)event.getCurrentFileDuration() * 1000, System.currentTimeMillis());
+//        }
+//    }
     @EventListener
     public void onApplicationEvent(MediaRecordMp4Event event) {
         InviteInfo inviteInfo = inviteStreamService.getInviteInfo(InviteSessionType.DOWNLOAD, null, event.getStream());
@@ -317,17 +344,15 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
         }
         long startTime = cloudRecordItemList.get(cloudRecordItemList.size() - 1).getStartTime();
         long endTime = cloudRecordItemList.get(0).getEndTime();
-        JSONObject jsonObject = ablresTfulUtils.queryRecordList(event.getMediaServer(), event.getApp(), event.getStream(), DateUtil.timestampMsToUrlToyyyy_MM_dd_HH_mm_ss(startTime),
+        ABLResult ablResult = ablresTfulUtils.queryRecordList(event.getMediaServer(), event.getApp(), event.getStream(), DateUtil.timestampMsToUrlToyyyy_MM_dd_HH_mm_ss(startTime),
                 DateUtil.timestampMsToUrlToyyyy_MM_dd_HH_mm_ss(endTime));
-        System.err.println(jsonObject);
-        if (jsonObject == null || jsonObject.getInteger("code") != 0) {
+        if (ablResult.getCode() != 0) {
             return;
         }
-        JSONObject urlJson = jsonObject.getJSONObject("url");
-        if (urlJson == null) {
+        if (ablResult.getUrl() == null) {
             return;
         }
-        String download = urlJson.getString("http-mp4") + "?download_speed=6";
+        String download = ablResult.getUrl().getDownload();
         DownloadFileInfo downloadFileInfo = new DownloadFileInfo();
         downloadFileInfo.setHttpPath(download);
         downloadFileInfo.setHttpsPath(download);
@@ -352,11 +377,11 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
     @Override
     public WVPResult<String> addStreamProxy(MediaServer mediaServer, String app, String stream, String url, boolean enableAudio, boolean enableMp4, String rtpType, Integer timeout) {
 
-        JSONObject jsonObject = ablresTfulUtils.addStreamProxy(mediaServer, app, stream, url, !enableAudio, enableMp4, rtpType, timeout);
-        if (jsonObject.getInteger("code") != 0) {
-            return WVPResult.fail(ErrorCode.ERROR100.getCode(), jsonObject.getString("memo"));
+        ABLResult result = ablresTfulUtils.addStreamProxy(mediaServer, app, stream, url, !enableAudio, enableMp4, rtpType, timeout);
+        if (result.getCode() != 0) {
+            return WVPResult.fail(ErrorCode.ERROR100.getCode(), result.getMemo());
         }else {
-            return WVPResult.success(jsonObject.getString("key"));
+            return WVPResult.success(result.getKey());
         }
     }
 
@@ -386,25 +411,23 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
             closeStreams(mediaServer, streamProxy.getApp(), streamProxy.getStream());
         }
 
-        JSONObject jsonObject = null;
+        ABLResult ablResult = null;
         if ("ffmpeg".equalsIgnoreCase(streamProxy.getType())){
             if (streamProxy.getTimeout() == 0) {
                 streamProxy.setTimeout(15);
             }
-            jsonObject = ablresTfulUtils.addFFmpegProxy(mediaServer, streamProxy.getApp(), streamProxy.getStream(), streamProxy.getSrcUrl().trim(),
+            ablResult = ablresTfulUtils.addFFmpegProxy(mediaServer, streamProxy.getApp(), streamProxy.getStream(), streamProxy.getSrcUrl().trim(),
                     !streamProxy.isEnableAudio(), streamProxy.isEnableMp4(), streamProxy.getRtspType(), streamProxy.getTimeout());
         }else {
-            jsonObject = ablresTfulUtils.addStreamProxy(mediaServer, streamProxy.getApp(), streamProxy.getStream(), streamProxy.getSrcUrl().trim(),
+            ablResult = ablresTfulUtils.addStreamProxy(mediaServer, streamProxy.getApp(), streamProxy.getStream(), streamProxy.getSrcUrl().trim(),
                     streamProxy.isEnableAudio(), streamProxy.isEnableMp4(), streamProxy.getRtspType(), streamProxy.getTimeout());
         }
-        if (jsonObject == null) {
-            throw new ControllerException(ErrorCode.ERROR100.getCode(), "请求失败");
-        }else if (jsonObject.getInteger("code") != 0) {
-            throw new ControllerException(jsonObject.getInteger("code"), jsonObject.getString("memo"));
+        if (ablResult.getCode() != 0) {
+            throw new ControllerException(ablResult.getCode(), ablResult.getMemo());
         }else {
-            String key = jsonObject.getString("key");
+            String key = ablResult.getKey();
             if (key == null) {
-                throw new ControllerException(jsonObject.getInteger("code"), "代理结果异常： " + jsonObject);
+                throw new ControllerException(ablResult.getCode(), "代理结果异常： " + ablResult);
             }else {
                 return key;
             }
@@ -413,49 +436,110 @@ public class ABLMediaNodeServerService implements IMediaNodeServerService {
 
     @Override
     public void stopProxy(MediaServer mediaServer, String streamKey, String type) {
-        JSONObject jsonObject = null;
+        ABLResult ablResult = null;
         if ("ffmpeg".equalsIgnoreCase(type)){
-            jsonObject = ablresTfulUtils.delFFmpegProxy(mediaServer, streamKey);
+            ablResult = ablresTfulUtils.delFFmpegProxy(mediaServer, streamKey);
         }else {
-            jsonObject = ablresTfulUtils.delStreamProxy(mediaServer, streamKey);
+            ablResult = ablresTfulUtils.delStreamProxy(mediaServer, streamKey);
         }
-        if (jsonObject == null) {
-            throw new ControllerException(ErrorCode.ERROR100.getCode(), "请求失败");
-        }else if (jsonObject.getInteger("code") != 0) {
-            throw new ControllerException(jsonObject.getInteger("code"), jsonObject.getString("memo"));
+        if (ablResult.getCode() != 0) {
+            throw new ControllerException(ablResult.getCode(), ablResult.getMemo());
         }
     }
 
     @Override
     public List<String> listRtpServer(MediaServer mediaServer) {
-        JSONObject jsonObject = ablresTfulUtils.getMediaList(mediaServer, "rtp", null);
-        if (jsonObject == null || jsonObject.getInteger("code") != 0) {
+        ABLResult ablResult = ablresTfulUtils.getMediaList(mediaServer, "rtp", null);
+        if (ablResult.getCode() != 0) {
             return null;
         }
-        JSONArray mediaList = jsonObject.getJSONArray("mediaList");
-        if (mediaList == null || mediaList.isEmpty()) {
+        if (ablResult.getMediaList() == null || ablResult.getMediaList().isEmpty()) {
             return new ArrayList<>();
         }
         List<String> result = new ArrayList<>();
-        for (int i = 0; i < mediaList.size(); i++) {
-            JSONObject mediaJSON = mediaList.getJSONObject(i);
-            result.add(mediaJSON.getString("stream"));
+        for (int i = 0; i < ablResult.getMediaList().size(); i++) {
+            ABLMedia ablMedia = ablResult.getMediaList().get(i);
+            result.add(ablMedia.getStream());
         }
         return result;
     }
 
     @Override
-    public void loadMP4File(MediaServer mediaServer, String app, String stream, String datePath) {
-        logger.warn("[abl-loadMP4File] 未实现");
+    public void loadMP4File(MediaServer mediaServer, String app, String stream, String filePath, String fileName, ErrorCallback<StreamInfo> callback) {
+        String buildStream = String.format("%s__ReplayFMP4RecordFile__%s", stream, fileName);
+        StreamInfo streamInfo = getStreamInfoByAppAndStream(mediaServer, app, buildStream, null, null, null, true);
+        callback.run(ErrorCode.SUCCESS.getCode(), ErrorCode.SUCCESS.getMsg(), streamInfo);
+    }
+
+    @Override
+    public void loadMP4FileForDate(MediaServer mediaServer, String app, String stream, String date, String dateDir, ErrorCallback<StreamInfo> callback) {
+        // 解析为 LocalDate
+        LocalDate localDate = LocalDate.parse(date, DateUtil.DateFormatter);
+        LocalDateTime startOfDay = localDate.atStartOfDay();
+        LocalDateTime endOfDay = localDate.atTime(23, 59,59, 999);
+        String startTime = DateUtil.urlFormatter.format(startOfDay);
+        String endTime = DateUtil.urlFormatter.format(endOfDay);
+
+        ABLResult ablResult = ablresTfulUtils.queryRecordList(mediaServer, app, stream, startTime, endTime);
+        if (ablResult.getCode() != 0) {
+            throw new ControllerException(ErrorCode.ERROR100.getCode(), ablResult.getMemo());
+        }
+        String resultApp = ablResult.getApp();
+        String resultStream = ablResult.getStream();
+        StreamInfo streamInfo = getStreamInfoByAppAndStream(mediaServer, resultApp, resultStream, null, null,null, true);
+        streamInfo.setKey(ablResult.getKey());
+        if (callback != null) {
+            callback.run(ErrorCode.SUCCESS.getCode(), ErrorCode.SUCCESS.getMsg(), streamInfo);
+        }
     }
 
     @Override
     public void seekRecordStamp(MediaServer mediaServer, String app, String stream, Double stamp, String schema) {
-        logger.warn("[abl-seekRecordStamp] 未实现");
+        ABLResult ablResult = ablresTfulUtils.controlRecordPlay(mediaServer, app, stream, "seek", stamp/1000 + "");
+        if (ablResult.getCode() != 0) {
+            log.warn("[abl-seek] 失败：{}", ablResult.getMemo());
+        }
     }
 
     @Override
     public void setRecordSpeed(MediaServer mediaServer, String app, String stream, Integer speed, String schema) {
-        logger.warn("[abl-setRecordSpeed] 未实现");
+        ABLResult ablResult = ablresTfulUtils.controlRecordPlay(mediaServer, app, stream, "scale", speed + "");
+        if (ablResult.getCode() != 0) {
+            log.warn("[abl-倍速] 失败：{}", ablResult.getMemo());
+        }
+    }
+
+    @Override
+    public DownloadFileInfo getDownloadFilePath(MediaServer mediaServer, RecordInfo recordInfo) {
+        // 将filePath作为独立参数传入，避免%符号解析问题
+        String pathTemplate = "%s://%s:%s/%s/%s__ReplayFMP4RecordFile__%s?download_speed=16";
+
+        DownloadFileInfo info = new DownloadFileInfo();
+        if ((mediaServer.getMp4Port() & 1) == 1) {
+            info.setHttpsPath(
+                    String.format(
+                            pathTemplate,
+                            "https",
+                            mediaServer.getStreamIp(),
+                            mediaServer.getMp4Port(),
+                            recordInfo.getApp(),
+                            recordInfo.getStream(),
+                            recordInfo.getFileName()
+                    )
+            );
+        }else {
+            info.setHttpPath(
+                    String.format(
+                            pathTemplate,
+                            "http",
+                            mediaServer.getStreamIp(),
+                            mediaServer.getMp4Port(),
+                            recordInfo.getApp(),
+                            recordInfo.getStream(),
+                            recordInfo.getFileName()
+                    )
+            );
+        }
+        return info;
     }
 }

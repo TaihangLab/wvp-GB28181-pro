@@ -23,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.context.request.async.DeferredResult;
 
 /**
  * 级联平台管理
@@ -93,9 +92,6 @@ public class PlatformController {
     @ResponseBody
     public void add(@RequestBody Platform platform) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("保存上级平台信息API调用");
-        }
         Assert.notNull(platform.getName(), "平台名称不可为空");
         Assert.notNull(platform.getServerGBId(), "上级平台国标编号不可为空");
         Assert.notNull(platform.getServerIp(), "上级平台IP不可为空");
@@ -140,9 +136,6 @@ public class PlatformController {
     @ResponseBody
     public void updatePlatform(@RequestBody Platform parentPlatform) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("保存上级平台信息API调用");
-        }
         if (ObjectUtils.isEmpty(parentPlatform.getName())
                 || ObjectUtils.isEmpty(parentPlatform.getServerGBId())
                 || ObjectUtils.isEmpty(parentPlatform.getServerGBDomain())
@@ -163,17 +156,17 @@ public class PlatformController {
     @Parameter(name = "id", description = "上级平台ID")
     @DeleteMapping("/delete")
     @ResponseBody
-    public DeferredResult<Object> deletePlatform(Integer id) {
+    public WVPResult<?> deletePlatform(Integer id) {
 
         if (log.isDebugEnabled()) {
             log.debug("删除上级平台API调用");
         }
-        DeferredResult<Object> deferredResult = new DeferredResult<>();
-
-        platformService.delete(id, (object)->{
-            deferredResult.setResult(WVPResult.success());
-        });
-        return deferredResult;
+        boolean result = platformService.delete(id);
+        if (result) {
+            return WVPResult.success();
+        }else {
+            return  WVPResult.fail(ErrorCode.ERROR100);
+        }
     }
 
     @Operation(summary = "查询上级平台是否存在", security = @SecurityRequirement(name = JwtUtils.HEADER))

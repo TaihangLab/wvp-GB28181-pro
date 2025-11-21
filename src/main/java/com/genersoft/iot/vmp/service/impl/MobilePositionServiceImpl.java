@@ -1,14 +1,16 @@
 package com.genersoft.iot.vmp.service.impl;
 
 import com.genersoft.iot.vmp.conf.UserSetting;
+import com.genersoft.iot.vmp.gb28181.bean.Device;
 import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
 import com.genersoft.iot.vmp.gb28181.bean.MobilePosition;
 import com.genersoft.iot.vmp.gb28181.bean.Platform;
-import com.genersoft.iot.vmp.gb28181.dao.PlatformMapper;
-import com.genersoft.iot.vmp.service.IMobilePositionService;
 import com.genersoft.iot.vmp.gb28181.dao.DeviceChannelMapper;
+import com.genersoft.iot.vmp.gb28181.dao.DeviceMapper;
 import com.genersoft.iot.vmp.gb28181.dao.DeviceMobilePositionMapper;
-import com.genersoft.iot.vmp.service.bean.GPSMsgInfo;
+import com.genersoft.iot.vmp.gb28181.dao.PlatformMapper;
+import com.genersoft.iot.vmp.gb28181.utils.Coordtransform;
+import com.genersoft.iot.vmp.service.IMobilePositionService;
 import com.genersoft.iot.vmp.utils.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,9 @@ import java.util.Map;
 @Slf4j
 @Service
 public class MobilePositionServiceImpl implements IMobilePositionService {
+
+    @Autowired
+    private DeviceMapper deviceMapper;
 
     @Autowired
     private DeviceChannelMapper channelMapper;
@@ -81,16 +86,10 @@ public class MobilePositionServiceImpl implements IMobilePositionService {
 
     /**
      * 查询最新移动位置
-     * @param deviceId
      */
     @Override
     public MobilePosition queryLatestPosition(String deviceId) {
         return mobilePositionMapper.queryLatestPositionByDevice(deviceId);
-    }
-
-    @Override
-    public void updateStreamGPS(List<GPSMsgInfo> gpsMsgInfoList) {
-        channelMapper.updateStreamGPS(gpsMsgInfoList);
     }
 
     @Scheduled(fixedDelay = 1000)
@@ -105,7 +104,7 @@ public class MobilePositionServiceImpl implements IMobilePositionService {
             mobilePositionMapper.batchadd(mobilePositions);
         }
         log.info("[移动位置订阅]更新通道位置： {}", mobilePositions.size());
-        Map<String, DeviceChannel> updateChannelMap = new HashMap<>();
+        Map<String, Map<Integer, DeviceChannel>> updateChannelMap = new HashMap<>();
         for (MobilePosition mobilePosition : mobilePositions) {
             DeviceChannel deviceChannel = new DeviceChannel();
             deviceChannel.setId(mobilePosition.getChannelId());
@@ -114,10 +113,33 @@ public class MobilePositionServiceImpl implements IMobilePositionService {
             deviceChannel.setLatitude(mobilePosition.getLatitude());
             deviceChannel.setGpsTime(mobilePosition.getTime());
             deviceChannel.setUpdateTime(DateUtil.getNow());
-            updateChannelMap.put(mobilePosition.getDeviceId() + mobilePosition.getChannelId(), deviceChannel);
+            if (mobilePosition.getLongitude() > 0 || mobilePosition.getLatitude() > 0) {
+                Double[] wgs84Position = Coordtransform.GCJ02ToWGS84(mobilePosition.getLongitude(), mobilePosition.getLatitude());
+                deviceChannel.setGbLongitude(wgs84Position[0]);
+                deviceChannel.setGbLatitude(wgs84Position[1]);
+            }
+            if (!updateChannelMap.containsKey(mobilePosition.getDeviceId())) {
+                updateChannelMap.put(mobilePosition.getDeviceId(), new HashMap<>());
+            }
+            updateChannelMap.get(mobilePosition.getDeviceId()).put(mobilePosition.getChannelId(), deviceChannel);
         }
-        List<DeviceChannel> channels = new ArrayList<>(updateChannelMap.values());
-        channelMapper.batchUpdatePosition(channels);
+        List<String> deviceIds = new ArrayList<>(updateChannelMap.keySet());
+        if (deviceIds.isEmpty()) {
+            log.info("[移动位置订阅]为查询到对应的设备，消息已经忽略");
+            return;
+        }
+        List<Device> deviceList = deviceMapper.queryByDeviceIds(deviceIds);
+        for (Device device : deviceList) {
+            Map<Integer, DeviceChannel> channelMap = updateChannelMap.get(device.getDeviceId());
+            if (device.getGeoCoordSys().equalsIgnoreCase("GCJ02")) {
+                channelMap.values().forEach(channel -> {
+                    Double[] wgs84Position = Coordtransform.GCJ02ToWGS84(channel.getLongitude(), channel.getLatitude());
+                    channel.setGbLongitude(wgs84Position[0]);
+                    channel.setGbLatitude(wgs84Position[1]);
+                });
+            }
+            channelMapper.batchUpdatePosition(new ArrayList<>(channelMap.values()));
+        }
     }
 
 }

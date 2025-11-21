@@ -7,11 +7,12 @@
       title="视频播放"
       top="0"
       append-to-body
+      width="40vw"
       :close-on-click-modal="false"
       :visible.sync="showVideoDialog"
       @close="close()"
     >
-      <div style="width: 100%; height: 100%">
+      <div style="width: 100%; ">
         <el-tabs
           v-if="Object.keys(this.player).length > 1"
           v-model="activePlayer"
@@ -21,10 +22,10 @@
         >
           <el-tab-pane label="Jessibuca" name="jessibuca">
             <jessibucaPlayer
+              style="height: 22.5vw"
               v-if="activePlayer === 'jessibuca'"
               ref="jessibuca"
               :visible.sync="showVideoDialog"
-              :video-url="videoUrl"
               :error="videoError"
               :message="videoError"
               :has-audio="hasAudio"
@@ -32,6 +33,7 @@
               autoplay
               live
             />
+
           </el-tab-pane>
           <el-tab-pane label="WebRTC" name="webRTC">
             <rtc-player
@@ -64,44 +66,6 @@
 
           </el-tab-pane>
         </el-tabs>
-        <jessibucaPlayer
-          v-if="Object.keys(this.player).length == 1 && this.player.jessibuca"
-          ref="jessibuca"
-          :visible.sync="showVideoDialog"
-          :video-url="videoUrl"
-          :error="videoError"
-          :message="videoError"
-          :has-audio="hasAudio"
-          fluent
-          autoplay
-          live
-        />
-        <rtc-player
-          v-if="Object.keys(this.player).length == 1 && this.player.webRTC"
-          ref="jessibuca"
-          :visible.sync="showVideoDialog"
-          :video-url="videoUrl"
-          :error="videoError"
-          :message="videoError"
-          height="100px"
-          :has-audio="hasAudio"
-          fluent
-          autoplay
-          live
-        />
-        <h265web
-          v-if="Object.keys(this.player).length == 1 && this.player.h265web"
-          ref="jessibuca"
-          :visible.sync="showVideoDialog"
-          :video-url="videoUrl"
-          :error="videoError"
-          :message="videoError"
-          height="100px"
-          :has-audio="hasAudio"
-          fluent
-          autoplay
-          live
-        />
       </div>
       <div id="shared" style="text-align: right; margin-top: 1rem;">
 
@@ -461,7 +425,13 @@ export default {
       console.log(this.player[tab.name][0])
       this.activePlayer = tab.name
       this.videoUrl = this.getUrlByStreamInfo()
-      console.log(this.videoUrl)
+      if (this.$refs[this.activePlayer]) {
+        this.$refs[this.activePlayer].play(this.videoUrl)
+      } else {
+        this.$nextTick(() => {
+          this.$refs[this.activePlayer].play(this.videoUrl)
+        })
+      }
     },
     openDialog: function(tab, deviceId, channelId, param) {
       if (this.showVideoDialog) {
@@ -504,22 +474,23 @@ export default {
       this.playFromStreamInfo(false, streamInfo)
     },
     getUrlByStreamInfo() {
-      console.log(this.streamInfo)
       let streamInfo = this.streamInfo
       if (this.streamInfo.transcodeStream) {
         streamInfo = this.streamInfo.transcodeStream
       }
+      let videoUrl
       if (location.protocol === 'https:') {
-        this.videoUrl = streamInfo[this.player[this.activePlayer][1]]
+        videoUrl = streamInfo[this.player[this.activePlayer][1]]
       } else {
-        this.videoUrl = streamInfo[this.player[this.activePlayer][0]]
+        videoUrl = streamInfo[this.player[this.activePlayer][0]]
       }
-      return this.videoUrl
+      return videoUrl
     },
 
     playFromStreamInfo: function(realHasAudio, streamInfo) {
       this.showVideoDialog = true
       this.hasaudio = realHasAudio && this.hasaudio
+      console.log(66666666)
       if (this.$refs[this.activePlayer]) {
         this.$refs[this.activePlayer].play(this.getUrlByStreamInfo(streamInfo))
       } else {

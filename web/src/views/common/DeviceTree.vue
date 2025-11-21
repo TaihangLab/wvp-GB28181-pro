@@ -19,7 +19,9 @@
           ref="regionTree"
           :edit="false"
           :show-header="false"
+          :show-position="showPosition"
           :has-channel="true"
+          :contextmenu="contextmenu"
           @clickEvent="treeNodeClickEvent"
           :default-expanded-keys="[]"
         />
@@ -28,7 +30,9 @@
           ref="groupTree"
           :edit="false"
           :show-header="false"
+          :show-position="showPosition"
           :has-channel="true"
+          :contextmenu="contextmenu"
           @clickEvent="treeNodeClickEvent"
           :default-expanded-keys="[]"
         />
@@ -56,11 +60,19 @@ export default {
     contextMenuEvent: {
       type: Function,
       default: null
+    },
+    showPosition: {
+      type: Boolean,
+      default: false
+    },
+    contextmenu: {
+      type: Array,
+      default: null
     }
   },
   data() {
     return {
-      showRegion: true,
+      showRegion: false,
       defaultProps: {
         children: 'children',
         label: 'name',
@@ -134,6 +146,13 @@ export default {
     treeNodeClickEvent: function(data) {
       if (data.leaf) {
         this.$emit('clickEvent', data.id)
+      }
+    },
+    refresh: function(id) {
+      if (this.showRegion) {
+        this.$refs.regionTree.refresh(id)
+      }else {
+        this.$refs.groupTree.refresh(id)
       }
     }
   }

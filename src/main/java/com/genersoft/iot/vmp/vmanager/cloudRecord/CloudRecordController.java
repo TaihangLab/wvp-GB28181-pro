@@ -14,6 +14,7 @@ import com.genersoft.iot.vmp.service.bean.ErrorCallback;
 import com.genersoft.iot.vmp.service.bean.InviteErrorCode;
 import com.genersoft.iot.vmp.streamPush.bean.BatchRemoveParam;
 import com.genersoft.iot.vmp.utils.DateUtil;
+import com.genersoft.iot.vmp.utils.HttpUtils;
 import com.genersoft.iot.vmp.vmanager.bean.ErrorCode;
 import com.genersoft.iot.vmp.vmanager.bean.StreamContent;
 import com.genersoft.iot.vmp.vmanager.bean.WVPResult;
@@ -23,14 +24,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -253,17 +254,17 @@ public class CloudRecordController {
     @Operation(summary = "加载录像文件形成播放地址")
     @Parameter(name = "app", description = "应用名", required = true)
     @Parameter(name = "stream", description = "流ID", required = true)
-    @Parameter(name = "date", description = "日期， 例如 2025-04-10", required = true)
+    @Parameter(name = "cloudRecordId", description = "云端录像ID", required = true)
     public DeferredResult<WVPResult<StreamContent>> loadRecord(
             HttpServletRequest request,
             @RequestParam(required = true) String app,
             @RequestParam(required = true) String stream,
-            @RequestParam(required = true) String date
+            @RequestParam(required = true) int cloudRecordId
             ) {
         DeferredResult<WVPResult<StreamContent>> result = new DeferredResult<>();
 
         result.onTimeout(()->{
-            log.info("[加载录像文件超时] app={}, stream={}, date={}", app, stream, date);
+            log.info("[加载录像文件超时] app={}, stream={}, cloudRecordId={}", app, stream, cloudRecordId);
             WVPResult<StreamContent> wvpResult = new WVPResult<>();
             wvpResult.setCode(ErrorCode.ERROR100.getCode());
             wvpResult.setMsg("加载录像文件超时");
@@ -304,7 +305,7 @@ public class CloudRecordController {
             result.setResult(wvpResult);
         };
 
-        cloudRecordService.loadRecord(app, stream, date, callback);
+        cloudRecordService.loadMP4File(app, stream, cloudRecordId, callback);
         return result;
     }
 
@@ -312,6 +313,7 @@ public class CloudRecordController {
     @GetMapping("/seek")
     @Operation(summary = "定位录像播放到制定位置")
     @Parameter(name = "mediaServerId", description = "使用的节点Id", required = true)
+    @Parameter(name = "app", description = "应用名", required = true)
     @Parameter(name = "stream", description = "流ID", required = true)
     @Parameter(name = "seek", description = "要定位的时间位置，从录像开始的时间算起", required = true)
     public void seekRecord(
@@ -331,6 +333,7 @@ public class CloudRecordController {
     @GetMapping("/speed")
     @Operation(summary = "设置录像播放速度")
     @Parameter(name = "mediaServerId", description = "使用的节点Id", required = true)
+    @Parameter(name = "app", description = "应用名", required = true)
     @Parameter(name = "stream", description = "流ID", required = true)
     @Parameter(name = "speed", description = "要设置的录像倍速", required = true)
     public void setRecordSpeed(
@@ -354,6 +357,56 @@ public class CloudRecordController {
     public void deleteFileByIds(@RequestBody BatchRemoveParam ids) {
         cloudRecordService.deleteFileByIds(ids.getIds());
     }
+
+    @ResponseBody
+    @GetMapping("/download/zip")
+    public void downloadZipFileFromUrl(HttpServletResponse response, Integer[] ids) {
+        log.info("[下载指定录像文件的压缩包] 查询 ids->{}", ids);
+        List<Integer> arrayList = new ArrayList<>(List.of(ids));
+        List<CloudRecordUrl> cloudRecordItemList = cloudRecordService.getUrlListByIds(arrayList);
+        if (ObjectUtils.isEmpty(cloudRecordItemList)) {
+            log.warn("[下载指定录像文件的压缩包] 未找到录像文件，ids->{}", ids);
+            return;
+        }
+
+        // 设置响应头
+        response.setContentType("application/zip");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=record_" + System.currentTimeMillis() + ".zip");
+
+        try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
+            for (CloudRecordUrl recordUrl : cloudRecordItemList) {
+                try {
+                    zos.putNextEntry(new ZipEntry(recordUrl.getFileName()));
+                    boolean downloadSuccess = HttpUtils.downLoadFile(recordUrl.getDownloadUrl(), zos);
+                    if (!downloadSuccess) {
+                        log.warn("[下载指定录像文件的压缩包] 下载文件失败: {}", recordUrl.getDownloadUrl());
+                        zos.closeEntry();
+                        continue;
+                    }
+
+//                    try (FileInputStream fis = new FileInputStream(recordUrl.getFilePath())) {
+//                        byte[] buf = new byte[8192]; // 8KB 缓冲区，提高性能
+//                        int len;
+//                        while ((len = fis.read(buf)) != -1) {
+//                            zos.write(buf, 0, len);
+//                        }
+//                    }
+
+                    zos.closeEntry();
+                } catch (Exception e) {
+                    log.error("[下载指定录像文件的压缩包] 处理文件失败: {}, 错误: {}", recordUrl.getFileName(), e.getMessage());
+                    // 继续处理下一个文件
+                }
+            }
+        } catch (IOException e) {
+            log.error("[下载指定录像文件的压缩包] 创建压缩包失败，查询 ids->{}", ids, e);
+        }
+    }
+
+
+
+
 
     /************************* 以下这些接口只适合wvp和zlm部署在同一台服务器的情况，且wvp只有一个zlm节点的情况 ***************************************/
 
@@ -407,31 +460,45 @@ public class CloudRecordController {
         if (callId != null && ObjectUtils.isEmpty(callId.trim())) {
             callId = null;
         }
+        // 设置响应头
+        response.setContentType("application/zip");
+        response.setCharacterEncoding("UTF-8");
         if (stream != null && callId != null) {
-            response.addHeader("Content-Disposition", "attachment;filename=" + stream + "_" + callId + ".zip");
+            response.setHeader("Content-Disposition", "attachment;filename=" + stream + "_" + callId + ".zip");
+        } else {
+            response.setHeader("Content-Disposition", "attachment;filename=cloud_record_" + System.currentTimeMillis() + ".zip");
         }
         List<CloudRecordItem> cloudRecordItemList = cloudRecordService.getAllList(query, app, stream, startTime, endTime, mediaServers, callId, ids);
         if (ObjectUtils.isEmpty(cloudRecordItemList)) {
             return;
         }
-        try {
-            ZipOutputStream zos = new ZipOutputStream(response.getOutputStream());
+        try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
             for (CloudRecordItem cloudRecordItem : cloudRecordItemList) {
-                zos.putNextEntry(new ZipEntry(DateUtil.timestampMsToUrlToyyyy_MM_dd_HH_mm_ss((long)cloudRecordItem.getStartTime()) + ".mp4"));
-                File file = new File(cloudRecordItem.getFilePath());
-                if (!file.exists() || file.isDirectory()) {
-                    continue;
+                try {
+                    String fileName = DateUtil.timestampMsToUrlToyyyy_MM_dd_HH_mm_ss((long)cloudRecordItem.getStartTime()) + ".mp4";
+                    zos.putNextEntry(new ZipEntry(fileName));
+
+                    File file = new File(cloudRecordItem.getFilePath());
+                    if (!file.exists() || file.isDirectory()) {
+                        log.warn("[下载指定录像文件的压缩包] 文件不存在或为目录: {}", cloudRecordItem.getFilePath());
+                        zos.closeEntry();
+                        continue;
+                    }
+
+                    try (FileInputStream fis = new FileInputStream(cloudRecordItem.getFilePath())) {
+                        byte[] buf = new byte[8192]; // 8KB 缓冲区，提高性能
+                        int len;
+                        while ((len = fis.read(buf)) != -1) {
+                            zos.write(buf, 0, len);
+                        }
+                    }
+                    zos.closeEntry();
+                    log.debug("[下载指定录像文件的压缩包] 成功添加文件: {}", fileName);
+                } catch (Exception e) {
+                    log.error("[下载指定录像文件的压缩包] 处理文件失败: {}, 错误: {}", cloudRecordItem.getFilePath(), e.getMessage());
+                    // 继续处理下一个文件
                 }
-                FileInputStream fis = new FileInputStream(cloudRecordItem.getFilePath());
-                byte[] buf = new byte[2 * 1024];
-                int len;
-                while ((len = fis.read(buf)) != -1) {
-                    zos.write(buf, 0, len);
-                }
-                zos.closeEntry();
-                fis.close();
             }
-            zos.close();
         } catch (IOException e) {
             log.error("[下载指定录像文件的压缩包] 失败： 查询 app->{}, stream->{}, mediaServerId->{}, startTime->{}, endTime->{}, callId->{}", app, stream, mediaServerId, startTime, endTime, callId, e);
         }

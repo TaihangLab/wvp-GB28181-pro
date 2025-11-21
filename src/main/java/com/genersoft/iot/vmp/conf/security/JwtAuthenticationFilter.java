@@ -4,17 +4,19 @@ import com.genersoft.iot.vmp.conf.UserSetting;
 import com.genersoft.iot.vmp.conf.security.dto.JwtUser;
 import com.genersoft.iot.vmp.storager.dao.dto.Role;
 import com.genersoft.iot.vmp.storager.dao.dto.User;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingRequestWrapper;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -22,6 +24,7 @@ import java.util.ArrayList;
  * jwt token 过滤器
  */
 
+@Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -33,14 +36,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
-
+    protected void doFilterInternal(HttpServletRequest servletRequest, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+        ContentCachingRequestWrapper request = new ContentCachingRequestWrapper(servletRequest);
         // 忽略登录请求的token验证
         String requestURI = request.getRequestURI();
-        if ((requestURI.startsWith("/doc.html") || requestURI.startsWith("/swagger-ui") ) && !userSetting.getDocEnable()) {
+        if ((requestURI.startsWith("/doc.html") || requestURI.startsWith("/swagger-ui")  ) && !userSetting.getDocEnable()) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
+
         if (requestURI.equalsIgnoreCase("/api/user/login")) {
             chain.doFilter(request, response);
             return;
@@ -52,8 +56,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
-
-
 
         String jwt = request.getHeader(JwtUtils.getHeader());
         // 这里如果没有jwt，继续往后走，因为后面还有鉴权管理器等去判断是否拥有身份凭证，所以是可以放行的
@@ -83,7 +85,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // TODO 处理各个状态
         switch (jwtUser.getStatus()){
             case EXPIRED:
-                response.setStatus(400);
+                response.setStatus(401);
                 chain.doFilter(request, response);
                 // 异常
                 return;
@@ -109,5 +111,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(token);
         chain.doFilter(request, response);
     }
-
 }

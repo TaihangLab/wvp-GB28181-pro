@@ -51,4 +51,77 @@ call wvp_20250708();
 DROP PROCEDURE wvp_20250708;
 DELIMITER ;
 
+/*
+* 20250917
+*/
+DELIMITER //  -- 重定义分隔符避免分号冲突
+CREATE PROCEDURE `wvp_20250917`()
+BEGIN
+    IF NOT EXISTS (SELECT column_name FROM information_schema.columns
+                   WHERE TABLE_SCHEMA = (SELECT DATABASE()) and  table_name = 'wvp_media_server' and column_name = 'mp4_port')
+    THEN
+        ALTER TABLE wvp_media_server ADD mp4_port integer;
+    END IF;
+
+    IF NOT EXISTS (SELECT column_name FROM information_schema.columns
+                   WHERE TABLE_SCHEMA = (SELECT DATABASE()) and  table_name = 'wvp_media_server' and column_name = 'mp4_ssl_port')
+    THEN
+        ALTER TABLE wvp_media_server ADD mp4_ssl_port integer;
+    END IF;
+END; //
+call wvp_20250917();
+DROP PROCEDURE wvp_20250917;
+DELIMITER ;
+
+/*
+* 20250924
+*/
+DELIMITER //  -- 重定义分隔符避免分号冲突
+CREATE PROCEDURE `wvp_20250924`()
+BEGIN
+    IF NOT EXISTS (SELECT column_name FROM information_schema.columns
+                   WHERE TABLE_SCHEMA = (SELECT DATABASE()) and  table_name = 'wvp_device_channel' and column_name = 'enable_broadcast')
+    THEN
+        ALTER TABLE wvp_device_channel ADD enable_broadcast integer default 0;
+    END IF;
+
+    IF NOT EXISTS (SELECT column_name FROM information_schema.columns
+                       WHERE TABLE_SCHEMA = (SELECT DATABASE()) and  table_name = 'wvp_device_channel' and column_name = 'map_level')
+    THEN
+        ALTER TABLE wvp_device_channel ADD map_level integer default 0;
+    END IF;
+
+    IF NOT EXISTS (SELECT column_name FROM information_schema.columns
+                       WHERE TABLE_SCHEMA = (SELECT DATABASE()) and  table_name = 'wvp_common_group' and column_name = 'alias')
+    THEN
+        ALTER TABLE wvp_common_group ADD alias varchar(255) default null;
+    END IF;
+END; //
+call wvp_20250924();
+DROP PROCEDURE wvp_20250924;
+DELIMITER ;
+
+
+/*
+* 20251027
+*/
+DELIMITER //  -- 重定义分隔符避免分号冲突
+CREATE PROCEDURE `wvp_20251027`()
+BEGIN
+    IF EXISTS (SELECT column_name FROM information_schema.columns
+                   WHERE TABLE_SCHEMA = (SELECT DATABASE()) and  table_name = 'wvp_stream_proxy' and column_name = 'enable_remove_none_reader')
+    THEN
+        ALTER TABLE wvp_stream_proxy DROP enable_remove_none_reader;
+    END IF;
+END; //
+call wvp_20251027();
+DROP PROCEDURE wvp_20251027;
+DELIMITER ;
+
+
+
+
+
+
+
 

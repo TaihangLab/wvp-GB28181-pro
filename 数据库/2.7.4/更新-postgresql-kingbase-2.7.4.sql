@@ -35,3 +35,10 @@ create table IF NOT EXISTS wvp_jt_channel (
 );
 
 ALTER table wvp_media_server ADD COLUMN IF NOT EXISTS jtt_proxy_port integer;
+ALTER table wvp_media_server ADD COLUMN IF NOT EXISTS mp4_port integer;
+ALTER table wvp_media_server ADD COLUMN IF NOT EXISTS mp4_ssl_port integer;
+
+ALTER table wvp_device_channel ADD COLUMN IF NOT EXISTS enable_broadcast integer default 0;
+ALTER table wvp_device_channel ADD COLUMN IF NOT EXISTS map_level integer default 0;
+ALTER table wvp_common_group ADD COLUMN IF NOT EXISTS alias varchar(255) default null;
+ALTER table wvp_stream_proxy DROP COLUMN IF EXISTS enable_remove_none_reader;

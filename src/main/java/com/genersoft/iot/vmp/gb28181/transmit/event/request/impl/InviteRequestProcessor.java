@@ -2,6 +2,7 @@ package com.genersoft.iot.vmp.gb28181.transmit.event.request.impl;
 
 import com.genersoft.iot.vmp.common.InviteSessionType;
 import com.genersoft.iot.vmp.common.VideoManagerConstants;
+import com.genersoft.iot.vmp.common.enums.ChannelDataType;
 import com.genersoft.iot.vmp.conf.DynamicTask;
 import com.genersoft.iot.vmp.conf.SipConfig;
 import com.genersoft.iot.vmp.conf.UserSetting;
@@ -140,17 +141,17 @@ public class InviteRequestProcessor extends SIPRequestProcessorParent implements
                     }
                     return;
                 }
-                log.info("[上级Invite] 平台：{}， 通道：{}({}), 收流地址：{}:{}，收流方式：{}, 点播类型：{},  ssrc：{}",
+                log.info("[上级INVITE] 平台：{}， 通道：{}({}), 收流地址：{}:{}，收流方式：{}, 点播类型：{},  SSRC：{}",
                         platform.getName(), channel.getGbName(), channel.getGbDeviceId(), inviteInfo.getIp(),
                         inviteInfo.getPort(), inviteInfo.isTcp()?(inviteInfo.isTcpActive()?"TCP主动":"TCP被动"): "UDP",
                         inviteInfo.getSessionName(), inviteInfo.getSsrc());
                 if(!userSetting.getUseCustomSsrcForParentInvite() && ObjectUtils.isEmpty(inviteInfo.getSsrc())) {
-                    log.warn("[上级INVITE] 点播失败, 上级为携带SSRC, 并且本级未设置使用自定义ssrc");
+                    log.warn("[上级INVITE] 点播失败, 上级未携带SSRC, 并且本级未设置使用自定义SSRC");
                     // 通道存在，发100，TRYING
                     try {
                         responseAck(request, Response.BAD_REQUEST);
                     } catch (SipException | InvalidArgumentException | ParseException e) {
-                        log.error("[命令发送失败] 上级Invite TRYING: {}", e.getMessage());
+                        log.error("[命令发送失败] 上级INVITE TRYING: {}", e.getMessage());
                     }
                     return;
                 }
@@ -158,7 +159,7 @@ public class InviteRequestProcessor extends SIPRequestProcessorParent implements
                 try {
                     responseAck(request, Response.TRYING);
                 } catch (SipException | InvalidArgumentException | ParseException e) {
-                    log.error("[命令发送失败] 上级Invite TRYING: {}", e.getMessage());
+                    log.error("[命令发送失败] 上级INVITE TRYING: {}", e.getMessage());
                 }
 
                 channelPlayService.startInvite(channel, inviteInfo, platform, ((code, msg, streamInfo) -> {
@@ -166,7 +167,7 @@ public class InviteRequestProcessor extends SIPRequestProcessorParent implements
                         try {
                             responseAck(request, Response.BUSY_HERE , msg);
                         } catch (SipException | InvalidArgumentException | ParseException e) {
-                            log.error("[命令发送失败] 上级Invite 点播失败: {}", e.getMessage());
+                            log.error("[命令发送失败] 上级INVITE 点播失败: {}", e.getMessage());
                         }
                     }else {
                         // 点播成功， TODO 可以在此处检测cancel命令是否存在，存在则不发送
@@ -190,7 +191,8 @@ public class InviteRequestProcessor extends SIPRequestProcessorParent implements
                         }
                         sendRtpItem.setStatus(1);
                         sendRtpItem.setCallId(inviteInfo.getCallId());
-                        sendRtpItem.setPlayType("Play".equalsIgnoreCase(inviteInfo.getSessionName()) ? InviteStreamType.PLAY : InviteStreamType.PLAYBACK);
+
+                        sendRtpItem.setPlayTypeByChannelDataType(channel.getDataType(), inviteInfo.getSessionName());
                         sendRtpItem.setServerId(streamInfo.getServerId());
                         sendRtpServerService.update(sendRtpItem);
                         String sdpIp = streamInfo.getMediaServer().getSdpIp();
@@ -208,7 +210,7 @@ public class InviteRequestProcessor extends SIPRequestProcessorParent implements
                         try {
                             responseSdpAck(request, content, platform);
                         } catch (SipException | InvalidArgumentException | ParseException e) {
-                            log.error("[命令发送失败] 上级Invite 发送 200（SDP）: {}", e.getMessage());
+                            log.error("[命令发送失败] 上级INVITE 发送 200（SDP）: {}", e.getMessage());
                         }
 
                         // tcp主动模式，回复sdp后开启监听
@@ -221,7 +223,7 @@ public class InviteRequestProcessor extends SIPRequestProcessorParent implements
                                     redisCatchStorage.sendPlatformStartPlayMsg(sendRtpItem, deviceChannel, platform);
                                 }
                             }catch (ControllerException e) {
-                                log.warn("[上级Invite] tcp主动模式 发流失败", e);
+                                log.warn("[上级INVITE] tcp主动模式 发流失败", e);
                                 sendBye(platform, inviteInfo.getCallId());
                             }
                         }
@@ -277,6 +279,7 @@ public class InviteRequestProcessor extends SIPRequestProcessorParent implements
                 (channelIdArrayFromSub != null? channelIdArrayFromSub[0]: null);
         String requesterId = SipUtils.getUserIdFromFromHeader(request);
         CallIdHeader callIdHeader = (CallIdHeader) request.getHeader(CallIdHeader.NAME);
+
         if (requesterId == null || channelId == null) {
             log.warn("[解析INVITE消息] 无法从请求中获取到来源id，返回400错误");
             throw new InviteDecodeException(Response.BAD_REQUEST, "request decode fail");
@@ -399,7 +402,7 @@ public class InviteRequestProcessor extends SIPRequestProcessorParent implements
             }
             cmderFroPlatform.streamByeCmd(platform, sendRtpItem, channel);
         } catch (SipException | InvalidArgumentException | ParseException e) {
-            log.error("[命令发送失败] 上级Invite 发送BYE: {}", e.getMessage());
+            log.error("[命令发送失败] 上级INVITE 发送BYE: {}", e.getMessage());
         }
     }
 

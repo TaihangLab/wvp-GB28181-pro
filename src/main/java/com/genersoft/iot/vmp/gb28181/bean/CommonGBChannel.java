@@ -86,22 +86,19 @@ public class CommonGBChannel {
     @Schema(description = "国标-纬度 WGS-84坐标系")
     private Double gbLatitude;
 
-    @Schema(description = "")
     private Double gpsAltitude;
 
-    @Schema(description = "")
     private Double gpsSpeed;
 
-    @Schema(description = "")
     private Double gpsDirection;
 
-    @Schema(description = "")
     private String gpsTime;
 
     @Schema(description = "国标-虚拟组织所属的业务分组ID")
     private String gbBusinessGroupId;
 
-    @Schema(description = "国标-摄像机结构类型,标识摄像机类型: 1-球机; 2-半球; 3-固定枪机; 4-遥控枪机;5-遥控半球;6-多目设备的全景/拼接通道;7-多目设备的分割通道")
+    @Schema(description = "国标-摄像机结构类型,标识摄像机类型: 1-球机; 2-半球; 3-固定枪机; 4-遥控枪机;5-遥控半球;6-多目设备的全景/拼接通道;" +
+            "7-多目设备的分割通道; 99-移动设备（非标）98-会议设备（非标）")
     private Integer gbPtzType;
 
     // 2016
@@ -152,6 +149,12 @@ public class CommonGBChannel {
 
     @Schema(description = "流唯一编号，存在表示正在直播")
     private String  streamId;
+
+    @Schema(description = "是否支持对讲 1支持,0不支持")
+    private Integer enableBroadcast;
+
+    @Schema(description = "抽稀后的图层层级")
+    private Integer mapLevel;
 
     public String encode(String serverDeviceId) {
         return encode(null, serverDeviceId);
@@ -340,6 +343,9 @@ public class CommonGBChannel {
                 if (this.getGbSvcTimeSupportMode() != null) {
                     content.append("  <SVCTimeSupportMode>" + this.getGbSvcTimeSupportMode() + "</SVCTimeSupportMode>\n");
                 }
+                if (this.getEnableBroadcast() != null) {
+                    content.append("  <EnableBroadcast>" + this.getEnableBroadcast() + "</EnableBroadcast>\n");
+                }
                 content.append("</Info>\n");
             }
         }
@@ -390,4 +396,56 @@ public class CommonGBChannel {
         return commonGBChannel;
     }
 
+    @Override
+    public String toString() {
+        return "CommonGBChannel{" +
+                "gbId=" + gbId +
+                ", gbDeviceId='" + gbDeviceId + '\'' +
+                ", gbName='" + gbName + '\'' +
+                ", gbManufacturer='" + gbManufacturer + '\'' +
+                ", gbModel='" + gbModel + '\'' +
+                ", gbOwner='" + gbOwner + '\'' +
+                ", gbCivilCode='" + gbCivilCode + '\'' +
+                ", gbBlock='" + gbBlock + '\'' +
+                ", gbAddress='" + gbAddress + '\'' +
+                ", gbParental=" + gbParental +
+                ", gbParentId='" + gbParentId + '\'' +
+                ", gbSafetyWay=" + gbSafetyWay +
+                ", gbRegisterWay=" + gbRegisterWay +
+                ", gbCertNum='" + gbCertNum + '\'' +
+                ", gbCertifiable=" + gbCertifiable +
+                ", gbErrCode=" + gbErrCode +
+                ", gbEndTime='" + gbEndTime + '\'' +
+                ", gbSecrecy=" + gbSecrecy +
+                ", gbIpAddress='" + gbIpAddress + '\'' +
+                ", gbPort=" + gbPort +
+                ", gbPassword='" + gbPassword + '\'' +
+                ", gbStatus='" + gbStatus + '\'' +
+                ", gbLongitude=" + gbLongitude +
+                ", gbLatitude=" + gbLatitude +
+                ", gpsAltitude=" + gpsAltitude +
+                ", gpsSpeed=" + gpsSpeed +
+                ", gpsDirection=" + gpsDirection +
+                ", gpsTime='" + gpsTime + '\'' +
+                ", gbBusinessGroupId='" + gbBusinessGroupId + '\'' +
+                ", gbPtzType=" + gbPtzType +
+                ", gbPositionType=" + gbPositionType +
+                ", gbRoomType=" + gbRoomType +
+                ", gbUseType=" + gbUseType +
+                ", gbSupplyLightType=" + gbSupplyLightType +
+                ", gbDirectionType=" + gbDirectionType +
+                ", gbResolution='" + gbResolution + '\'' +
+                ", gbDownloadSpeed='" + gbDownloadSpeed + '\'' +
+                ", gbSvcSpaceSupportMod=" + gbSvcSpaceSupportMod +
+                ", gbSvcTimeSupportMode=" + gbSvcTimeSupportMode +
+                ", recordPLan=" + recordPLan +
+                ", dataType=" + dataType +
+                ", dataDeviceId=" + dataDeviceId +
+                ", createTime='" + createTime + '\'' +
+                ", updateTime='" + updateTime + '\'' +
+                ", streamId='" + streamId + '\'' +
+                ", enableBroadcast=" + enableBroadcast +
+                ", mapLevel=" + mapLevel +
+                '}';
+    }
 }

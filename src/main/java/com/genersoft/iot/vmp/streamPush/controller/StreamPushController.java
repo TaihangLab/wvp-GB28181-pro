@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -110,7 +110,7 @@ public class StreamPushController {
     @Operation(summary = "删除", security = @SecurityRequirement(name = JwtUtils.HEADER))
     @Parameter(name = "id", description = "应用名", required = true)
     public void delete(int id){
-        if (streamPushService.delete(id) > 0){
+        if (streamPushService.delete(id) <= 0){
             throw new ControllerException(ErrorCode.ERROR100);
         }
     }

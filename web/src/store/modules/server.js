@@ -1,8 +1,8 @@
 import {
   checkMediaServer,
-  checkMediaServerRecord, deleteMediaServer, getMediaInfo,
+  checkMediaServerRecord, deleteMediaServer, getMapConfig, getMediaInfo,
   getMediaServer,
-  getMediaServerList, getMediaServerLoad,
+  getMediaServerList, getMediaServerLoad, getModelList,
   getOnlineMediaServerList, getResourceInfo, getSystemConfig, getSystemInfo, info, saveMediaServer
 } from '@/api/server'
 
@@ -130,6 +130,26 @@ const actions = {
   info({ commit }) {
     return new Promise((resolve, reject) => {
       info().then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
+  getMapConfig({ commit }) {
+    return new Promise((resolve, reject) => {
+      getMapConfig().then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
+  getModelList({ commit }) {
+    return new Promise((resolve, reject) => {
+      getModelList().then(response => {
         const { data } = response
         resolve(data)
       }).catch(error => {

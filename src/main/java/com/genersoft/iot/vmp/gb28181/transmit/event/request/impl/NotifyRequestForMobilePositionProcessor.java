@@ -1,16 +1,15 @@
 package com.genersoft.iot.vmp.gb28181.transmit.event.request.impl;
 
-import com.alibaba.fastjson2.JSONObject;
 import com.genersoft.iot.vmp.conf.UserSetting;
 import com.genersoft.iot.vmp.gb28181.bean.Device;
 import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
 import com.genersoft.iot.vmp.gb28181.bean.HandlerCatchData;
 import com.genersoft.iot.vmp.gb28181.bean.MobilePosition;
 import com.genersoft.iot.vmp.gb28181.event.EventPublisher;
+import com.genersoft.iot.vmp.gb28181.service.IDeviceChannelService;
 import com.genersoft.iot.vmp.gb28181.transmit.event.request.SIPRequestProcessorParent;
 import com.genersoft.iot.vmp.gb28181.utils.NumericUtil;
 import com.genersoft.iot.vmp.gb28181.utils.SipUtils;
-import com.genersoft.iot.vmp.gb28181.service.IDeviceChannelService;
 import com.genersoft.iot.vmp.service.IMobilePositionService;
 import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
 import com.genersoft.iot.vmp.utils.DateUtil;
@@ -107,6 +106,7 @@ public class NotifyRequestForMobilePositionProcessor extends SIPRequestProcessor
 							deviceChannel = deviceChannelService.getOne(device.getDeviceId(), channelId);
 							if (deviceChannel != null) {
 								mobilePosition.setChannelId(deviceChannel.getId());
+								mobilePosition.setChannelDeviceId(deviceChannel.getDeviceId());
 							}else {
 								log.error("[notify-移动位置] 未找到通道 {}/{}", device.getDeviceId(), channelId);
 								break readDocument;
@@ -166,37 +166,7 @@ public class NotifyRequestForMobilePositionProcessor extends SIPRequestProcessor
 				try {
 					eventPublisher.mobilePositionEventPublish(mobilePosition);
 				}catch (Exception e) {
-					log.error("[向上级转发移动位置失败] ", e);
-				}
-				if (mobilePosition.getChannelId() == null) {
-					List<DeviceChannel> channels = deviceChannelService.queryChaneListByDeviceId(mobilePosition.getDeviceId());
-					channels.forEach(channel -> {
-						// 发送redis消息。 通知位置信息的变化
-						JSONObject jsonObject = new JSONObject();
-						jsonObject.put("time", DateUtil.yyyy_MM_dd_HH_mm_ssToISO8601(mobilePosition.getTime()));
-						jsonObject.put("serial", device.getDeviceId());
-						jsonObject.put("code", channel.getDeviceId());
-						jsonObject.put("longitude", mobilePosition.getLongitude());
-						jsonObject.put("latitude", mobilePosition.getLatitude());
-						jsonObject.put("altitude", mobilePosition.getAltitude());
-						jsonObject.put("direction", mobilePosition.getDirection());
-						jsonObject.put("speed", mobilePosition.getSpeed());
-						redisCatchStorage.sendMobilePositionMsg(jsonObject);
-					});
-				}else {
-					// 发送redis消息。 通知位置信息的变化
-					if (deviceChannel != null) {
-						JSONObject jsonObject = new JSONObject();
-						jsonObject.put("time", DateUtil.yyyy_MM_dd_HH_mm_ssToISO8601(mobilePosition.getTime()));
-						jsonObject.put("serial", mobilePosition.getDeviceId());
-						jsonObject.put("code", deviceChannel.getDeviceId());
-						jsonObject.put("longitude", mobilePosition.getLongitude());
-						jsonObject.put("latitude", mobilePosition.getLatitude());
-						jsonObject.put("altitude", mobilePosition.getAltitude());
-						jsonObject.put("direction", mobilePosition.getDirection());
-						jsonObject.put("speed", mobilePosition.getSpeed());
-						redisCatchStorage.sendMobilePositionMsg(jsonObject);
-					}
+					log.error("[MobilePositionEvent] 发送失败：  ", e);
 				}
 			} catch (DocumentException e) {
 				log.error("[收到移动位置订阅通知] 文档解析异常： \r\n{}", evt.getRequest(), e);
