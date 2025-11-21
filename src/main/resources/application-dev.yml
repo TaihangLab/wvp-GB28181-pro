@@ -104,8 +104,8 @@ media:
   id: XwFtVZrtZbHJq4UV
   # [必须修改] zlm服务器的内网IP
   ip: 192.168.0.14
-  # [必须修改] zlm服务器的http.port
-  hook-ip: 192.168.0.14
+  # [必须修改] zlm服务器的http.port  #wvp机器的ip地址，回调地址
+  hook-ip:  192.168.0.14
   http-port: 9092
   # [必选选] zlm服务器的hook.admin_params=secret
   secret: 7TFF0VJ9B1JZcUdDGnufYWUaskpwW3EG
