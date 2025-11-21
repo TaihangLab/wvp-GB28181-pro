@@ -47,7 +47,7 @@ import com.genersoft.iot.vmp.vmanager.bean.ErrorCode;
 import org.apache.commons.compress.utils.IOUtils;
 
 import java.beans.PropertyDescriptor;
-import javax.servlet.ServletOutputStream;
+import jakarta.servlet.ServletOutputStream;
 //import javax.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
