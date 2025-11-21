@@ -41,7 +41,7 @@ public class SpringDocConfig {
                         .description("开箱即用的28181协议视频平台。 <br/>" +
                                 "1. 打开<a href='/doc.html#/default/用户管理/login'>登录</a>接口" +
                                 " 登录成功后返回AccessToken。 <br/>" +
-                                "2. 填写到AccessToken到参数值 <a href='/doc.html#/Authorize/1.%20全部'>Token配置</a>  <br/>" +
+                                "2. 填写到AccessToken到参数值 <a href='/doc.html#/Authorize/default'>Token配置</a>  <br/>" +
                                 "后续接口就可以直接测试了")
                         .version("v3.1.0")
                         .license(new License().name("Apache 2.0").url("http://springdoc.org")));
