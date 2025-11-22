@@ -89,7 +89,7 @@ public class MediaConfig{
     @Value("${media.rtp.enable}")
     private boolean rtpEnable;
 
-    @Value("${media.rtp.port-range}")
+    @Value("${media.rtp.porange}")
     private String rtpPortRange;
 
     @Value("${media.rtp.send-port-range}")
